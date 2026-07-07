@@ -23,8 +23,22 @@ qt_add_executable(fm
     src/app/fm_application.cpp
     src/core/config_manager.h
     src/core/config_manager.cpp
+    src/core/clipboard_manager.h
+    src/core/clipboard_manager.cpp
     src/core/session_state.h
     src/core/session_state.cpp
+    src/dialogs/about_dialog.h
+    src/dialogs/about_dialog.cpp
+    src/dialogs/conflict_dialog.h
+    src/dialogs/conflict_dialog.cpp
+    src/dialogs/error_dialog.h
+    src/dialogs/error_dialog.cpp
+    src/dialogs/input_name_dialog.h
+    src/dialogs/input_name_dialog.cpp
+    src/dialogs/open_with_dialog.h
+    src/dialogs/open_with_dialog.cpp
+    src/dialogs/properties_dialog.h
+    src/dialogs/properties_dialog.cpp
     src/filelist/file_item.h
     src/filelist/file_item.cpp
     src/filelist/file_list_model.h
@@ -33,6 +47,12 @@ qt_add_executable(fm
     src/filelist/file_list_sort_proxy.cpp
     src/filelist/file_list_view.h
     src/filelist/file_list_view.cpp
+    src/fileops/file_operations.h
+    src/fileops/file_operations.cpp
+    src/fileops/progress_dialog.h
+    src/fileops/progress_dialog.cpp
+    src/fileops/trash_can.h
+    src/fileops/trash_can.cpp
     src/panel/panel_id.h
     src/panel/file_tab_bar.h
     src/panel/file_tab_bar.cpp

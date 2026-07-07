@@ -2,10 +2,17 @@
 #define FM_UI_MAIN_WINDOW_H
 
 #include <QMainWindow>
+#include <QPointer>
+
+class QAction;
+class QActionGroup;
+class QMenu;
+class QToolBar;
 
 namespace fm {
 
 class PanelContainer;
+class PanelWidget;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -24,11 +31,53 @@ protected:
 private slots:
     void onExit();
 
+    // 文件菜单
+    void onNewTab();
+    void onCloseTab();
+    void onCloneTab();
+    void onNewFile();
+    void onNewFolder();
+
+    // 收藏菜单
+    void onAddFavorite();
+    void onFavoriteTriggered(const QString &name);
+
+    // 设置菜单
+    void onToggleActivePanel();
+    void onToggleOrientation();
+    void onTogglePanel1Visible();
+    void onTogglePanel2Visible();
+    void onToggleHiddenFiles();
+    void onLanguageChanged(QAction *action);
+    void onThemeChanged(QAction *action);
+    void onOpenSettings();
+
+    // 帮助菜单
+    void onAbout();
+
 private:
     void buildMenuBar();
+    void buildFileMenu(QMenu *menu);
+    void buildFavoritesMenu(QMenu *menu);
+    void buildSettingsMenu(QMenu *menu);
+    void buildHelpMenu(QMenu *menu);
+    void refreshFavoritesMenu();
+    void refreshPanelActions();
     void restoreSession();
 
     PanelContainer *panelContainer_ = nullptr;
+    QToolBar *toolbar_ = nullptr;
+
+    // 设置菜单中需要动态更新文字的项
+    QAction *toggleOrientationAction_ = nullptr;
+    QAction *togglePanel1Action_ = nullptr;
+    QAction *togglePanel2Action_ = nullptr;
+    QAction *toggleHiddenAction_ = nullptr;
+    QMenu *favoritesMenu_ = nullptr;
+    QMenu *languageMenu_ = nullptr;
+    QMenu *themeMenu_ = nullptr;
+    QActionGroup *languageGroup_ = nullptr;
+    QActionGroup *themeGroup_ = nullptr;
 };
 
 } // namespace fm

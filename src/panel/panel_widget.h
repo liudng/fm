@@ -6,6 +6,8 @@
 #include <QWidget>
 
 class QStackedWidget;
+class QMenu;
+class QPoint;
 
 namespace fm {
 
@@ -14,6 +16,7 @@ class FileListModel;
 class FileListSortProxy;
 class FileTabBar;
 struct TabState;
+struct FileItem;
 
 // 单个面板：选项卡栏 + 文件列表视图栈
 class PanelWidget : public QWidget {
@@ -44,6 +47,13 @@ public:
     QList<TabState> tabStates() const;
     void setTabStates(const QList<TabState> &states, int activeIndex);
 
+    // 选中文件项
+    QList<FileItem> selectedItems() const;
+    QList<QUrl> selectedUrls() const;
+
+    // 显示右键菜单
+    void showContextMenu(const QPoint &globalPos, bool hasSelection);
+
 signals:
     void activeTabChanged(int index);
     void tabCountChanged();
@@ -63,6 +73,23 @@ private slots:
     void onOpenRequested(const QModelIndex &proxyIndex);
     void onParentDirRequested();
 
+    // 右键菜单动作槽
+    void onOpen();
+    void onOpenWith();
+    void onCopy();
+    void onCut();
+    void onPaste();
+    void onCopyToOpposite();
+    void onCutToOpposite();
+    void onTrash();
+    void onDeletePermanently();
+    void onRename();
+    void onProperties();
+    void onCopyPath();
+    void onCopyFileName();
+    void onNewFile();
+    void onNewFolder();
+
 private:
     struct TabData {
         FileListView *view = nullptr;
@@ -74,6 +101,8 @@ private:
 
     void applyColumnConfig(FileListView *view);
     void navigateTo(const QString &path, bool addHistory);
+    QString oppositePanelPath() const;
+    QString currentDir() const;
 
     PanelId id_;
     FileTabBar *tabBar_ = nullptr;
