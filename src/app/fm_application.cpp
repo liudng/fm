@@ -1,5 +1,6 @@
 #include "fm_application.h"
 
+#include "../app/single_instance.h"
 #include "../core/column_manager.h"
 #include "../core/config_manager.h"
 #include "../core/shortcut_manager.h"
@@ -28,6 +29,14 @@ FmApplication::FmApplication(int &argc, char **argv)
 }
 
 bool FmApplication::initialize() {
+    // 0. 单实例检测
+    singleInstance_ = new SingleInstance(this);
+    if (!singleInstance_->tryLock()) {
+        // 已有实例在运行：本进程不需要继续初始化
+        // main.cpp 会在 initialize 返回后处理 sendPaths
+        return false;
+    }
+
     // 1. 配置文件加载与损坏检测
     auto *cfg = ConfigManager::instance();
     if (!cfg->load()) {
@@ -78,6 +87,11 @@ bool FmApplication::initialize() {
     // 6. 主窗口
     mainWindow_ = new MainWindow();
     mainWindow_->show();
+
+    // 7. 监听单实例路径接收
+    connect(singleInstance_, &SingleInstance::pathsReceived,
+            mainWindow_, &MainWindow::addPathsToPanels);
+
     return true;
 }
 

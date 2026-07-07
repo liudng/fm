@@ -7,15 +7,18 @@
 namespace fm {
 
 class MainWindow;
+class SingleInstance;
 
 // 应用程序入口
-// Phase 1：最小化版本，仅初始化配置与翻译；单实例在后续阶段补全
+// - 单实例检测
+// - 配置加载、翻译、主窗口初始化
 class FmApplication : public QApplication {
     Q_OBJECT
 public:
     FmApplication(int &argc, char **argv);
 
     // 初始化配置、翻译、主窗口
+    // 返回 false 表示应退出（单实例已有或配置损坏且用户选择退出）
     bool initialize();
 
     MainWindow *mainWindow() const { return mainWindow_; }
@@ -25,6 +28,7 @@ private:
 
     MainWindow *mainWindow_ = nullptr;
     QTranslator translator_;
+    SingleInstance *singleInstance_ = nullptr;
 };
 
 } // namespace fm

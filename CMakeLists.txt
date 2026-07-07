@@ -13,7 +13,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Core Gui Concurrent DBus LinguistTools)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Core Gui Concurrent DBus Network LinguistTools)
 
 qt_standard_project_setup()
 
@@ -21,6 +21,8 @@ qt_add_executable(fm
     src/main.cpp
     src/app/fm_application.h
     src/app/fm_application.cpp
+    src/app/single_instance.h
+    src/app/single_instance.cpp
     src/core/clipboard_manager.h
     src/core/clipboard_manager.cpp
     src/core/column_manager.h
@@ -29,10 +31,14 @@ qt_add_executable(fm
     src/core/config_manager.cpp
     src/core/favorite_manager.h
     src/core/favorite_manager.cpp
+    src/core/open_with_manager.h
+    src/core/open_with_manager.cpp
     src/core/session_state.h
     src/core/session_state.cpp
     src/core/shortcut_manager.h
     src/core/shortcut_manager.cpp
+    src/core/volume_manager.h
+    src/core/volume_manager.cpp
     src/dialogs/about_dialog.h
     src/dialogs/about_dialog.cpp
     src/dialogs/conflict_dialog.h
@@ -58,6 +64,8 @@ qt_add_executable(fm
     src/filelist/file_list_sort_proxy.cpp
     src/filelist/file_list_view.h
     src/filelist/file_list_view.cpp
+    src/fileops/conflict_resolver.h
+    src/fileops/conflict_resolver.cpp
     src/fileops/file_operations.h
     src/fileops/file_operations.cpp
     src/fileops/progress_dialog.h
@@ -73,6 +81,8 @@ qt_add_executable(fm
     src/panel/panel_container.cpp
     src/ui/main_window.h
     src/ui/main_window.cpp
+    src/ui/volume_menu.h
+    src/ui/volume_menu.cpp
 )
 
 target_link_libraries(fm PRIVATE
@@ -81,6 +91,7 @@ target_link_libraries(fm PRIVATE
     Qt6::Gui
     Qt6::Concurrent
     Qt6::DBus
+    Qt6::Network
 )
 
 install(TARGETS fm RUNTIME DESTINATION bin)

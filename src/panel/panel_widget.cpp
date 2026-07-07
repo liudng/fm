@@ -3,6 +3,7 @@
 #include "../core/clipboard_manager.h"
 #include "../core/column_manager.h"
 #include "../core/config_manager.h"
+#include "../core/open_with_manager.h"
 #include "../core/session_state.h"
 #include "../core/shortcut_manager.h"
 #include "../dialogs/input_name_dialog.h"
@@ -21,8 +22,10 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDir>
+#include <QFileInfo>
 #include <QIcon>
 #include <QMenu>
+#include <QMimeDatabase>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
@@ -523,11 +526,28 @@ void PanelWidget::onOpenWith() {
     const QList<FileItem> items = selectedItems();
     if (items.size() != 1 || items.first().isDir) return;
     const FileItem item = items.first();
-    OpenWithDialog dlg(item.mimeTypeName, item.name, this);
+
+    // 获取 MIME 类型
+    QMimeDatabase db;
+    const QString mimeType = db.mimeTypeForFile(item.absolutePath).name();
+
+    OpenWithDialog dlg(mimeType, item.name, this);
     if (dlg.exec() != QDialog::Accepted) return;
-    // 简单实现：通过 QDesktopServices 或后续阶段补全真正的 OpenWith 处理
-    // 此处仅示意
-    Q_UNUSED(item);
+
+    const QString app = dlg.selectedApplication();
+    if (app.isEmpty()) return;
+
+    // 若勾选"记住此选择"，保存到 [OpenWith]
+    if (dlg.rememberChoice()) {
+        OpenWithManager::instance()->setDefaultApplication(mimeType, app);
+    }
+
+    // 区分 .desktop 应用与自定义命令
+    if (app.endsWith(QStringLiteral(".desktop"))) {
+        FileOperations::instance()->openWithApplication(QUrl::fromLocalFile(item.absolutePath), app);
+    } else {
+        FileOperations::instance()->openWithCommand(QUrl::fromLocalFile(item.absolutePath), app);
+    }
 }
 
 void PanelWidget::onCopy() {

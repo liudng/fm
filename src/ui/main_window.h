@@ -13,6 +13,7 @@ namespace fm {
 
 class PanelContainer;
 class PanelWidget;
+class VolumeMenu;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -78,8 +79,10 @@ private:
     QMenu *favoritesMenu_ = nullptr;
     QMenu *languageMenu_ = nullptr;
     QMenu *themeMenu_ = nullptr;
+    QMenu *volumesMenu_ = nullptr;
     QActionGroup *languageGroup_ = nullptr;
     QActionGroup *themeGroup_ = nullptr;
+    VolumeMenu *volumeMenu_ = nullptr;
 };
 
 } // namespace fm

@@ -5,6 +5,7 @@
 #include "../core/favorite_manager.h"
 #include "../core/session_state.h"
 #include "../core/shortcut_manager.h"
+#include "../core/volume_manager.h"
 #include "../dialogs/about_dialog.h"
 #include "../dialogs/input_name_dialog.h"
 #include "../dialogs/settings_dialog.h"
@@ -13,6 +14,7 @@
 #include "../fileops/file_operations.h"
 #include "../panel/panel_container.h"
 #include "../panel/panel_widget.h"
+#include "../ui/volume_menu.h"
 
 #include <QAction>
 #include <QActionGroup>
@@ -94,9 +96,30 @@ void MainWindow::buildMenuBar() {
 }
 
 void MainWindow::buildFileMenu(QMenu *menu) {
-    // 卷列表（Phase 4 占位）
-    // 此处添加占位项，后续阶段补全
-    auto *volPlaceholder = menu->addAction(tr("(Volumes)"));
+    // 卷子菜单（Phase 4：使用 VolumeMenu）
+    volumesMenu_ = menu->addMenu(tr("&Volumes"));
+    volumesMenu_->setIcon(QIcon::fromTheme(QStringLiteral("drive-harddisk")));
+    volumeMenu_ = new VolumeMenu(volumesMenu_);
+    connect(volumesMenu_, &QMenu::aboutToShow, this, [this]() {
+        volumeMenu_->refresh();
+    });
+    connect(volumeMenu_, &VolumeMenu::volumeOpenRequested, this, [this](const QString &mp) {
+        panelContainer_->activePanel()->addTab(mp, -1);
+    });
+    connect(volumeMenu_, &VolumeMenu::volumeUnmountRequested, this, [this](const QString &dev) {
+        QString err;
+        if (!VolumeManager::instance()->unmount(dev, &err)) {
+            QMessageBox::warning(this, tr("Unmount Failed"), err);
+        }
+    });
+    connect(volumeMenu_, &VolumeMenu::volumeEjectRequested, this, [this](const QString &dev) {
+        QString err;
+        if (!VolumeManager::instance()->eject(dev, &err)) {
+            QMessageBox::warning(this, tr("Eject Failed"), err);
+        }
+    });
+    // 第一次添加占位项，aboutToShow 时刷新
+    auto *volPlaceholder = volumesMenu_->addAction(tr("(Loading...)"));
     volPlaceholder->setEnabled(false);
 
     menu->addSeparator();
