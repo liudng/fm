@@ -4,6 +4,8 @@
 #include "../filelist/file_list_model.h"
 #include "../filelist/file_list_view.h"
 
+#include <QHeaderView>
+
 namespace fm {
 
 namespace {
@@ -163,23 +165,75 @@ void ColumnManager::applyToView(FileListView *view) {
         visibleCols.append(FileListModel::ColName);
         ratios[FileListModel::ColName] = 1.0;
     }
+    // 防止 setColumnConfig 触发的 sectionResized/sectionMoved 信号导致递归
+    applying_ = true;
     view->setColumnConfig(visibleCols, ratios);
+    applying_ = false;
 }
 
 void ColumnManager::registerView(FileListView *view) {
     if (!view || views_.contains(view)) return;
     views_.append(view);
     applyToView(view);
+
+    // 监听 header 的用户拖拽调整列宽与重排列
+    auto *header = view->header();
+    connect(header, &QHeaderView::sectionResized, this,
+            [this, view](int logical, int oldSize, int newSize) {
+                onSectionResized(view, logical, oldSize, newSize);
+            });
+    connect(header, &QHeaderView::sectionMoved, this,
+            [this, view](int logical, int oldVisual, int newVisual) {
+                onSectionMoved(view, logical, oldVisual, newVisual);
+            });
 }
 
 void ColumnManager::unregisterView(FileListView *view) {
+    if (!view) return;
     views_.removeAll(view);
+    // 断开该 view header 到 this 的所有连接
+    if (view->header()) {
+        view->header()->disconnect(this);
+    }
 }
 
 void ColumnManager::applyToAllViews() {
     for (FileListView *view : views_) {
         applyToView(view);
     }
+}
+
+void ColumnManager::onSectionResized(FileListView *view, int logicalIndex,
+                                       int oldSize, int newSize) {
+    if (applying_ || !view) return;
+    const int totalWidth = view->viewport()->width();
+    if (totalWidth <= 0) return;
+    const QString name = columnName(logicalIndex);
+    if (name.isEmpty()) return;
+    const double ratio = double(newSize) / double(totalWidth);
+    ratioMap_[name] = ratio;
+    saveToConfig();
+}
+
+void ColumnManager::onSectionMoved(FileListView *view, int logical,
+                                     int oldVisual, int newVisual) {
+    if (applying_ || !view) return;
+    Q_UNUSED(oldVisual);
+    Q_UNUSED(newVisual);
+    // 根据 header 当前视觉顺序重建 order_
+    auto *header = view->header();
+    QStringList newOrder;
+    for (int visual = 0; visual < header->count(); ++visual) {
+        const int logicalIdx = header->logicalIndex(visual);
+        if (!header->isSectionHidden(logicalIdx)) {
+            const QString name = columnName(logicalIdx);
+            if (!name.isEmpty() && visibleMap_.value(name, false)) {
+                newOrder.append(name);
+            }
+        }
+    }
+    order_ = newOrder;
+    saveToConfig();
 }
 
 } // namespace fm

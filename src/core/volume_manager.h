@@ -33,8 +33,8 @@ public:
     // 列举所有已挂载/可挂载的块设备文件系统
     QList<VolumeInfo> listVolumes();
 
-    // 挂载设备（仅对未挂载文件系统有效）
-    bool mount(const QString &devicePath, QString *errorMsg);
+    // 挂载设备（返回挂载点；失败返回空字符串）
+    QString mount(const QString &devicePath, QString *errorMsg = nullptr);
     // 卸载设备
     bool unmount(const QString &devicePath, QString *errorMsg);
     // 弹出设备（对可移动介质有效）

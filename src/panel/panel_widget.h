@@ -50,9 +50,15 @@ public:
     // 选中文件项
     QList<FileItem> selectedItems() const;
     QList<QUrl> selectedUrls() const;
+    bool hasSelection() const;
+    bool hasSingleSelection() const;
 
     // 显示右键菜单
     void showContextMenu(const QPoint &globalPos, bool hasSelection);
+
+    // 持久化 QAction（用于工具栏与右键菜单共享）
+    QList<QAction*> toolbarActions() const;
+    void updateActionStates();
 
 signals:
     void activeTabChanged(int index);
@@ -61,6 +67,7 @@ signals:
     void parentDirRequested();
     void openRequested(const QString &path);     // 进入子文件夹
     void contextMenuRequested(const QPoint &globalPos, bool hasSelection);
+    void selectionChanged();   // 选中项变化时发射
 
 public slots:
     void navigateBack();
@@ -68,12 +75,8 @@ public slots:
     void navigateUp();
     void refresh();
 
-private slots:
-    void onTabChanged(int index);
-    void onOpenRequested(const QModelIndex &proxyIndex);
-    void onParentDirRequested();
-
-    // 右键菜单动作槽
+public slots:
+    // 右键菜单/工具栏动作槽
     void onOpen();
     void onOpenWith();
     void onCopy();
@@ -90,6 +93,11 @@ private slots:
     void onNewFile();
     void onNewFolder();
 
+private slots:
+    void onTabChanged(int index);
+    void onOpenRequested(const QModelIndex &proxyIndex);
+    void onParentDirRequested();
+
 private:
     struct TabData {
         FileListView *view = nullptr;
@@ -99,15 +107,38 @@ private:
         int historyIndex = -1;      // 当前历史位置
     };
 
+    void createActions();
     void applyColumnConfig(FileListView *view);
     void navigateTo(const QString &path, bool addHistory);
     QString oppositePanelPath() const;
+    bool oppositePanelVisible() const;
     QString currentDir() const;
 
     PanelId id_;
     FileTabBar *tabBar_ = nullptr;
     QStackedWidget *stack_ = nullptr;
     QList<TabData> tabs_;
+
+    // 持久化动作
+    QAction *actBack_ = nullptr;
+    QAction *actForward_ = nullptr;
+    QAction *actUp_ = nullptr;
+    QAction *actNewFile_ = nullptr;
+    QAction *actNewFolder_ = nullptr;
+    QAction *actRefresh_ = nullptr;
+    QAction *actOpen_ = nullptr;
+    QAction *actOpenWith_ = nullptr;
+    QAction *actRename_ = nullptr;
+    QAction *actCut_ = nullptr;
+    QAction *actCopy_ = nullptr;
+    QAction *actPaste_ = nullptr;
+    QAction *actCutToOpp_ = nullptr;
+    QAction *actCopyToOpp_ = nullptr;
+    QAction *actCopyPath_ = nullptr;
+    QAction *actCopyName_ = nullptr;
+    QAction *actTrash_ = nullptr;
+    QAction *actDelete_ = nullptr;
+    QAction *actProperties_ = nullptr;
 };
 
 } // namespace fm

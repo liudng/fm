@@ -15,10 +15,17 @@ QString SessionState::serialize(const LayoutState &state) {
     ts << "activePanel=" << state.activePanelIndex << '\n';
     ts << "panel1Visible=" << (state.panelVisible[0] ? 1 : 0) << '\n';
     ts << "panel2Visible=" << (state.panelVisible[1] ? 1 : 0) << '\n';
-    ts << "splitter=";
-    for (int i = 0; i < state.splitterSizes.size(); ++i) {
-        ts << state.splitterSizes[i];
-        if (i < state.splitterSizes.size() - 1) ts << ',';
+    // 左右/上下比例分别记忆
+    ts << "horizontal=";
+    for (int i = 0; i < state.horizontalSizes.size(); ++i) {
+        ts << state.horizontalSizes[i];
+        if (i < state.horizontalSizes.size() - 1) ts << ',';
+    }
+    ts << '\n';
+    ts << "vertical=";
+    for (int i = 0; i < state.verticalSizes.size(); ++i) {
+        ts << state.verticalSizes[i];
+        if (i < state.verticalSizes.size() - 1) ts << ',';
     }
     ts << '\n';
 
@@ -66,7 +73,8 @@ bool SessionState::deserialize(const QString &data, LayoutState &outState) {
     outState.activePanelIndex = kv.value("activePanel", "0").toInt();
     outState.panelVisible[0] = kv.value("panel1Visible", "1").toInt() != 0;
     outState.panelVisible[1] = kv.value("panel2Visible", "1").toInt() != 0;
-    outState.splitterSizes = parseIntList(kv.value("splitter"));
+    outState.horizontalSizes = parseIntList(kv.value("horizontal"));
+    outState.verticalSizes = parseIntList(kv.value("vertical"));
 
     for (int p = 0; p < 2; ++p) {
         PanelState &panel = outState.panels[p];

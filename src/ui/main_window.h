@@ -28,6 +28,7 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
     void onExit();
@@ -64,6 +65,7 @@ private:
     void buildHelpMenu(QMenu *menu);
     void refreshFavoritesMenu();
     void refreshPanelActions();
+    void updateToolbar();
     void restoreSession();
     void applyPanelConfig();          // 从 [Panels] 应用面板配置
     void applyFileBrowserConfig();    // 从 [File_Browser] 应用浏览器配置

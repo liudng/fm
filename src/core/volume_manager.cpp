@@ -134,20 +134,20 @@ QList<VolumeInfo> VolumeManager::listVolumes() {
     return result;
 }
 
-bool VolumeManager::mount(const QString &devicePath, QString *errorMsg) {
+QString VolumeManager::mount(const QString &devicePath, QString *errorMsg) {
     QDBusInterface fsIface(kUDisks2Service, devicePath, kFsWithIface,
                             QDBusConnection::systemBus());
     if (!fsIface.isValid()) {
         if (errorMsg) *errorMsg = tr("Invalid device path: %1").arg(devicePath);
-        return false;
+        return {};
     }
     // Mount(args) 返回挂载点字符串
     QDBusReply<QString> reply = fsIface.call(QStringLiteral("Mount"), QVariantMap{});
     if (!reply.isValid()) {
         if (errorMsg) *errorMsg = reply.error().message();
-        return false;
+        return {};
     }
-    return true;
+    return reply.value();
 }
 
 bool VolumeManager::unmount(const QString &devicePath, QString *errorMsg) {

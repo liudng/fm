@@ -40,21 +40,37 @@ void VolumeMenu::refresh() {
         act->setData(v.devicePath);
         menu_->addAction(act);
 
-        // 左键：打开挂载点（若已挂载）
+        // 左键：打开挂载点（未挂载则先挂载再打开）
         connect(act, &QAction::triggered, this, [this, v]() {
             if (v.isMounted && !v.mountPoint.isEmpty()) {
                 emit volumeOpenRequested(v.mountPoint);
+            } else {
+                // 未挂载，先挂载
+                QString err;
+                const QString mp = VolumeManager::instance()->mount(v.devicePath, &err);
+                if (mp.isEmpty()) {
+                    emit volumeMountFailed(err);
+                } else {
+                    emit volumeOpenRequested(mp);
+                }
             }
         });
 
-        // 右键：弹出小菜单显示卸载/弹出
-        // 这里简化为：右键触发卸载（可通过菜单项的右键事件实现）
-        // 简单实现：为每个卷添加子菜单
+        // 子菜单：Open / Unmount / Eject
         auto *ctxMenu = new QMenu(menu_);
         auto *openAction = ctxMenu->addAction(tr("Open"));
-        openAction->setEnabled(v.isMounted);
         connect(openAction, &QAction::triggered, this, [this, v]() {
-            if (v.isMounted) emit volumeOpenRequested(v.mountPoint);
+            if (v.isMounted && !v.mountPoint.isEmpty()) {
+                emit volumeOpenRequested(v.mountPoint);
+            } else {
+                QString err;
+                const QString mp = VolumeManager::instance()->mount(v.devicePath, &err);
+                if (mp.isEmpty()) {
+                    emit volumeMountFailed(err);
+                } else {
+                    emit volumeOpenRequested(mp);
+                }
+            }
         });
         ctxMenu->addSeparator();
         auto *unmountAction = ctxMenu->addAction(tr("Unmount"));

@@ -52,9 +52,21 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
         addTab(activeTabPath(), -1);
     });
     connect(tabBar_, &FileTabBar::closeTabRequested, this, &PanelWidget::closeTab);
-    connect(tabBar_, &FileTabBar::contextMenuRequested, this, [this](int index, const QPoint &) {
-        // 选项卡上下文菜单在后续阶段实现，先无操作
-        Q_UNUSED(index);
+    connect(tabBar_, &FileTabBar::contextMenuRequested, this, [this](int index, const QPoint &globalPos) {
+        QMenu menu(this);
+        auto *closeAct = menu.addAction(tr("Close"));
+        closeAct->setEnabled(tabCount() > 1);  // 最后一个不可关闭
+        auto *closeOthersAct = menu.addAction(tr("Close Others"));
+        closeOthersAct->setEnabled(tabCount() > 1);
+        menu.addAction(tr("Clone"));
+        const QAction *chosen = menu.exec(globalPos);
+        if (chosen == closeAct) {
+            closeTab(index);
+        } else if (chosen == closeOthersAct) {
+            closeOtherTabs(index);
+        } else if (chosen) {
+            cloneTab(index);
+        }
     });
 
     // 文件操作完成后自动刷新受影响的目录
@@ -84,6 +96,9 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
             }
         }
     });
+
+    // 创建持久化动作（用于工具栏与右键菜单共享）
+    createActions();
 }
 
 void PanelWidget::applyColumnConfig(FileListView *view) {
@@ -142,7 +157,19 @@ int PanelWidget::addTab(const QString &path, int index) {
     connect(view, &FileListView::parentDirRequested, this, &PanelWidget::onParentDirRequested);
     connect(view, &FileListView::contextMenuRequested, this,
             [this, view](const QPoint &globalPos) {
-                bool hasSelection = !view->selectionModel()->selectedRows().isEmpty();
+                // 在 ".." 行右键：视为"无选中"（见需求 5.3.1）
+                const QPoint viewportPos = view->mapFromGlobal(globalPos);
+                const QModelIndex proxyIndex = view->indexAt(viewportPos);
+                bool onParentRow = false;
+                auto *proxy = qobject_cast<FileListSortProxy*>(view->model());
+                if (proxy && proxyIndex.isValid()) {
+                    auto *fileModel = qobject_cast<FileListModel*>(proxy->sourceModel());
+                    if (fileModel && fileModel->isParentRow(proxy->mapToSource(proxyIndex))) {
+                        onParentRow = true;
+                    }
+                }
+                const bool hasSelection = !onParentRow &&
+                    !view->selectionModel()->selectedRows().isEmpty();
                 // 内部直接处理菜单
                 showContextMenu(globalPos, hasSelection);
                 // 同时通知外部（如主窗口工具栏更新）
@@ -165,6 +192,14 @@ int PanelWidget::addTab(const QString &path, int index) {
         if (index < tabBar_->count()) tabBar_->setTabPath(index, p);
         emit pathChanged(p);
     });
+
+    // 选中项变化 → 更新动作状态与工具栏
+    if (view->selectionModel()) {
+        connect(view->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this]() {
+            updateActionStates();
+            emit selectionChanged();
+        });
+    }
 
     emit tabCountChanged();
     return index;
@@ -243,8 +278,10 @@ FileTabBar *PanelWidget::tabBar() const { return tabBar_; }
 void PanelWidget::onTabChanged(int index) {
     if (index < 0 || index >= tabs_.size()) return;
     stack_->setCurrentIndex(index);
+    updateActionStates();
     emit activeTabChanged(index);
     emit pathChanged(tabs_.at(index).model->path());
+    emit selectionChanged();
 }
 
 void PanelWidget::navigateTo(const QString &path, bool addHistory) {
@@ -313,6 +350,192 @@ void PanelWidget::refresh() {
     int idx = activeTabIndex();
     if (idx < 0 || idx >= tabs_.size()) return;
     tabs_.at(idx).model->reload();
+}
+
+// === 持久化动作 ===
+
+void PanelWidget::createActions() {
+    const auto sc = Qt::WidgetWithChildrenShortcut;
+
+    // 导航
+    actBack_ = new QAction(QIcon::fromTheme(QStringLiteral("go-previous")), tr("&Back"), this);
+    actBack_->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Left));
+    actBack_->setShortcutContext(sc);
+    connect(actBack_, &QAction::triggered, this, &PanelWidget::navigateBack);
+
+    actForward_ = new QAction(QIcon::fromTheme(QStringLiteral("go-next")), tr("&Forward"), this);
+    actForward_->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Right));
+    actForward_->setShortcutContext(sc);
+    connect(actForward_, &QAction::triggered, this, &PanelWidget::navigateForward);
+
+    actUp_ = new QAction(QIcon::fromTheme(QStringLiteral("go-up")), tr("&Up"), this);
+    actUp_->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Up));
+    actUp_->setShortcutContext(sc);
+    connect(actUp_, &QAction::triggered, this, &PanelWidget::navigateUp);
+
+    // 新建
+    actNewFile_ = new QAction(QIcon::fromTheme(QStringLiteral("document-new")), tr("New &File"), this);
+    actNewFile_->setShortcutContext(sc);
+    connect(actNewFile_, &QAction::triggered, this, &PanelWidget::onNewFile);
+
+    actNewFolder_ = new QAction(QIcon::fromTheme(QStringLiteral("folder-new")), tr("New &Folder"), this);
+    actNewFolder_->setShortcut(QKeySequence(Qt::Key_F7));
+    actNewFolder_->setShortcutContext(sc);
+    connect(actNewFolder_, &QAction::triggered, this, &PanelWidget::onNewFolder);
+
+    actRefresh_ = new QAction(QIcon::fromTheme(QStringLiteral("view-refresh")), tr("&Refresh"), this);
+    actRefresh_->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
+    actRefresh_->setShortcutContext(sc);
+    connect(actRefresh_, &QAction::triggered, this, &PanelWidget::refresh);
+
+    // 文件操作
+    actOpen_ = new QAction(QIcon::fromTheme(QStringLiteral("document-open")), tr("&Open"), this);
+    actOpen_->setShortcutContext(sc);
+    connect(actOpen_, &QAction::triggered, this, &PanelWidget::onOpen);
+
+    actOpenWith_ = new QAction(QIcon::fromTheme(QStringLiteral("document-open")), tr("Open &With..."), this);
+    actOpenWith_->setShortcutContext(sc);
+    connect(actOpenWith_, &QAction::triggered, this, &PanelWidget::onOpenWith);
+
+    actRename_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-rename")), tr("&Rename"), this);
+    actRename_->setShortcut(QKeySequence(Qt::Key_F2));
+    actRename_->setShortcutContext(sc);
+    connect(actRename_, &QAction::triggered, this, &PanelWidget::onRename);
+
+    actCut_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-cut")), tr("Cu&t"), this);
+    actCut_->setShortcut(QKeySequence::Cut);
+    actCut_->setShortcutContext(sc);
+    connect(actCut_, &QAction::triggered, this, &PanelWidget::onCut);
+
+    actCopy_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-copy")), tr("&Copy"), this);
+    actCopy_->setShortcut(QKeySequence::Copy);
+    actCopy_->setShortcutContext(sc);
+    connect(actCopy_, &QAction::triggered, this, &PanelWidget::onCopy);
+
+    actPaste_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-paste")), tr("&Paste"), this);
+    actPaste_->setShortcut(QKeySequence::Paste);
+    actPaste_->setShortcutContext(sc);
+    connect(actPaste_, &QAction::triggered, this, &PanelWidget::onPaste);
+
+    actCutToOpp_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-cut")), tr("Cut to &Opposite"), this);
+    actCutToOpp_->setShortcutContext(sc);
+    connect(actCutToOpp_, &QAction::triggered, this, &PanelWidget::onCutToOpposite);
+
+    actCopyToOpp_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-copy")), tr("Copy to O&pposite"), this);
+    actCopyToOpp_->setShortcutContext(sc);
+    connect(actCopyToOpp_, &QAction::triggered, this, &PanelWidget::onCopyToOpposite);
+
+    actCopyPath_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-copy")), tr("Copy &Path"), this);
+    actCopyPath_->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C));
+    actCopyPath_->setShortcutContext(sc);
+    connect(actCopyPath_, &QAction::triggered, this, &PanelWidget::onCopyPath);
+
+    actCopyName_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-copy")), tr("Copy File &Name"), this);
+    actCopyName_->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N));
+    actCopyName_->setShortcutContext(sc);
+    connect(actCopyName_, &QAction::triggered, this, &PanelWidget::onCopyFileName);
+
+    actTrash_ = new QAction(QIcon::fromTheme(QStringLiteral("user-trash")), tr("Move to &Trash"), this);
+    actTrash_->setShortcut(QKeySequence(Qt::Key_Delete));
+    actTrash_->setShortcutContext(sc);
+    connect(actTrash_, &QAction::triggered, this, &PanelWidget::onTrash);
+
+    actDelete_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-delete")), tr("&Delete Permanently"), this);
+    actDelete_->setShortcut(QKeySequence(Qt::SHIFT | Qt::Key_Delete));
+    actDelete_->setShortcutContext(sc);
+    connect(actDelete_, &QAction::triggered, this, &PanelWidget::onDeletePermanently);
+
+    actProperties_ = new QAction(QIcon::fromTheme(QStringLiteral("document-properties")), tr("P&roperties"), this);
+    actProperties_->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Return));
+    actProperties_->setShortcutContext(sc);
+    connect(actProperties_, &QAction::triggered, this, &PanelWidget::onProperties);
+
+    // 通过 ShortcutManager 应用用户自定义快捷键（覆盖默认值）
+    auto *sm = ShortcutManager::instance();
+    sm->applyToAction(actBack_,         QStringLiteral("filelist.back"));
+    sm->applyToAction(actForward_,      QStringLiteral("filelist.forward"));
+    sm->applyToAction(actUp_,           QStringLiteral("filelist.up"));
+    sm->applyToAction(actNewFile_,      QStringLiteral("file.new_file"));
+    sm->applyToAction(actNewFolder_,    QStringLiteral("file.new_folder"));
+    sm->applyToAction(actRefresh_,      QStringLiteral("filelist.refresh"));
+    sm->applyToAction(actOpen_,         QStringLiteral("filelist.open"));
+    sm->applyToAction(actOpenWith_,     QStringLiteral("filelist.open_with"));
+    sm->applyToAction(actRename_,       QStringLiteral("filelist.rename"));
+    sm->applyToAction(actCut_,          QStringLiteral("filelist.cut"));
+    sm->applyToAction(actCopy_,         QStringLiteral("filelist.copy"));
+    sm->applyToAction(actPaste_,        QStringLiteral("filelist.paste"));
+    sm->applyToAction(actCutToOpp_,     QStringLiteral("filelist.cut_to_opposite"));
+    sm->applyToAction(actCopyToOpp_,    QStringLiteral("filelist.copy_to_opposite"));
+    sm->applyToAction(actCopyPath_,     QStringLiteral("filelist.copy_path"));
+    sm->applyToAction(actCopyName_,     QStringLiteral("filelist.copy_name"));
+    sm->applyToAction(actTrash_,       QStringLiteral("filelist.trash"));
+    sm->applyToAction(actDelete_,      QStringLiteral("filelist.delete"));
+    sm->applyToAction(actProperties_,   QStringLiteral("filelist.properties"));
+
+    updateActionStates();
+}
+
+QList<QAction*> PanelWidget::toolbarActions() const {
+    return {
+        actBack_, actForward_, actUp_, nullptr,
+        actNewFolder_, actRefresh_, nullptr,
+        actCut_, actCopy_, actPaste_, nullptr,
+        actRename_, nullptr,
+        actTrash_, actProperties_
+    };
+}
+
+void PanelWidget::updateActionStates() {
+    const QList<FileItem> items = selectedItems();
+    const bool hasSel = !items.isEmpty();
+    const bool singleSel = items.size() == 1;
+    const FileItem first = items.isEmpty() ? FileItem() : items.first();
+    const bool canPaste = ClipboardManager::instance()->hasFiles();
+    const bool oppVisible = oppositePanelVisible();
+
+    int idx = activeTabIndex();
+    bool canBack = false, canForward = false;
+    if (idx >= 0 && idx < tabs_.size()) {
+        canBack = tabs_[idx].historyIndex > 0;
+        canForward = tabs_[idx].historyIndex < tabs_[idx].history.size() - 1;
+    }
+
+    actBack_->setEnabled(canBack);
+    actForward_->setEnabled(canForward);
+    actUp_->setEnabled(true);
+    actNewFile_->setEnabled(true);
+    actNewFolder_->setEnabled(true);
+    actRefresh_->setEnabled(true);
+    actOpen_->setEnabled(singleSel);
+    actOpenWith_->setEnabled(singleSel && !first.isDir);
+    actRename_->setEnabled(singleSel);
+    actCut_->setEnabled(hasSel);
+    actCopy_->setEnabled(hasSel);
+    actPaste_->setEnabled(canPaste);
+    actCutToOpp_->setEnabled(hasSel && oppVisible);
+    actCopyToOpp_->setEnabled(hasSel && oppVisible);
+    actCopyPath_->setEnabled(singleSel);
+    actCopyName_->setEnabled(singleSel);
+    actTrash_->setEnabled(hasSel);
+    actDelete_->setEnabled(hasSel);
+    actProperties_->setEnabled(singleSel);
+}
+
+bool PanelWidget::hasSelection() const {
+    auto *view = listView();
+    if (!view || !view->selectionModel()) return false;
+    return !view->selectionModel()->selectedRows().isEmpty();
+}
+
+bool PanelWidget::hasSingleSelection() const {
+    return selectedItems().size() == 1;
+}
+
+bool PanelWidget::oppositePanelVisible() const {
+    auto *container = qobject_cast<PanelContainer *>(parentWidget());
+    if (!container) return false;
+    const PanelId opp = (id_ == PanelId::Panel1) ? PanelId::Panel2 : PanelId::Panel1;
+    return container->isPanelVisible(opp);
 }
 
 QList<TabState> PanelWidget::tabStates() const {
@@ -386,132 +609,45 @@ void PanelWidget::showContextMenu(const QPoint &globalPos, bool hasSelection) {
     auto *menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
-    auto *cb = ClipboardManager::instance();
-    const bool canPaste = cb->hasFiles();
+    const bool canPaste = ClipboardManager::instance()->hasFiles();
+
+    // 弹出前刷新动作状态
+    updateActionStates();
 
     if (hasSelection) {
-        const QList<FileItem> items = selectedItems();
-        const bool singleSel = items.size() == 1;
-        const FileItem first = items.isEmpty() ? FileItem() : items.first();
-
-        auto *openAction = menu->addAction(tr("&Open"));
-        openAction->setIcon(QIcon::fromTheme(QStringLiteral("document-open")));
-        connect(openAction, &QAction::triggered, this, &PanelWidget::onOpen);
-
-        auto *openWithAction = menu->addAction(tr("Open &With..."));
-        openWithAction->setIcon(QIcon::fromTheme(QStringLiteral("document-open")));
-        connect(openWithAction, &QAction::triggered, this, &PanelWidget::onOpenWith);
-        openWithAction->setEnabled(singleSel && !first.isDir);
-
+        menu->addAction(actOpen_);
+        menu->addAction(actOpenWith_);
         menu->addSeparator();
-
-        auto *renameAction = menu->addAction(tr("&Rename"));
-        renameAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-rename")));
-        renameAction->setShortcut(QKeySequence(Qt::Key_F2));
-        renameAction->setEnabled(singleSel);
-        connect(renameAction, &QAction::triggered, this, &PanelWidget::onRename);
-
-        auto *cutAction = menu->addAction(tr("Cu&t"));
-        cutAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-cut")));
-        cutAction->setShortcut(QKeySequence::Cut);
-        connect(cutAction, &QAction::triggered, this, &PanelWidget::onCut);
-
-        auto *copyAction = menu->addAction(tr("&Copy"));
-        copyAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy")));
-        copyAction->setShortcut(QKeySequence::Copy);
-        connect(copyAction, &QAction::triggered, this, &PanelWidget::onCopy);
-
+        menu->addAction(actRename_);
+        menu->addAction(actCut_);
+        menu->addAction(actCopy_);
         menu->addSeparator();
-
-        auto *cutToOppAction = menu->addAction(tr("Cut to &Opposite"));
-        cutToOppAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-cut")));
-        connect(cutToOppAction, &QAction::triggered, this, &PanelWidget::onCutToOpposite);
-        cutToOppAction->setEnabled(!oppositePanelPath().isEmpty());
-
-        auto *copyToOppAction = menu->addAction(tr("Copy to O&pposite"));
-        copyToOppAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy")));
-        connect(copyToOppAction, &QAction::triggered, this, &PanelWidget::onCopyToOpposite);
-        copyToOppAction->setEnabled(!oppositePanelPath().isEmpty());
-
+        menu->addAction(actCutToOpp_);
+        menu->addAction(actCopyToOpp_);
         menu->addSeparator();
-
-        auto *copyPathAction = menu->addAction(tr("Copy &Path"));
-        copyPathAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy")));
-        copyPathAction->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C));
-        connect(copyPathAction, &QAction::triggered, this, &PanelWidget::onCopyPath);
-
-        auto *copyNameAction = menu->addAction(tr("Copy File &Name"));
-        copyNameAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy")));
-        copyNameAction->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N));
-        connect(copyNameAction, &QAction::triggered, this, &PanelWidget::onCopyFileName);
-
-        menu->addSeparator();
-
-        if (canPaste) {
-            auto *pasteAction = menu->addAction(tr("&Paste"));
-            pasteAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-paste")));
-            pasteAction->setShortcut(QKeySequence::Paste);
-            connect(pasteAction, &QAction::triggered, this, &PanelWidget::onPaste);
-        }
-
-        auto *trashAction = menu->addAction(tr("Move to &Trash"));
-        trashAction->setIcon(QIcon::fromTheme(QStringLiteral("user-trash")));
-        trashAction->setShortcut(QKeySequence(Qt::Key_Delete));
-        connect(trashAction, &QAction::triggered, this, &PanelWidget::onTrash);
-
-        auto *deleteAction = menu->addAction(tr("&Delete Permanently"));
-        deleteAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-delete")));
-        deleteAction->setShortcut(QKeySequence(Qt::SHIFT | Qt::Key_Delete));
-        connect(deleteAction, &QAction::triggered, this, &PanelWidget::onDeletePermanently);
-
-        menu->addSeparator();
-
-        auto *propsAction = menu->addAction(tr("P&roperties"));
-        propsAction->setIcon(QIcon::fromTheme(QStringLiteral("document-properties")));
-        propsAction->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Return));
-        propsAction->setEnabled(singleSel);
-        connect(propsAction, &QAction::triggered, this, &PanelWidget::onProperties);
-    } else {
-        // 无选中：导航 + 新建 + 刷新
-        auto *backAction = menu->addAction(tr("&Back"));
-        backAction->setIcon(QIcon::fromTheme(QStringLiteral("go-previous")));
-        backAction->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Left));
-        connect(backAction, &QAction::triggered, this, &PanelWidget::navigateBack);
-
-        auto *forwardAction = menu->addAction(tr("&Forward"));
-        forwardAction->setIcon(QIcon::fromTheme(QStringLiteral("go-next")));
-        forwardAction->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Right));
-        connect(forwardAction, &QAction::triggered, this, &PanelWidget::navigateForward);
-
-        auto *upAction = menu->addAction(tr("&Up"));
-        upAction->setIcon(QIcon::fromTheme(QStringLiteral("go-up")));
-        upAction->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Up));
-        connect(upAction, &QAction::triggered, this, &PanelWidget::navigateUp);
-
-        menu->addSeparator();
-
-        auto *newFileAction = menu->addAction(tr("New &File"));
-        newFileAction->setIcon(QIcon::fromTheme(QStringLiteral("document-new")));
-        connect(newFileAction, &QAction::triggered, this, &PanelWidget::onNewFile);
-
-        auto *newFolderAction = menu->addAction(tr("New &Folder"));
-        newFolderAction->setIcon(QIcon::fromTheme(QStringLiteral("folder-new")));
-        newFolderAction->setShortcut(QKeySequence(Qt::Key_F7));
-        connect(newFolderAction, &QAction::triggered, this, &PanelWidget::onNewFolder);
-
-        menu->addSeparator();
-
-        auto *refreshAction = menu->addAction(tr("&Refresh"));
-        refreshAction->setIcon(QIcon::fromTheme(QStringLiteral("view-refresh")));
-        refreshAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
-        connect(refreshAction, &QAction::triggered, this, &PanelWidget::refresh);
-
+        menu->addAction(actCopyPath_);
+        menu->addAction(actCopyName_);
         if (canPaste) {
             menu->addSeparator();
-            auto *pasteAction = menu->addAction(tr("&Paste"));
-            pasteAction->setIcon(QIcon::fromTheme(QStringLiteral("edit-paste")));
-            pasteAction->setShortcut(QKeySequence::Paste);
-            connect(pasteAction, &QAction::triggered, this, &PanelWidget::onPaste);
+            menu->addAction(actPaste_);
+        }
+        menu->addSeparator();
+        menu->addAction(actTrash_);
+        menu->addAction(actDelete_);
+        menu->addSeparator();
+        menu->addAction(actProperties_);
+    } else {
+        menu->addAction(actBack_);
+        menu->addAction(actForward_);
+        menu->addAction(actUp_);
+        menu->addSeparator();
+        menu->addAction(actNewFile_);
+        menu->addAction(actNewFolder_);
+        menu->addSeparator();
+        menu->addAction(actRefresh_);
+        if (canPaste) {
+            menu->addSeparator();
+            menu->addAction(actPaste_);
         }
     }
 

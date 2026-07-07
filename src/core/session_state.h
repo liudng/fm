@@ -25,7 +25,8 @@ struct LayoutState {
     Qt::Orientation orientation = Qt::Horizontal;  // 横向=左右，纵向=上下
     PanelState panels[2];
     int activePanelIndex = 0;
-    QList<int> splitterSizes;   // 比例（像素值，按比例解释）
+    QList<int> horizontalSizes;   // 横向布局时的 splitter 比例（像素值）
+    QList<int> verticalSizes;     // 纵向布局时的 splitter 比例（像素值）
     bool panelVisible[2] = {true, true};
 };
 

@@ -25,6 +25,7 @@ signals:
     void volumeOpenRequested(const QString &mountPoint);
     void volumeUnmountRequested(const QString &devicePath);
     void volumeEjectRequested(const QString &devicePath);
+    void volumeMountFailed(const QString &errorMsg);
 
 private:
     QPointer<QMenu> menu_;

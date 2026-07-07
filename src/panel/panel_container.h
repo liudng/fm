@@ -34,6 +34,11 @@ public:
     // Splitter 比例（用于持久化）
     QList<int> splitterSizes() const;
     void setSplitterSizes(const QList<int> &sizes);
+    // 左右/上下布局的比例分别记忆
+    QList<int> horizontalSizes() const;
+    QList<int> verticalSizes() const;
+    void setHorizontalSizes(const QList<int> &sizes);
+    void setVerticalSizes(const QList<int> &sizes);
 
 signals:
     void activePanelChanged(PanelId id);
@@ -46,8 +51,11 @@ private:
     QSplitter *splitter_;
     PanelWidget *panels_[2] = {nullptr, nullptr};
     PanelId activePanel_ = PanelId::Panel1;
-    // 隐藏前的比例，用于恢复
-    QList<int> savedSizes_;
+    // 左右/上下布局的比例分别记忆
+    QList<int> horizontalSizes_;
+    QList<int> verticalSizes_;
+    // 面板隐藏前的比例，用于恢复（仅当前方向有效）
+    QList<int> hiddenSizes_;
 };
 
 } // namespace fm

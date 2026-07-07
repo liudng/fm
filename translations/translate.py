@@ -16,6 +16,7 @@ translations = {
     '(No volumes)': '(无卷)',
     '(No favorites)': '(无收藏)',
     '&Add to Favorites...': '添加到收藏(&A)...',
+    'Remove Favorite': '删除收藏',
     '&Language': '语言(&L)',
     '&Theme': '主题(&T)',
     '&English': '英文(&E)',
@@ -63,6 +64,10 @@ translations = {
     'Close Tab (Context)': '关闭标签页',
     'Close Other Tabs': '关闭其他标签页',
     'Clone Tab (Context)': '克隆标签页',
+    # 选项卡右键菜单实际显示文本
+    'Close': '关闭',
+    'Close Others': '关闭其他',
+    'Clone': '克隆',
 
     # 键盘导航
     'Focus Tab Bar': '聚焦标签栏',
@@ -149,6 +154,7 @@ translations = {
     'Name already exists: %1': '名称已存在：%1',
     'File does not exist: %1': '文件不存在：%1',
     'Unmount Failed': '卸载失败',
+    'Mount Failed': '挂载失败',
     'Eject Failed': '弹出失败',
     'Invalid device path: %1': '无效的设备路径：%1',
     'No drive for device: %1': '设备没有对应的驱动器：%1',

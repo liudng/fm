@@ -4,7 +4,6 @@
 #include "../core/open_with_manager.h"
 #include "../dialogs/conflict_dialog.h"
 #include "../dialogs/error_dialog.h"
-#include "../dialogs/input_name_dialog.h"
 #include "../fileops/progress_dialog.h"
 #include "../fileops/trash_can.h"
 
@@ -326,18 +325,8 @@ void FileOperations::rename(const QUrl &target, const QString &newName) {
     emit operationCompleted();
 }
 
-void FileOperations::createFile(const QString &dir, const QString &defaultName) {
-    const QString name = uniqueName(dir, defaultName);
-    InputNameDialog dlg(tr("New File"), tr("File name:"), name, nullptr);
-
-    // 设置已存在名称用于校验
-    QDir d(dir);
-    dlg.setExistingNames(d.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot));
-
-    if (dlg.exec() != QDialog::Accepted) return;
-    const QString finalName = dlg.name();
-    const QString path = dir + QDir::separator() + finalName;
-
+void FileOperations::createFile(const QString &dir, const QString &name) {
+    const QString path = dir + QDir::separator() + name;
     QFile f(path);
     if (!f.open(QIODevice::WriteOnly)) {
         ErrorDialog::show(nullptr, tr("Cannot create file: %1").arg(path));
@@ -348,17 +337,8 @@ void FileOperations::createFile(const QString &dir, const QString &defaultName) 
     emit operationCompleted();
 }
 
-void FileOperations::createDir(const QString &dir, const QString &defaultName) {
-    const QString name = uniqueName(dir, defaultName);
-    InputNameDialog dlg(tr("New Folder"), tr("Folder name:"), name, nullptr);
-
-    QDir d(dir);
-    dlg.setExistingNames(d.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot));
-
-    if (dlg.exec() != QDialog::Accepted) return;
-    const QString finalName = dlg.name();
-    const QString path = dir + QDir::separator() + finalName;
-
+void FileOperations::createDir(const QString &dir, const QString &name) {
+    const QString path = dir + QDir::separator() + name;
     if (!QDir().mkdir(path)) {
         ErrorDialog::show(nullptr, tr("Cannot create folder: %1").arg(path));
         return;

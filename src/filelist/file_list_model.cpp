@@ -260,7 +260,8 @@ QVariant FileListModel::headerData(int section, Qt::Orientation orientation, int
 Qt::ItemFlags FileListModel::flags(const QModelIndex &index) const {
     if (!index.isValid()) return Qt::NoItemFlags;
     if (isParentRow(index)) {
-        return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+        // ".." 行不可选中（双击仍可触发 parentDirRequested）
+        return Qt::ItemIsEnabled;
     }
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }

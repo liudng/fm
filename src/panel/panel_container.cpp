@@ -48,11 +48,16 @@ void PanelContainer::setActivePanel(PanelId id) {
 }
 
 void PanelContainer::setOrientation(Qt::Orientation orientation) {
-    if (splitter_->orientation() == orientation) return;
-    // 保留比例
-    savedSizes_ = splitter_->sizes();
+    const Qt::Orientation oldOri = splitter_->orientation();
+    if (oldOri == orientation) return;
+    // 保存当前比例到旧方向
+    const QList<int> currentSizes = splitter_->sizes();
+    if (oldOri == Qt::Horizontal) horizontalSizes_ = currentSizes;
+    else verticalSizes_ = currentSizes;
     splitter_->setOrientation(orientation);
-    splitter_->setSizes(savedSizes_);
+    // 从新方向恢复（若曾记录过）
+    const QList<int> &target = (orientation == Qt::Horizontal) ? horizontalSizes_ : verticalSizes_;
+    if (!target.isEmpty()) splitter_->setSizes(target);
     emit orientationChanged();
 }
 
@@ -69,14 +74,14 @@ void PanelContainer::setPanelVisible(PanelId id, bool visible) {
         // 至少保持一个可见
         const int otherIdx = 1 - static_cast<int>(id);
         if (!panels_[otherIdx]->isVisible()) return;
-        savedSizes_ = splitter_->sizes();
+        hiddenSizes_ = splitter_->sizes();
         p->hide();
         // 让另一个面板占满
-        splitter_->setSizes({1});
+        splitter_->setSizes({1, 1});
     } else {
         p->show();
-        // 恢复比例
-        splitter_->setSizes(savedSizes_.isEmpty() ? QList<int>({1, 1}) : savedSizes_);
+        // 恢复隐藏前的比例（仍在当前方向）
+        splitter_->setSizes(hiddenSizes_.isEmpty() ? QList<int>({1, 1}) : hiddenSizes_);
     }
     emit panelVisibilityChanged();
 }
@@ -92,6 +97,22 @@ QList<int> PanelContainer::splitterSizes() const {
 
 void PanelContainer::setSplitterSizes(const QList<int> &sizes) {
     splitter_->setSizes(sizes);
+}
+
+QList<int> PanelContainer::horizontalSizes() const {
+    return horizontalSizes_;
+}
+
+QList<int> PanelContainer::verticalSizes() const {
+    return verticalSizes_;
+}
+
+void PanelContainer::setHorizontalSizes(const QList<int> &sizes) {
+    horizontalSizes_ = sizes;
+}
+
+void PanelContainer::setVerticalSizes(const QList<int> &sizes) {
+    verticalSizes_ = sizes;
 }
 
 void PanelContainer::updateActiveHighlight() {

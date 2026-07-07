@@ -55,10 +55,15 @@ signals:
 private:
     ColumnManager(QObject *parent = nullptr);
 
+    // 用户交互时由 header 信号触发，更新内存中的比例/顺序并保存
+    void onSectionResized(FileListView *view, int logicalIndex, int oldSize, int newSize);
+    void onSectionMoved(FileListView *view, int logical, int oldVisualIndex, int newVisualIndex);
+
     QList<FileListView *> views_;
     QMap<QString, bool> visibleMap_;       // columnName -> visible
     QMap<QString, double> ratioMap_;       // columnName -> ratio
     QStringList order_;                     // 列顺序
+    bool applying_ = false;                // 防止 applyToView 触发的信号递归
 };
 
 } // namespace fm

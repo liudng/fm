@@ -82,65 +82,23 @@ void FileListView::keyPressEvent(QKeyEvent *event) {
     const Qt::KeyboardModifiers mods = event->modifiers();
     const int key = event->key();
 
-    // Enter / Return：打开
-    if ((key == Qt::Key_Return || key == Qt::Key_Enter) && mods == Qt::NoModifier) {
-        emit openKeyPressed();
-        return;
-    }
-    // Backspace：上一级
+    // 以下快捷键已由 PanelWidget 持久化 QAction 处理（WidgetWithChildrenShortcut 上下文），
+    // Qt 快捷键系统会消费这些事件，不会进入 keyPressEvent。
+    // 这里仅处理没有对应 QAction 的辅助键：
+
+    // Backspace：上一级（无对应快捷键配置项，始终由键盘处理）
     if (key == Qt::Key_Backspace && mods == Qt::NoModifier) {
         emit parentDirRequested();
         return;
     }
-    // F2：重命名
-    if (key == Qt::Key_F2 && mods == Qt::NoModifier) {
-        emit renameRequested();
-        return;
-    }
-    // F5 / Ctrl+R：刷新
-    if ((key == Qt::Key_F5 && mods == Qt::NoModifier) ||
-        (key == Qt::Key_R && mods == Qt::ControlModifier)) {
+    // F5：刷新（Ctrl+R 由 QAction 处理，F5 作为补充）
+    if (key == Qt::Key_F5 && mods == Qt::NoModifier) {
         emit refreshRequested();
         return;
     }
-    // Ctrl+A：全选
+    // Ctrl+A：全选（无对应快捷键配置项，始终由键盘处理）
     if (key == Qt::Key_A && mods == Qt::ControlModifier) {
         emit selectAllRequested();
-        return;
-    }
-    // Delete：移到回收站
-    if (key == Qt::Key_Delete && mods == Qt::NoModifier) {
-        emit trashRequested();
-        return;
-    }
-    // Shift+Delete：彻底删除
-    if (key == Qt::Key_Delete && mods == Qt::ShiftModifier) {
-        emit deletePermanentlyRequested();
-        return;
-    }
-    // Ctrl+C：复制
-    if (key == Qt::Key_C && mods == Qt::ControlModifier) {
-        emit copyRequested();
-        return;
-    }
-    // Ctrl+X：剪切
-    if (key == Qt::Key_X && mods == Qt::ControlModifier) {
-        emit cutRequested();
-        return;
-    }
-    // Ctrl+V：粘贴
-    if (key == Qt::Key_V && mods == Qt::ControlModifier) {
-        emit pasteRequested();
-        return;
-    }
-    // Ctrl+Shift+C：复制路径
-    if (key == Qt::Key_C && (mods & Qt::ControlModifier) && (mods & Qt::ShiftModifier)) {
-        emit copyPathRequested();
-        return;
-    }
-    // Ctrl+Shift+N：复制文件名
-    if (key == Qt::Key_N && (mods & Qt::ControlModifier) && (mods & Qt::ShiftModifier)) {
-        emit copyFileNameRequested();
         return;
     }
 
