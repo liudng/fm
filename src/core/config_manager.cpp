@@ -1,0 +1,85 @@
+#include "config_manager.h"
+
+#include <QDir>
+#include <QFileInfo>
+#include <QStandardPaths>
+
+namespace fm {
+
+ConfigManager *ConfigManager::instance() {
+    static ConfigManager inst;
+    return &inst;
+}
+
+ConfigManager::ConfigManager(QObject *parent)
+    : QObject(parent) {
+    // 配置目录 ~/.config/fm
+    const QString configDir =
+        QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) +
+        QDir::separator() + QStringLiteral("fm");
+    QDir().mkpath(configDir);
+
+    const QString configPath = configDir + QDir::separator() + QStringLiteral("config.ini");
+    // Qt6 中 QSettings 默认使用 UTF-8 编码，无需 setIniCodec
+    settings_ = new QSettings(configPath, QSettings::IniFormat, this);
+}
+
+QString ConfigManager::filePath() const {
+    return settings_->fileName();
+}
+
+void ConfigManager::ensureDefaultConfig() {
+    // 仅当文件不存在或为空时写入默认值
+    if (QFileInfo::exists(filePath()) && !settings_->allKeys().isEmpty()) {
+        return;
+    }
+
+    // [UI]
+    setValue(QStringLiteral("UI"), QStringLiteral("language"), QStringLiteral("en"));
+    setValue(QStringLiteral("UI"), QStringLiteral("theme"), QStringLiteral("Fusion"));
+
+    // [Panels]
+    setValue(QStringLiteral("Panels"), QStringLiteral("activePanel"), 1);  // Panel1
+    setValue(QStringLiteral("Panels"), QStringLiteral("orientation"),
+             static_cast<int>(Qt::Horizontal));  // 左右
+    setValue(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true);
+    setValue(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), true);
+
+    // [File_Browser]
+    setValue(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false);
+
+    // [File_Browser_Columns] - 默认四列可见
+    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("columns"),
+             QStringLiteral("Icon,Name,Size,Modified"));
+    // 列宽比例（相对值，归一化后用于 splitter）
+    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("widthRatio_Icon"), 0.08);
+    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("widthRatio_Name"), 0.42);
+    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("widthRatio_Size"), 0.20);
+    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("widthRatio_Modified"), 0.30);
+
+    // [Shortcuts] - 后续阶段补全
+    // [OpenWith] - 空，按需追加
+    settings_->sync();
+}
+
+QString ConfigManager::fullKey(const QString &section, const QString &key) {
+    return section + QLatin1Char('/') + key;
+}
+
+QVariant ConfigManager::value(const QString &section, const QString &key,
+                              const QVariant &defaultValue) const {
+    return settings_->value(fullKey(section, key), defaultValue);
+}
+
+void ConfigManager::setValue(const QString &section, const QString &key,
+                            const QVariant &value) {
+    settings_->setValue(fullKey(section, key), value);
+    settings_->sync();
+    emit configChanged(section);
+}
+
+bool ConfigManager::contains(const QString &section, const QString &key) const {
+    return settings_->contains(fullKey(section, key));
+}
+
+} // namespace fm
