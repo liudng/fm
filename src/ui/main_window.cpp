@@ -1,9 +1,14 @@
 #include "main_window.h"
 
+#include "../core/column_manager.h"
 #include "../core/config_manager.h"
+#include "../core/favorite_manager.h"
 #include "../core/session_state.h"
+#include "../core/shortcut_manager.h"
 #include "../dialogs/about_dialog.h"
 #include "../dialogs/input_name_dialog.h"
+#include "../dialogs/settings_dialog.h"
+#include "../dialogs/settings_pages.h"
 #include "../filelist/file_list_model.h"
 #include "../fileops/file_operations.h"
 #include "../panel/panel_container.h"
@@ -55,6 +60,26 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::refreshPanelActions);
     connect(panelContainer_, &PanelContainer::orientationChanged,
             this, &MainWindow::refreshPanelActions);
+
+    // 监听配置变更（隐藏文件、面板可见性等）
+    auto *cfg = ConfigManager::instance();
+    connect(cfg, &ConfigManager::configChanged, this, [this](const QString &section) {
+        if (section == QStringLiteral("Panels")) {
+            applyPanelConfig();
+        } else if (section == QStringLiteral("File_Browser")) {
+            applyFileBrowserConfig();
+        } else if (section == QStringLiteral("Favorites")) {
+            // 收藏变化已在菜单 aboutToShow 时刷新
+        }
+    });
+
+    // 监听收藏管理器信号
+    connect(FavoriteManager::instance(), &FavoriteManager::favoritesChanged,
+            this, [this]() { /* 菜单显示时刷新 */ });
+
+    // 应用初始配置（面板可见性、隐藏文件）
+    applyPanelConfig();
+    applyFileBrowserConfig();
 
     refreshPanelActions();
 }
@@ -182,7 +207,6 @@ void MainWindow::buildSettingsMenu(QMenu *menu) {
     auto *settingsAction = menu->addAction(tr("&Settings..."), this,
                                             &MainWindow::onOpenSettings);
     settingsAction->setIcon(QIcon::fromTheme(QStringLiteral("configure")));
-    settingsAction->setEnabled(false);  // Phase 3 实现
 }
 
 void MainWindow::buildHelpMenu(QMenu *menu) {
@@ -209,18 +233,15 @@ void MainWindow::refreshFavoritesMenu() {
         }
     }
 
-    // 从配置读取收藏列表
-    auto *cfg = ConfigManager::instance();
-    const QStringList groups = cfg->value(QStringLiteral("Favorites"),
-                                            QStringLiteral("groups")).toStringList();
-
-    if (groups.isEmpty()) {
+    // 使用 FavoriteManager 获取收藏列表
+    const QStringList names = FavoriteManager::instance()->favoriteNames();
+    if (names.isEmpty()) {
         auto *placeholder = favoritesMenu_->addAction(tr("(No favorites)"));
         placeholder->setEnabled(false);
         return;
     }
 
-    for (const QString &name : groups) {
+    for (const QString &name : names) {
         auto *action = favoritesMenu_->addAction(name);
         connect(action, &QAction::triggered, this, [this, name]() {
             onFavoriteTriggered(name);
@@ -365,18 +386,7 @@ void MainWindow::onAddFavorite() {
                                                 tr("New Favorite"), &ok);
     if (!ok || name.isEmpty()) return;
 
-    auto *cfg = ConfigManager::instance();
-    QStringList groups = cfg->value(QStringLiteral("Favorites"),
-                                    QStringLiteral("groups")).toStringList();
-    if (groups.contains(name)) {
-        QMessageBox::warning(this, tr("Add Favorite"),
-                             tr("A favorite with this name already exists."));
-        return;
-    }
-    groups.append(name);
-    cfg->setValue(QStringLiteral("Favorites"), QStringLiteral("groups"), groups);
-
-    // 保存当前布局到 [Favorites/<name>]
+    // 构建当前布局状态
     LayoutState state;
     state.orientation = panelContainer_->orientation();
     state.activePanelIndex = static_cast<int>(panelContainer_->activePanelId());
@@ -388,17 +398,16 @@ void MainWindow::onAddFavorite() {
         state.panels[i].tabs = p->tabStates();
         state.panels[i].activeTabIndex = p->activeTabIndex();
     }
-    cfg->setValue(QStringLiteral("Favorites/") + name, QStringLiteral("data"),
-                  SessionState::serialize(state));
+
+    if (!FavoriteManager::instance()->addFavorite(name, state)) {
+        QMessageBox::warning(this, tr("Add Favorite"),
+                             tr("A favorite with this name already exists."));
+    }
 }
 
 void MainWindow::onFavoriteTriggered(const QString &name) {
-    auto *cfg = ConfigManager::instance();
-    const QString data = cfg->value(QStringLiteral("Favorites/") + name,
-                                    QStringLiteral("data")).toString();
-    if (data.isEmpty()) return;
     LayoutState state;
-    if (!SessionState::deserialize(data, state)) return;
+    if (!FavoriteManager::instance()->loadFavorite(name, state)) return;
 
     panelContainer_->setOrientation(state.orientation);
     panelContainer_->setPanelVisible(PanelId::Panel1, state.panelVisible[0]);
@@ -437,16 +446,8 @@ void MainWindow::onTogglePanel2Visible() {
 void MainWindow::onToggleHiddenFiles() {
     const bool show = toggleHiddenAction_ ? toggleHiddenAction_->isChecked() : false;
     auto *cfg = ConfigManager::instance();
-    cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("show_hidden"), show);
-    // 应用到所有面板的所有选项卡
-    for (int i = 0; i < 2; ++i) {
-        auto *p = panelContainer_->panel(static_cast<PanelId>(i));
-        if (!p) continue;
-        // 简单刷新：通过 model()->setShowHidden（每个 tab）
-        // PanelWidget 没有暴露 setShowHidden，先用 model() 设置活动 tab
-        auto *m = p->model();
-        if (m) m->setShowHidden(show);
-    }
+    cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), show);
+    // configChanged 信号会触发 applyFileBrowserConfig
 }
 
 void MainWindow::onLanguageChanged(QAction *action) {
@@ -464,15 +465,52 @@ void MainWindow::onThemeChanged(QAction *action) {
     const QString theme = action->data().toString();
     auto *cfg = ConfigManager::instance();
     cfg->setValue(QStringLiteral("UI"), QStringLiteral("theme"), theme);
-    if (theme.isEmpty()) {
-        QApplication::setStyle(QString());
-    } else {
-        QApplication::setStyle(QStyleFactory::create(theme));
-    }
+    // FmApplication 会监听 configChanged 信号应用主题
 }
 
 void MainWindow::onOpenSettings() {
-    // Phase 3 实现设置对话框
+    SettingsDialog dlg(this);
+    // 添加四个设置页
+    dlg.addPage(new UiSettingsPage(this));
+    dlg.addPage(new PanelSettingsPage(this));
+    dlg.addPage(new FileBrowserSettingsPage(this));
+    dlg.addPage(new ShortcutSettingsPage(this));
+    dlg.exec();
+}
+
+void MainWindow::applyPanelConfig() {
+    auto *cfg = ConfigManager::instance();
+    const int active = cfg->value(QStringLiteral("Panels"), QStringLiteral("activePanel"), 0).toInt();
+    const int orient = cfg->value(QStringLiteral("Panels"), QStringLiteral("orientation"),
+                                    static_cast<int>(Qt::Horizontal)).toInt();
+    const bool p1Visible = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true).toBool();
+    const bool p2Visible = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), true).toBool();
+
+    panelContainer_->setOrientation(static_cast<Qt::Orientation>(orient));
+    panelContainer_->setPanelVisible(PanelId::Panel1, p1Visible);
+    panelContainer_->setPanelVisible(PanelId::Panel2, p2Visible);
+    panelContainer_->setActivePanel(static_cast<PanelId>(active));
+    if (toggleHiddenAction_) {
+        // 暂无相关
+    }
+}
+
+void MainWindow::applyFileBrowserConfig() {
+    auto *cfg = ConfigManager::instance();
+    const bool showHidden = cfg->value(QStringLiteral("File_Browser"),
+                                         QStringLiteral("showHidden"), false).toBool();
+    if (toggleHiddenAction_) {
+        QSignalBlocker blocker(toggleHiddenAction_);
+        toggleHiddenAction_->setChecked(showHidden);
+    }
+
+    // 应用到所有面板所有选项卡的 model
+    for (int i = 0; i < 2; ++i) {
+        auto *p = panelContainer_->panel(static_cast<PanelId>(i));
+        if (!p) continue;
+        auto *m = p->model();
+        if (m) m->setShowHidden(showHidden);
+    }
 }
 
 // === 帮助菜单 ===

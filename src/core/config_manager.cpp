@@ -1,6 +1,8 @@
 #include "config_manager.h"
 
+#include <QDateTime>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QStandardPaths>
 
@@ -26,6 +28,54 @@ ConfigManager::ConfigManager(QObject *parent)
 
 QString ConfigManager::filePath() const {
     return settings_->fileName();
+}
+
+bool ConfigManager::load() {
+    settings_->sync();
+    const QSettings::Status s = settings_->status();
+    loaded_ = (s == QSettings::NoError);
+    return loaded_;
+}
+
+bool ConfigManager::rebuild() {
+    // 备份原文件
+    backupCurrentFile();
+    // 删除原文件
+    QFile::remove(filePath());
+    // 重新创建 settings 对象（重置内存状态）
+    delete settings_;
+    settings_ = new QSettings(filePath(), QSettings::IniFormat, this);
+    ensureDefaultConfig();
+    loaded_ = true;
+    return true;
+}
+
+void ConfigManager::saveFailureRecover() {
+    // 备份原文件（可能已损坏）
+    backupCurrentFile();
+    // 删除原文件，用当前内存配置重新写入
+    QFile::remove(filePath());
+    settings_->sync();
+    loaded_ = (settings_->status() == QSettings::NoError);
+}
+
+QSettings::Status ConfigManager::status() const {
+    return settings_->status();
+}
+
+bool ConfigManager::backupCurrentFile(QString *backupPath) {
+    const QString src = filePath();
+    if (!QFileInfo::exists(src)) return false;
+
+    // 时间戳格式：yyyyMMdd_HHmmss_zzz
+    const QString ts = QDateTime::currentDateTime().toString(
+        QStringLiteral("yyyyMMdd_HHmmss_zzz"));
+    const QString dst = src + QStringLiteral(".") + ts + QStringLiteral(".bak");
+    if (QFile::copy(src, dst)) {
+        if (backupPath) *backupPath = dst;
+        return true;
+    }
+    return false;
 }
 
 void ConfigManager::ensureDefaultConfig() {
@@ -57,7 +107,7 @@ void ConfigManager::ensureDefaultConfig() {
     setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("widthRatio_Size"), 0.20);
     setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("widthRatio_Modified"), 0.30);
 
-    // [Shortcuts] - 后续阶段补全
+    // [Shortcuts] - 默认快捷键（由 ShortcutManager 提供并写入）
     // [OpenWith] - 空，按需追加
     settings_->sync();
 }

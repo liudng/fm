@@ -1,8 +1,10 @@
 #include "panel_widget.h"
 
 #include "../core/clipboard_manager.h"
+#include "../core/column_manager.h"
 #include "../core/config_manager.h"
 #include "../core/session_state.h"
+#include "../core/shortcut_manager.h"
 #include "../dialogs/input_name_dialog.h"
 #include "../dialogs/open_with_dialog.h"
 #include "../dialogs/properties_dialog.h"
@@ -62,18 +64,28 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
             }
         }
     });
+
+    // 监听配置变更（隐藏文件、列设置）
+    auto *cfg = ConfigManager::instance();
+    connect(cfg, &ConfigManager::configChanged, this, [this](const QString &section) {
+        if (section == QStringLiteral("File_Browser")) {
+            auto *c = ConfigManager::instance();
+            const bool showHidden = c->value(QStringLiteral("File_Browser"),
+                                                QStringLiteral("showHidden"), false).toBool();
+            for (const auto &td : std::as_const(tabs_)) {
+                if (td.model) td.model->setShowHidden(showHidden);
+            }
+        } else if (section == QStringLiteral("File_Browser_Columns")) {
+            for (const auto &td : std::as_const(tabs_)) {
+                ColumnManager::instance()->applyToView(td.view);
+            }
+        }
+    });
 }
 
 void PanelWidget::applyColumnConfig(FileListView *view) {
-    // Phase 1：默认四列 Icon/Name/Size/Modified
-    QList<int> cols = {FileListModel::ColIcon, FileListModel::ColName,
-                       FileListModel::ColSize, FileListModel::ColModified};
-    QMap<int, double> ratios;
-    ratios[FileListModel::ColIcon] = 0.08;
-    ratios[FileListModel::ColName] = 0.42;
-    ratios[FileListModel::ColSize] = 0.20;
-    ratios[FileListModel::ColModified] = 0.30;
-    view->setColumnConfig(cols, ratios);
+    // 通过 ColumnManager 应用配置
+    ColumnManager::instance()->applyToView(view);
 }
 
 int PanelWidget::addTab(const QString &path, int index) {
@@ -113,6 +125,15 @@ int PanelWidget::addTab(const QString &path, int index) {
     td.history.append(path);
     td.historyIndex = 0;
 
+    // 应用隐藏文件配置
+    auto *cfg = ConfigManager::instance();
+    const bool showHidden = cfg->value(QStringLiteral("File_Browser"),
+                                          QStringLiteral("showHidden"), false).toBool();
+    model->setShowHidden(showHidden);
+
+    // 注册到 ColumnManager
+    ColumnManager::instance()->registerView(view);
+
     // 连接信号
     connect(view, &FileListView::openRequested, this, &PanelWidget::onOpenRequested);
     connect(view, &FileListView::parentDirRequested, this, &PanelWidget::onParentDirRequested);
@@ -136,6 +157,9 @@ int PanelWidget::addTab(const QString &path, int index) {
 void PanelWidget::closeTab(int index) {
     if (tabs_.size() <= 1) return;  // 至少保留一个选项卡
     if (index < 0 || index >= tabs_.size()) return;
+
+    // 先从 ColumnManager 注销
+    ColumnManager::instance()->unregisterView(tabs_.at(index).view);
 
     QWidget *w = stack_->widget(index);
     stack_->removeWidget(w);

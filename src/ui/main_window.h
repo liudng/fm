@@ -64,6 +64,8 @@ private:
     void refreshFavoritesMenu();
     void refreshPanelActions();
     void restoreSession();
+    void applyPanelConfig();          // 从 [Panels] 应用面板配置
+    void applyFileBrowserConfig();    // 从 [File_Browser] 应用浏览器配置
 
     PanelContainer *panelContainer_ = nullptr;
     QToolBar *toolbar_ = nullptr;

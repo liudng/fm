@@ -1,11 +1,18 @@
 #include "fm_application.h"
 
+#include "../core/column_manager.h"
 #include "../core/config_manager.h"
+#include "../core/shortcut_manager.h"
 #include "../filelist/file_item.h"
 #include "../ui/main_window.h"
 
+#include <QAbstractButton>
 #include <QDir>
+#include <QFileInfo>
 #include <QLibraryInfo>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QStyleFactory>
 
 namespace fm {
 
@@ -21,11 +28,29 @@ FmApplication::FmApplication(int &argc, char **argv)
 }
 
 bool FmApplication::initialize() {
-    // 1. 配置文件
+    // 1. 配置文件加载与损坏检测
     auto *cfg = ConfigManager::instance();
-    cfg->ensureDefaultConfig();
+    if (!cfg->load()) {
+        // 配置文件损坏：提示用户选择重建或退出
+        QMessageBox box(QMessageBox::Warning, tr("Configuration Error"),
+                        tr("The configuration file is corrupted or cannot be read."),
+                        QMessageBox::NoButton, nullptr);
+        QPushButton *rebuildBtn = box.addButton(tr("Rebuild"), QMessageBox::AcceptRole);
+        box.addButton(tr("Exit"), QMessageBox::RejectRole);
+        box.exec();
+        if (box.clickedButton() != rebuildBtn) {
+            return false;
+        }
+        cfg->rebuild();
+    } else {
+        cfg->ensureDefaultConfig();
+    }
 
-    // 2. 默认主题
+    // 2. 加载快捷键、列配置
+    ShortcutManager::instance()->initialize();
+    ColumnManager::instance()->loadFromConfig();
+
+    // 3. 默认主题
     const QString theme = cfg->value(QStringLiteral("UI"),
                                       QStringLiteral("theme"),
                                       QStringLiteral("Fusion")).toString();
@@ -33,13 +58,24 @@ bool FmApplication::initialize() {
         setStyle(theme);
     }
 
-    // 3. 翻译
+    // 4. 翻译
     const QString lang = cfg->value(QStringLiteral("UI"),
                                      QStringLiteral("language"),
                                      QStringLiteral("en")).toString();
     loadTranslation(lang);
 
-    // 4. 主窗口
+    // 5. 监听配置变更（语言/主题实时应用）
+    connect(cfg, &ConfigManager::configChanged, this, [this](const QString &section) {
+        if (section == QStringLiteral("UI")) {
+            auto *c = ConfigManager::instance();
+            const QString t = c->value(QStringLiteral("UI"), QStringLiteral("theme"),
+                                         QStringLiteral("Fusion")).toString();
+            if (t.isEmpty()) setStyle(QString());
+            else setStyle(QStyleFactory::create(t));
+        }
+    });
+
+    // 6. 主窗口
     mainWindow_ = new MainWindow();
     mainWindow_->show();
     return true;

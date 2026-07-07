@@ -21,12 +21,18 @@ qt_add_executable(fm
     src/main.cpp
     src/app/fm_application.h
     src/app/fm_application.cpp
-    src/core/config_manager.h
-    src/core/config_manager.cpp
     src/core/clipboard_manager.h
     src/core/clipboard_manager.cpp
+    src/core/column_manager.h
+    src/core/column_manager.cpp
+    src/core/config_manager.h
+    src/core/config_manager.cpp
+    src/core/favorite_manager.h
+    src/core/favorite_manager.cpp
     src/core/session_state.h
     src/core/session_state.cpp
+    src/core/shortcut_manager.h
+    src/core/shortcut_manager.cpp
     src/dialogs/about_dialog.h
     src/dialogs/about_dialog.cpp
     src/dialogs/conflict_dialog.h
@@ -35,10 +41,15 @@ qt_add_executable(fm
     src/dialogs/error_dialog.cpp
     src/dialogs/input_name_dialog.h
     src/dialogs/input_name_dialog.cpp
+    src/dialogs/isettings_page.h
     src/dialogs/open_with_dialog.h
     src/dialogs/open_with_dialog.cpp
     src/dialogs/properties_dialog.h
     src/dialogs/properties_dialog.cpp
+    src/dialogs/settings_dialog.h
+    src/dialogs/settings_dialog.cpp
+    src/dialogs/settings_pages.h
+    src/dialogs/settings_pages.cpp
     src/filelist/file_item.h
     src/filelist/file_item.cpp
     src/filelist/file_list_model.h
