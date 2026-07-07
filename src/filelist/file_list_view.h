@@ -15,7 +15,8 @@ class FileListView : public QTreeView {
 public:
     explicit FileListView(QWidget *parent = nullptr);
 
-    void setColumnConfig(const QList<int> &visibleColumns, const QMap<int, double> &widthRatios);
+    void setColumnConfig(const QList<int> &visibleColumns,
+                         const QMap<int, int> &columnWidths);
 
 signals:
     void openRequested(const QModelIndex &proxyIndex);

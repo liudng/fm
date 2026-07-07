@@ -101,7 +101,7 @@ fm-qt/
 │   │   ├── file_item.cpp
 │   │   ├── file_list_delegate.h      # 重命名编辑等委托
 │   │   ├── file_list_delegate.cpp
-│   │   ├── column_manager.h          # 列可见性/顺序/比例管理
+│   │   ├── column_manager.h          # 列可见性/顺序/列宽（像素）管理
 │   │   ├── column_manager.cpp
 │   │   └── column_def.h               # 列定义枚举
 │   ├── fileops/
@@ -603,7 +603,7 @@ class FileListView : public QTreeView {
 public:
     FileListView(QWidget *parent = nullptr);
 
-    void setColumnConfig(const ColumnConfig &config);   // 可见性/顺序/比例
+    void setColumnConfig(const ColumnConfig &config);   // 可见性/顺序/列宽（像素）
 
 signals:
     void openRequested(const QModelIndex &index);       // 双击/回车
@@ -621,11 +621,11 @@ protected:
 ```
 
 #### `ColumnManager`
-**职责**：列可见性、列顺序、列宽比例的全局管理与持久化
+**职责**：列可见性、列顺序、列宽（像素）的全局管理与持久化
 ```cpp
 struct ColumnConfig {
     QList<FileListModel::Column> visibleColumns;  // 按顺序
-    QMap<FileListModel::Column, double> widthRatios;  // 相对比例（0.0~1.0）
+    QMap<FileListModel::Column, int> columnWidths;  // 像素宽度（Name 列除外，Stretch 自动填充）
 };
 
 class ColumnManager : public QObject {

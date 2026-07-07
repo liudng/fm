@@ -10,25 +10,29 @@ namespace fm {
 
 namespace {
 
-// 列名 ↔ 枚举值映射
+// 列名 ↔ 枚举值 ↔ 默认像素宽度映射
 struct ColumnDef {
     const char *name;
     int column;
+    int defaultWidth;   // 像素；Name 列为 0（Stretch 模式）
 };
 
 const ColumnDef kColumnDefs[] = {
-    {"Icon",        FileListModel::ColIcon},
-    {"Name",        FileListModel::ColName},
-    {"Size",        FileListModel::ColSize},
-    {"Type",        FileListModel::ColType},
-    {"MimeType",    FileListModel::ColMimeType},
-    {"Group",       FileListModel::ColGroup},
-    {"Owner",       FileListModel::ColOwner},
-    {"Created",     FileListModel::ColCreated},
-    {"Modified",    FileListModel::ColModified},
-    {"Permissions", FileListModel::ColPermissions},
+    {"Icon",        FileListModel::ColIcon,        28},
+    {"Name",        FileListModel::ColName,        0},   // Stretch，不存储
+    {"Size",        FileListModel::ColSize,        80},
+    {"Type",        FileListModel::ColType,        100},
+    {"MimeType",    FileListModel::ColMimeType,    120},
+    {"Group",       FileListModel::ColGroup,       80},
+    {"Owner",       FileListModel::ColOwner,       80},
+    {"Created",     FileListModel::ColCreated,     140},
+    {"Modified",    FileListModel::ColModified,    140},
+    {"Permissions", FileListModel::ColPermissions, 100},
 };
 const int kColumnCount = sizeof(kColumnDefs) / sizeof(ColumnDef);
+
+// 最小列宽（像素）
+constexpr int kMinColumnWidth = 20;
 
 QString columnName(int col) {
     for (int i = 0; i < kColumnCount; ++i) {
@@ -55,8 +59,9 @@ ColumnManager::ColumnManager(QObject *parent)
     : QObject(parent) {
     // 默认全部不可见，由 loadFromConfig 设置
     for (int i = 0; i < kColumnCount; ++i) {
-        visibleMap_[QString::fromLatin1(kColumnDefs[i].name)] = false;
-        ratioMap_[QString::fromLatin1(kColumnDefs[i].name)] = 0.1;
+        const QString name = QString::fromLatin1(kColumnDefs[i].name);
+        visibleMap_[name] = false;
+        widthMap_[name] = kColumnDefs[i].defaultWidth;
     }
 }
 
@@ -86,12 +91,13 @@ void ColumnManager::setColumnVisible(const QString &columnName, bool visible) {
     emit columnsChanged();
 }
 
-double ColumnManager::widthRatio(const QString &columnName) const {
-    return ratioMap_.value(columnName, 0.1);
+int ColumnManager::columnWidth(const QString &columnName) const {
+    return widthMap_.value(columnName, 80);
 }
 
-void ColumnManager::setWidthRatio(const QString &columnName, double ratio) {
-    ratioMap_[columnName] = ratio;
+void ColumnManager::setColumnWidth(const QString &columnName, int width) {
+    if (columnName == QStringLiteral("Name")) return;  // Name 列 Stretch，不存储
+    widthMap_[columnName] = qMax(kMinColumnWidth, width);
     saveToConfig();
     applyToAllViews();
     emit columnsChanged();
@@ -126,13 +132,14 @@ void ColumnManager::loadFromConfig() {
         visibleMap_[n] = true;
     }
 
-    // 读取宽度比例
+    // 读取像素宽度（Name 列跳过）
     for (int i = 0; i < kColumnCount; ++i) {
         const QString name = QString::fromLatin1(kColumnDefs[i].name);
-        const double ratio = cfg->value(QStringLiteral("File_Browser_Columns"),
-                                         QStringLiteral("widthRatio_") + name,
-                                         0.1).toDouble();
-        ratioMap_[name] = ratio;
+        if (kColumnDefs[i].defaultWidth == 0) continue;  // Name 列 Stretch
+        const int width = cfg->value(QStringLiteral("File_Browser_Columns"),
+                                      QStringLiteral("width_") + name,
+                                      kColumnDefs[i].defaultWidth).toInt();
+        widthMap_[name] = qMax(kMinColumnWidth, width);
     }
     applyToAllViews();
 }
@@ -141,33 +148,36 @@ void ColumnManager::saveToConfig() {
     auto *cfg = ConfigManager::instance();
     cfg->setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("columns"),
                    order_.join(QLatin1Char(',')));
-    for (auto it = ratioMap_.constBegin(); it != ratioMap_.constEnd(); ++it) {
+    for (int i = 0; i < kColumnCount; ++i) {
+        const QString name = QString::fromLatin1(kColumnDefs[i].name);
+        if (kColumnDefs[i].defaultWidth == 0) continue;  // Name 列不存储
         cfg->setValue(QStringLiteral("File_Browser_Columns"),
-                       QStringLiteral("widthRatio_") + it.key(), it.value());
+                       QStringLiteral("width_") + name, widthMap_.value(name));
     }
 }
 
 void ColumnManager::applyToView(FileListView *view) {
     if (!view) return;
 
-    // 收集可见列与对应比例
+    // 收集可见列与对应像素宽度
     QList<int> visibleCols;
-    QMap<int, double> ratios;
+    QMap<int, int> widths;
     for (const QString &name : order_) {
         if (!visibleMap_.value(name, false)) continue;
         const int col = columnEnum(name);
         if (col < 0) continue;
         visibleCols.append(col);
-        ratios[col] = ratioMap_.value(name, 0.1);
+        if (col != FileListModel::ColName) {
+            widths[col] = qMax(kMinColumnWidth, widthMap_.value(name, 80));
+        }
     }
     if (visibleCols.isEmpty()) {
         // 至少保证 Name 列可见
         visibleCols.append(FileListModel::ColName);
-        ratios[FileListModel::ColName] = 1.0;
     }
     // 防止 setColumnConfig 触发的 sectionResized/sectionMoved 信号导致递归
     applying_ = true;
-    view->setColumnConfig(visibleCols, ratios);
+    view->setColumnConfig(visibleCols, widths);
     applying_ = false;
 }
 
@@ -205,13 +215,13 @@ void ColumnManager::applyToAllViews() {
 
 void ColumnManager::onSectionResized(FileListView *view, int logicalIndex,
                                        int oldSize, int newSize) {
+    Q_UNUSED(oldSize);
     if (applying_ || !view) return;
-    const int totalWidth = view->viewport()->width();
-    if (totalWidth <= 0) return;
+    // Name 列是 Stretch 模式，宽度自动变化，不存储
+    if (logicalIndex == FileListModel::ColName) return;
     const QString name = columnName(logicalIndex);
     if (name.isEmpty()) return;
-    const double ratio = double(newSize) / double(totalWidth);
-    ratioMap_[name] = ratio;
+    widthMap_[name] = qMax(kMinColumnWidth, newSize);
     saveToConfig();
 }
 

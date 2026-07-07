@@ -28,24 +28,30 @@ FileListView::FileListView(QWidget *parent)
 }
 
 void FileListView::setColumnConfig(const QList<int> &visibleColumns,
-                                   const QMap<int, double> &widthRatios) {
+                                   const QMap<int, int> &columnWidths) {
     // 隐藏所有列，然后显示指定列
     auto *model = this->model();
     if (!model) return;
     const int totalCols = model->columnCount();
+    // 先将所有列设为 Interactive（默认），再按需覆盖
+    header()->setSectionResizeMode(QHeaderView::Interactive);
     for (int c = 0; c < totalCols; ++c) {
         setColumnHidden(c, true);
     }
-    int visibleCount = visibleColumns.size();
     for (int idx = 0; idx < visibleColumns.size(); ++idx) {
         const int col = visibleColumns.at(idx);
         if (col < 0 || col >= totalCols) continue;
         setColumnHidden(col, false);
         header()->moveSection(header()->visualIndex(col), idx);
-        // 按比例设置列宽
-        double ratio = widthRatios.value(col, 0.1);
-        const int totalWidth = viewport()->width();
-        header()->resizeSection(col, qMax(40, int(totalWidth * ratio)));
+        if (col == FileListModel::ColName) {
+            // Name 列：Stretch 模式，自动占据剩余宽度
+            header()->setSectionResizeMode(col, QHeaderView::Stretch);
+        } else {
+            // 其他列：Interactive + 像素宽度（最小 20px）
+            header()->setSectionResizeMode(col, QHeaderView::Interactive);
+            header()->resizeSection(col, qMax(20, columnWidths.value(col, 80)));
+            header()->setMinimumSectionSize(20);
+        }
     }
 }
 

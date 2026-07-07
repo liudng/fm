@@ -101,11 +101,10 @@ void ConfigManager::ensureDefaultConfig() {
     // [File_Browser_Columns] - 默认四列可见
     setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("columns"),
              QStringLiteral("Icon,Name,Size,Modified"));
-    // 列宽比例（相对值，归一化后用于 splitter）
-    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("widthRatio_Icon"), 0.08);
-    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("widthRatio_Name"), 0.42);
-    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("widthRatio_Size"), 0.20);
-    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("widthRatio_Modified"), 0.30);
+    // 列宽（像素）；Name 列不存储（Stretch 模式自动填充）
+    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("width_Icon"), 28);
+    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("width_Size"), 80);
+    setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("width_Modified"), 140);
 
     // [Shortcuts] - 默认快捷键（由 ShortcutManager 提供并写入）
     // [OpenWith] - 空，按需追加

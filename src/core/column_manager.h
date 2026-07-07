@@ -26,9 +26,9 @@ public:
     bool isColumnVisible(const QString &columnName) const;
     void setColumnVisible(const QString &columnName, bool visible);
 
-    // 列宽比例（0.0~1.0）
-    double widthRatio(const QString &columnName) const;
-    void setWidthRatio(const QString &columnName, double ratio);
+    // 列宽（像素）；Name 列不存储（Stretch 模式）
+    int columnWidth(const QString &columnName) const;
+    void setColumnWidth(const QString &columnName, int width);
 
     // 列顺序（字符串列表）
     QStringList columnOrder() const;
@@ -61,7 +61,7 @@ private:
 
     QList<FileListView *> views_;
     QMap<QString, bool> visibleMap_;       // columnName -> visible
-    QMap<QString, double> ratioMap_;       // columnName -> ratio
+    QMap<QString, int> widthMap_;          // columnName -> 像素宽度（Name 列除外）
     QStringList order_;                     // 列顺序
     bool applying_ = false;                // 防止 applyToView 触发的信号递归
 };
