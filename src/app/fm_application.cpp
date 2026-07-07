@@ -98,7 +98,7 @@ bool FmApplication::initialize() {
 void FmApplication::loadTranslation(const QString &language) {
     removeTranslator(&translator_);
 
-    // Qt 自带翻译
+    // Qt 自带翻译（qtbase 标准对话框等）
     QTranslator *qtTranslator = new QTranslator(this);
     if (qtTranslator->load(QStringLiteral("qtbase_") + language,
                            QLibraryInfo::path(QLibraryInfo::TranslationsPath))) {
@@ -107,14 +107,19 @@ void FmApplication::loadTranslation(const QString &language) {
         delete qtTranslator;
     }
 
-    // 应用翻译（后续阶段补全 .ts 文件）
-    // 此处先尝试加载，失败则使用源码内 tr 默认值（英文）
-    QString trPath = QDir(applicationDirPath()).absoluteFilePath(QStringLiteral("../share/fm/translations"));
-    if (translator_.load(QStringLiteral("fm_") + language, trPath) ||
-        translator_.load(QStringLiteral("fm_") + language,
-                        QStringLiteral(":/translations"))) {
+    // 应用翻译：优先从嵌入资源加载（:/i18n/），失败则从安装目录加载
+    const QString qmFile = QStringLiteral("fm_") + language + QStringLiteral(".qm");
+    bool loaded = translator_.load(qmFile, QStringLiteral(":/i18n"));
+    if (!loaded) {
+        // 尝试从安装目录加载
+        const QString trPath = QDir(applicationDirPath()).absoluteFilePath(
+            QStringLiteral("../share/fm/translations"));
+        loaded = translator_.load(qmFile, trPath);
+    }
+    if (loaded) {
         installTranslator(&translator_);
     }
+    // 加载失败时使用源码内 tr 默认值（英文）
 }
 
 } // namespace fm

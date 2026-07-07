@@ -4,6 +4,7 @@
 #include "../filelist/file_list_sort_proxy.h"
 
 #include <QContextMenuEvent>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QHeaderView>
 
@@ -75,6 +76,76 @@ void FileListView::mouseDoubleClickEvent(QMouseEvent *event) {
 
 void FileListView::contextMenuEvent(QContextMenuEvent *event) {
     emit contextMenuRequested(event->globalPos());
+}
+
+void FileListView::keyPressEvent(QKeyEvent *event) {
+    const Qt::KeyboardModifiers mods = event->modifiers();
+    const int key = event->key();
+
+    // Enter / Return：打开
+    if ((key == Qt::Key_Return || key == Qt::Key_Enter) && mods == Qt::NoModifier) {
+        emit openKeyPressed();
+        return;
+    }
+    // Backspace：上一级
+    if (key == Qt::Key_Backspace && mods == Qt::NoModifier) {
+        emit parentDirRequested();
+        return;
+    }
+    // F2：重命名
+    if (key == Qt::Key_F2 && mods == Qt::NoModifier) {
+        emit renameRequested();
+        return;
+    }
+    // F5 / Ctrl+R：刷新
+    if ((key == Qt::Key_F5 && mods == Qt::NoModifier) ||
+        (key == Qt::Key_R && mods == Qt::ControlModifier)) {
+        emit refreshRequested();
+        return;
+    }
+    // Ctrl+A：全选
+    if (key == Qt::Key_A && mods == Qt::ControlModifier) {
+        emit selectAllRequested();
+        return;
+    }
+    // Delete：移到回收站
+    if (key == Qt::Key_Delete && mods == Qt::NoModifier) {
+        emit trashRequested();
+        return;
+    }
+    // Shift+Delete：彻底删除
+    if (key == Qt::Key_Delete && mods == Qt::ShiftModifier) {
+        emit deletePermanentlyRequested();
+        return;
+    }
+    // Ctrl+C：复制
+    if (key == Qt::Key_C && mods == Qt::ControlModifier) {
+        emit copyRequested();
+        return;
+    }
+    // Ctrl+X：剪切
+    if (key == Qt::Key_X && mods == Qt::ControlModifier) {
+        emit cutRequested();
+        return;
+    }
+    // Ctrl+V：粘贴
+    if (key == Qt::Key_V && mods == Qt::ControlModifier) {
+        emit pasteRequested();
+        return;
+    }
+    // Ctrl+Shift+C：复制路径
+    if (key == Qt::Key_C && (mods & Qt::ControlModifier) && (mods & Qt::ShiftModifier)) {
+        emit copyPathRequested();
+        return;
+    }
+    // Ctrl+Shift+N：复制文件名
+    if (key == Qt::Key_N && (mods & Qt::ControlModifier) && (mods & Qt::ShiftModifier)) {
+        emit copyFileNameRequested();
+        return;
+    }
+
+    // 默认处理（↑/↓ 等导航键）
+    QTreeView::keyPressEvent(event);
 }
 
 } // namespace fm

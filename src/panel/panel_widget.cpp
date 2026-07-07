@@ -148,6 +148,19 @@ int PanelWidget::addTab(const QString &path, int index) {
                 // 同时通知外部（如主窗口工具栏更新）
                 emit contextMenuRequested(globalPos, hasSelection);
             });
+
+    // 键盘导航信号
+    connect(view, &FileListView::openKeyPressed, this, &PanelWidget::onOpen);
+    connect(view, &FileListView::renameRequested, this, &PanelWidget::onRename);
+    connect(view, &FileListView::refreshRequested, this, &PanelWidget::refresh);
+    connect(view, &FileListView::selectAllRequested, view, &QAbstractItemView::selectAll);
+    connect(view, &FileListView::trashRequested, this, &PanelWidget::onTrash);
+    connect(view, &FileListView::deletePermanentlyRequested, this, &PanelWidget::onDeletePermanently);
+    connect(view, &FileListView::copyRequested, this, &PanelWidget::onCopy);
+    connect(view, &FileListView::cutRequested, this, &PanelWidget::onCut);
+    connect(view, &FileListView::pasteRequested, this, &PanelWidget::onPaste);
+    connect(view, &FileListView::copyPathRequested, this, &PanelWidget::onCopyPath);
+    connect(view, &FileListView::copyFileNameRequested, this, &PanelWidget::onCopyFileName);
     connect(model, &FileListModel::pathChanged, this, [this, index](const QString &p) {
         if (index < tabBar_->count()) tabBar_->setTabPath(index, p);
         emit pathChanged(p);

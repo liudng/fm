@@ -94,4 +94,12 @@ target_link_libraries(fm PRIVATE
     Qt6::Network
 )
 
+# 翻译文件 (.ts → .qm → 嵌入资源)
+qt_add_translations(fm
+    TS_FILES
+        translations/fm_zh.ts
+        translations/fm_en.ts
+    RESOURCE_PREFIX "/i18n"
+)
+
 install(TARGETS fm RUNTIME DESTINATION bin)

@@ -1,5 +1,7 @@
 #include "about_dialog.h"
 
+#include <QApplication>
+#include <QIcon>
 #include <QLabel>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -13,6 +15,12 @@ AboutDialog::AboutDialog(QWidget *parent)
 
     auto *layout = new QVBoxLayout(this);
 
+    // 应用图标
+    auto *iconLabel = new QLabel(this);
+    iconLabel->setPixmap(QApplication::windowIcon().pixmap(64, 64));
+    iconLabel->setAlignment(Qt::AlignCenter);
+    layout->addWidget(iconLabel);
+
     auto *label = new QLabel(this);
     label->setText(tr(
         "<h2>fm</h2>"
@@ -23,9 +31,11 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<p>Licensed under GPL-3.0-or-later</p>"
     ));
     label->setAlignment(Qt::AlignCenter);
+    label->setTextInteractionFlags(Qt::TextSelectableByMouse);
     layout->addWidget(label);
 
     auto *closeBtn = new QPushButton(tr("Close"), this);
+    closeBtn->setDefault(true);
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     layout->addWidget(closeBtn, 0, Qt::AlignCenter);
 }

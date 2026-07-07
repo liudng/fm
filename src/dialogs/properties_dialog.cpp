@@ -4,6 +4,8 @@
 #include <QFileInfo>
 #include <QFormLayout>
 #include <QGroupBox>
+#include <QHBoxLayout>
+#include <QIcon>
 #include <QLabel>
 #include <QLocale>
 #include <QPushButton>
@@ -49,6 +51,17 @@ PropertiesDialog::PropertiesDialog(const FileItem &item, QWidget *parent)
 
     auto *layout = new QVBoxLayout(this);
 
+    // 文件图标 + 名称（顶部）
+    auto *headerLayout = new QHBoxLayout();
+    auto *iconLabel = new QLabel(this);
+    const QString iconName = item.isDir ? QStringLiteral("folder") : QStringLiteral("text-x-generic");
+    iconLabel->setPixmap(QIcon::fromTheme(iconName).pixmap(48, 48));
+    headerLayout->addWidget(iconLabel);
+    auto *nameLabel = new QLabel(QStringLiteral("<b>%1</b>").arg(item.name), this);
+    nameLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    headerLayout->addWidget(nameLabel, 1);
+    layout->addLayout(headerLayout);
+
     // 基本信息
     auto *basicBox = new QGroupBox(tr("Basic"), this);
     auto *basicLayout = new QVBoxLayout(basicBox);
@@ -87,6 +100,7 @@ PropertiesDialog::PropertiesDialog(const FileItem &item, QWidget *parent)
     layout->addWidget(sysBox);
 
     auto *closeBtn = new QPushButton(tr("Close"), this);
+    closeBtn->setDefault(true);
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     layout->addWidget(closeBtn, 0, Qt::AlignRight);
 }
