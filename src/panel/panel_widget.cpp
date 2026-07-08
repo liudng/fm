@@ -118,6 +118,12 @@ int PanelWidget::addTab(const QString &path, int index) {
     td.model = model;
     td.proxy = proxy;
 
+    // 记录历史（必须在 append/insert 之前设置：QList 隐式共享（COW），
+    // 若在 append 之后再修改 td.history 会触发 detach，
+    // 导致 tabs_[index].history 仍为空，后退按钮首次操作后仍禁用）
+    td.history.append(path);
+    td.historyIndex = 0;
+
     if (index < 0 || index > tabs_.size()) {
         index = tabs_.size();
         tabs_.append(td);
@@ -134,11 +140,6 @@ int PanelWidget::addTab(const QString &path, int index) {
 
     // 默认按 Name 排序
     proxy->sort(FileListModel::ColName, Qt::AscendingOrder);
-
-    // 记录历史
-    td.history.clear();
-    td.history.append(path);
-    td.historyIndex = 0;
 
     // 应用隐藏文件配置
     auto *cfg = ConfigManager::instance();
@@ -292,6 +293,8 @@ void PanelWidget::navigateTo(const QString &path, bool addHistory) {
         td.history.append(path);
         td.historyIndex = td.history.size() - 1;
     }
+    // 导航后刷新动作状态（后退/前进按钮的启用/禁用）
+    updateActionStates();
 }
 
 void PanelWidget::onOpenRequested(const QModelIndex &proxyIndex) {
@@ -398,7 +401,7 @@ void PanelWidget::createActions() {
     actOpenWith_->setShortcutContext(sc);
     connect(actOpenWith_, &QAction::triggered, this, &PanelWidget::onOpenWith);
 
-    actRename_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-rename")), tr("&Rename"), this);
+    actRename_ = new QAction(QIcon::fromTheme(QStringLiteral("document-save-as")), tr("&Rename"), this);
     actRename_->setShortcut(QKeySequence(Qt::Key_F2));
     actRename_->setShortcutContext(sc);
     connect(actRename_, &QAction::triggered, this, &PanelWidget::onRename);
@@ -479,10 +482,10 @@ void PanelWidget::createActions() {
 QList<QAction*> PanelWidget::toolbarActions() const {
     return {
         actBack_, actForward_, actUp_, nullptr,
-        actNewFolder_, actRefresh_, nullptr,
-        actCut_, actCopy_, actPaste_, nullptr,
-        actRename_, nullptr,
-        actTrash_, actProperties_
+        actNewFile_, actNewFolder_, actRefresh_, nullptr,
+        actOpen_, actCut_, actCopy_, actPaste_, actDelete_, nullptr,
+        actCutToOpp_, actCopyToOpp_, nullptr,
+        actRename_, actTrash_, actProperties_
     };
 }
 
@@ -515,8 +518,8 @@ void PanelWidget::updateActionStates() {
     actPaste_->setEnabled(canPaste);
     actCutToOpp_->setEnabled(hasSel && oppVisible);
     actCopyToOpp_->setEnabled(hasSel && oppVisible);
-    actCopyPath_->setEnabled(singleSel);
-    actCopyName_->setEnabled(singleSel);
+    actCopyPath_->setEnabled(hasSel);
+    actCopyName_->setEnabled(hasSel);
     actTrash_->setEnabled(hasSel);
     actDelete_->setEnabled(hasSel);
     actProperties_->setEnabled(singleSel);
@@ -533,7 +536,7 @@ bool PanelWidget::hasSingleSelection() const {
 }
 
 bool PanelWidget::oppositePanelVisible() const {
-    auto *container = qobject_cast<PanelContainer *>(parentWidget());
+    auto *container = findContainer();
     if (!container) return false;
     const PanelId opp = (id_ == PanelId::Panel1) ? PanelId::Panel2 : PanelId::Panel1;
     return container->isPanelVisible(opp);
@@ -617,9 +620,21 @@ QString PanelWidget::currentDir() const {
     return m ? m->path() : QString();
 }
 
+// 向上遍历父链查找 PanelContainer
+// PanelWidget 被 QSplitter::addWidget 重定向到 splitter，
+// 所以 parentWidget() 返回 QSplitter 而非 PanelContainer
+PanelContainer *PanelWidget::findContainer() const {
+    auto *p = parentWidget();
+    while (p) {
+        if (auto *c = qobject_cast<PanelContainer *>(p)) return c;
+        p = p->parentWidget();
+    }
+    return nullptr;
+}
+
 // 对面面板路径
 QString PanelWidget::oppositePanelPath() const {
-    auto *container = qobject_cast<PanelContainer *>(parentWidget());
+    auto *container = findContainer();
     if (!container) return {};
     const PanelId opp = (id_ == PanelId::Panel1) ? PanelId::Panel2 : PanelId::Panel1;
     auto *oppPanel = container->panel(opp);

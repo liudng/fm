@@ -235,7 +235,7 @@ void MainWindow::buildSettingsMenu(QMenu *menu) {
 
     auto *settingsAction = menu->addAction(tr("&Settings..."), this,
                                             &MainWindow::onOpenSettings);
-    settingsAction->setIcon(QIcon::fromTheme(QStringLiteral("configure")));
+    settingsAction->setIcon(QIcon::fromTheme(QStringLiteral("preferences-system")));
 }
 
 void MainWindow::buildHelpMenu(QMenu *menu) {

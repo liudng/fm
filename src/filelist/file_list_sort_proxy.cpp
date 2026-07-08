@@ -31,12 +31,15 @@ QModelIndex FileListSortProxy::parentRowIndex() const {
 bool FileListSortProxy::lessThan(const QModelIndex &left, const QModelIndex &right) const {
     auto *model = qobject_cast<FileListModel*>(sourceModel());
     if (model) {
-        // ".." 行始终排最前
+        // ".." 行始终排最前，无论升降序
+        // 注意：Qt 在降序排序时，会对调 lessThan 的两个参数调用
+        // （即调用 lessThan(b, a) 而非 lessThan(a, b)），因此需要
+        // 根据当前排序方向返回相反的值，否则降序时 ".." 会排到最后。
         const bool leftParent = model->isParentRow(left);
         const bool rightParent = model->isParentRow(right);
         if (leftParent && rightParent) return false;
-        if (leftParent) return true;
-        if (rightParent) return false;
+        if (leftParent)  return lastSortOrder_ == Qt::AscendingOrder;
+        if (rightParent) return lastSortOrder_ == Qt::DescendingOrder;
     }
 
     // 主键比较

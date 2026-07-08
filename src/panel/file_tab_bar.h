@@ -27,6 +27,7 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     // 标题截断：超过 16 字符显示前 15 + "…"
@@ -34,6 +35,8 @@ private:
 
     // "+" 按钮区域检测
     bool isNewTabButton(const QPoint &pos) const;
+    // 计算 "+" 按钮的可视矩形
+    QRect newTabButtonRect() const;
 
     // 拖拽起点
     QPoint pressPos_;

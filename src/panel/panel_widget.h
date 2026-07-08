@@ -15,6 +15,7 @@ class FileListView;
 class FileListModel;
 class FileListSortProxy;
 class FileTabBar;
+class PanelContainer;
 struct TabState;
 struct FileItem;
 
@@ -115,6 +116,7 @@ private:
     void applyColumnConfig(FileListView *view);
     void navigateTo(const QString &path, bool addHistory);
     void clearAllTabs();  // 清空所有选项卡（包括最后一个，不受 closeTab 限制）
+    PanelContainer *findContainer() const;  // 向上遍历父链查找 PanelContainer
     QString oppositePanelPath() const;
     bool oppositePanelVisible() const;
     QString currentDir() const;

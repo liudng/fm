@@ -91,20 +91,17 @@ ConflictResolution FileOperations::resolveConflict(const QString &sourceName,
             return batchResolution_;
         }
     }
-    ConflictResolution r = ConflictResolution::Cancel;
-    // 在主线程同步执行对话框（本方法已在主线程调用）
-    QMetaObject::invokeMethod(this, [&, this]() {
-        ConflictDialog dlg(sourceName, destPath, allowBatch, nullptr);
-        dlg.exec();
-        r = dlg.resolution();
-        if (dlg.resolution() == ConflictResolution::OverwriteAll ||
-            dlg.resolution() == ConflictResolution::SkipAll ||
-            dlg.resolution() == ConflictResolution::RenameAll) {
-            batchResolution_ = dlg.resolution();
-            hasBatchResolution_ = true;
-        }
-    }, Qt::BlockingQueuedConnection);
-    return r;
+    // 本方法已在主线程调用，直接显示对话框
+    // （之前使用 BlockingQueuedConnection 会导致同线程死锁）
+    ConflictDialog dlg(sourceName, destPath, allowBatch, nullptr);
+    dlg.exec();
+    if (dlg.resolution() == ConflictResolution::OverwriteAll ||
+        dlg.resolution() == ConflictResolution::SkipAll ||
+        dlg.resolution() == ConflictResolution::RenameAll) {
+        batchResolution_ = dlg.resolution();
+        hasBatchResolution_ = true;
+    }
+    return dlg.resolution();
 }
 
 QString FileOperations::uniqueName(const QString &dir, const QString &name) {
@@ -141,6 +138,44 @@ void FileOperations::runCopyMove(const QList<QUrl> &sources, const QString &dest
     auto *watcher = new QFutureWatcher<bool>(this);
     QString errorMsg;
 
+    // 在主线程预先检查所有冲突，生成目标名映射。
+    // 必须在创建 ProgressDialog 之前完成：showDelayed() 的定时器会在
+    // ConflictDialog::exec() 的本地事件循环中触发，导致进度对话框
+    // 覆盖在冲突对话框之上，使其无法操作。
+    QList<QPair<QString, QString>> plan;  // src -> dst
+    for (const QUrl &u : sources) {
+        const QString src = u.toLocalFile();
+        const QString name = QFileInfo(src).fileName();
+        QString dst = destDir + QDir::separator() + name;
+
+        if (src == dst) {
+            // 同文件夹粘贴（源与目标相同）：自动重命名
+            const QString newName = uniqueName(destDir, name);
+            dst = destDir + QDir::separator() + newName;
+            plan.append({src, dst});
+            continue;
+        }
+
+        if (QFileInfo::exists(dst)) {
+            ConflictResolution r = resolveConflict(name, dst, sources.size() > 1);
+            if (r == ConflictResolution::Cancel) continue;
+            if (r == ConflictResolution::Skip ||
+                r == ConflictResolution::SkipAll) continue;
+            if (r == ConflictResolution::Rename ||
+                r == ConflictResolution::RenameAll) {
+                QString newName = uniqueName(destDir, name);
+                dst = destDir + QDir::separator() + newName;
+            }
+            // Overwrite / OverwriteAll: 删除目标
+            if (r == ConflictResolution::Overwrite ||
+                r == ConflictResolution::OverwriteAll) {
+                removeRecursively(dst, nullptr);
+            }
+        }
+        plan.append({src, dst});
+    }
+
+    // 冲突解决完毕后创建进度对话框（避免 showDelayed 在冲突对话框事件循环中触发）
     progressDialog_ = new ProgressDialog(nullptr);
     progressDialog_->setOperationTitle(isMove ? tr("Moving...") : tr("Copying..."));
     progressDialog_->showDelayed();
@@ -168,32 +203,6 @@ void FileOperations::runCopyMove(const QList<QUrl> &sources, const QString &dest
 
     watcher->setProperty("sources", QVariant::fromValue(sources));
     watcher->setProperty("destDir", destDir);
-
-    // 复制/移动不能在 lambda 中调用主线程的 resolveConflict（会死锁）
-    // 简化版：在主线程预先检查所有冲突，生成目标名映射
-    QList<QPair<QString, QString>> plan;  // src -> dst
-    for (const QUrl &u : sources) {
-        const QString src = u.toLocalFile();
-        const QString name = QFileInfo(src).fileName();
-        QString dst = destDir + QDir::separator() + name;
-        if (QFileInfo::exists(dst)) {
-            ConflictResolution r = resolveConflict(name, dst, sources.size() > 1);
-            if (r == ConflictResolution::Cancel) continue;
-            if (r == ConflictResolution::Skip ||
-                r == ConflictResolution::SkipAll) continue;
-            if (r == ConflictResolution::Rename ||
-                r == ConflictResolution::RenameAll) {
-                QString newName = uniqueName(destDir, name);
-                dst = destDir + QDir::separator() + newName;
-            }
-            // Overwrite / OverwriteAll: 删除目标
-            if (r == ConflictResolution::Overwrite ||
-                r == ConflictResolution::OverwriteAll) {
-                removeRecursively(dst, nullptr);
-            }
-        }
-        plan.append({src, dst});
-    }
 
     // 异步执行
     QString *errPtr = new QString;

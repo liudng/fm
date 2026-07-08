@@ -3,6 +3,7 @@
 #include <QContextMenuEvent>
 #include <QDir>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QStyle>
 
 namespace fm {
@@ -24,8 +25,6 @@ FileTabBar::FileTabBar(QWidget *parent)
     // 关闭按钮触发关闭信号
     connect(this, &QTabBar::tabCloseRequested, this,
             [this](int index) { emit closeTabRequested(index); });
-
-    // tabMoved 信号已由 QTabBar 提供
 }
 
 QString FileTabBar::elideTitle(const QString &folderName) {
@@ -41,15 +40,18 @@ void FileTabBar::setTabPath(int index, const QString &path) {
     setTabToolTip(index, path);
 }
 
-bool FileTabBar::isNewTabButton(const QPoint &pos) const {
+QRect FileTabBar::newTabButtonRect() const {
     // "+" 按钮位于最后一个选项卡右侧
     if (count() == 0) {
-        return pos.x() >= 4 && pos.x() <= 4 + kNewTabButtonWidth;
+        return QRect(4, 0, kNewTabButtonWidth, height());
     }
     const QRect lastTabRect = tabRect(count() - 1);
     const int startX = lastTabRect.right() + 4;
-    return pos.x() >= startX && pos.x() <= startX + kNewTabButtonWidth &&
-           pos.y() >= 0 && pos.y() <= lastTabRect.bottom();
+    return QRect(startX, 0, kNewTabButtonWidth, lastTabRect.height());
+}
+
+bool FileTabBar::isNewTabButton(const QPoint &pos) const {
+    return newTabButtonRect().contains(pos);
 }
 
 void FileTabBar::mousePressEvent(QMouseEvent *event) {
@@ -78,6 +80,24 @@ void FileTabBar::contextMenuEvent(QContextMenuEvent *event) {
 
 void FileTabBar::mouseMoveEvent(QMouseEvent *event) {
     QTabBar::mouseMoveEvent(event);
+}
+
+void FileTabBar::paintEvent(QPaintEvent *event) {
+    QTabBar::paintEvent(event);
+
+    // 在最后一个选项卡右侧绘制 "+" 新建按钮图标
+    // 使用标准图标名 tab-new（兼容 gnome-icon-theme）
+    const QRect rect = newTabButtonRect();
+    QPainter p(this);
+    const QIcon icon = QIcon::fromTheme(QStringLiteral("tab-new"));
+    const int iconSize = style()->pixelMetric(QStyle::PM_SmallIconSize, nullptr, this);
+    const QSize sz(iconSize, iconSize);
+    const QPixmap pm = icon.pixmap(sz, isEnabled() ? QIcon::Normal : QIcon::Disabled);
+    if (!pm.isNull()) {
+        const int x = rect.center().x() - pm.width() / 2;
+        const int y = rect.center().y() - pm.height() / 2;
+        p.drawPixmap(x, y, pm);
+    }
 }
 
 } // namespace fm

@@ -10,6 +10,7 @@
 #include <QAbstractButton>
 #include <QDir>
 #include <QFileInfo>
+#include <QIcon>
 #include <QLibraryInfo>
 #include <QMessageBox>
 #include <QPushButton>
@@ -26,6 +27,15 @@ FmApplication::FmApplication(int &argc, char **argv)
 
     // 注册 metatype
     qRegisterMetaType<FileItem>("fm::FileItem");
+
+    // 图标主题：优先使用 gnome-icon-theme（其包含完整的标准动作图标 .png 文件，
+    // 例如 go-previous/document-new/edit-cut 等），避免某些现代主题（如 Adwaita）
+    // 仅提供 *-symbolic.svg 导致部分 QAction 图标无法显示。
+    // 仅当 gnome 主题确实可用时才切换。
+    if (QDir(QStringLiteral("/usr/share/icons/gnome")).exists() ||
+        QDir(QStringLiteral("/usr/local/share/icons/gnome")).exists()) {
+        QIcon::setThemeName(QStringLiteral("gnome"));
+    }
 }
 
 bool FmApplication::initialize() {
