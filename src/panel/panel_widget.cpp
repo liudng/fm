@@ -485,6 +485,63 @@ void PanelWidget::createActions() {
     sm->applyToAction(actDelete_,      QStringLiteral("filelist.delete"));
     sm->applyToAction(actProperties_,   QStringLiteral("filelist.properties"));
 
+    // 标签页操作快捷键（不显示在菜单/工具栏，仅用于快捷键触发）
+    actNewTab_ = new QAction(tr("New Tab"), this);
+    actNewTab_->setShortcutContext(sc);
+    connect(actNewTab_, &QAction::triggered, this, [this]() {
+        addTab(activeTabPath(), -1);
+    });
+    sm->applyToAction(actNewTab_, QStringLiteral("file.new_tab"));
+
+    actCloseTab_ = new QAction(tr("Close Tab"), this);
+    actCloseTab_->setShortcutContext(sc);
+    connect(actCloseTab_, &QAction::triggered, this, [this]() {
+        closeTab(activeTabIndex());
+    });
+    sm->applyToAction(actCloseTab_, QStringLiteral("file.close_tab"));
+
+    actCloneTab_ = new QAction(tr("Clone Tab"), this);
+    actCloneTab_->setShortcutContext(sc);
+    connect(actCloneTab_, &QAction::triggered, this, [this]() {
+        cloneTab(activeTabIndex());
+    });
+    sm->applyToAction(actCloneTab_, QStringLiteral("file.clone_tab"));
+
+    // 切换活动选项卡（循环）与聚焦标签栏
+    actNextTab_ = new QAction(tr("Next Tab"), this);
+    actNextTab_->setShortcutContext(sc);
+    connect(actNextTab_, &QAction::triggered, this, [this]() {
+        const int n = tabCount();
+        if (n > 1) setActiveTab((activeTabIndex() + 1) % n);
+    });
+    sm->applyToAction(actNextTab_, QStringLiteral("nav.focus_panel"));
+
+    // 将所有动作注册到面板，使 WidgetWithChildrenShortcut 快捷键生效
+    // （仅加入 QMenu 时快捷键只在菜单弹出期间有效）
+    addAction(actBack_);
+    addAction(actForward_);
+    addAction(actUp_);
+    addAction(actNewFile_);
+    addAction(actNewFolder_);
+    addAction(actRefresh_);
+    addAction(actOpen_);
+    addAction(actOpenWith_);
+    addAction(actRename_);
+    addAction(actCut_);
+    addAction(actCopy_);
+    addAction(actPaste_);
+    addAction(actCutToOpp_);
+    addAction(actCopyToOpp_);
+    addAction(actCopyPath_);
+    addAction(actCopyName_);
+    addAction(actTrash_);
+    addAction(actDelete_);
+    addAction(actProperties_);
+    addAction(actNewTab_);
+    addAction(actCloseTab_);
+    addAction(actCloneTab_);
+    addAction(actNextTab_);
+
     updateActionStates();
 }
 
@@ -562,6 +619,10 @@ void PanelWidget::setActivePanel(bool active) {
         tabBar_->setStyleSheet(active
             ? QStringLiteral("QTabBar::tab:selected { font-weight: bold; }")
             : QString());
+    }
+    // 活动面板切换时，将键盘焦点移到当前视图，使方向键操作新活动面板
+    if (active) {
+        if (auto *v = listView()) v->setFocus();
     }
 }
 

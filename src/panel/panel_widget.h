@@ -147,6 +147,10 @@ private:
     QAction *actTrash_ = nullptr;
     QAction *actDelete_ = nullptr;
     QAction *actProperties_ = nullptr;
+    QAction *actNewTab_ = nullptr;
+    QAction *actCloseTab_ = nullptr;
+    QAction *actCloneTab_ = nullptr;
+    QAction *actNextTab_ = nullptr;
 };
 
 } // namespace fm

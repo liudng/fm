@@ -110,8 +110,8 @@ void MainWindow::buildFileMenu(QMenu *menu) {
     // 安装事件过滤器，支持右键挂载/卸载/弹出
     menu->installEventFilter(this);
 
-    auto *exitAction = menu->addAction(tr("&Quit"), QKeySequence::Quit,
-                                        this, &MainWindow::onExit);
+    auto *exitAction = menu->addAction(tr("&Quit"));
+    connect(exitAction, &QAction::triggered, this, &MainWindow::onExit);
     exitAction->setIcon(QIcon::fromTheme(QStringLiteral("application-exit")));
     ShortcutManager::instance()->applyToAction(exitAction, QStringLiteral("file.quit"));
 }

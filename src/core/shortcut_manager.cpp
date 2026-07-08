@@ -20,9 +20,9 @@ const DefaultShortcut kDefaultShortcuts[] = {
     {"file.new_tab",        "Ctrl+T",         QT_TRANSLATE_NOOP("Shortcut", "New Tab")},
     {"file.close_tab",      "Ctrl+W",         QT_TRANSLATE_NOOP("Shortcut", "Close Tab")},
     {"file.clone_tab",      "Ctrl+Shift+T",   QT_TRANSLATE_NOOP("Shortcut", "Clone Tab")},
-    {"file.new_file",       "",               QT_TRANSLATE_NOOP("Shortcut", "New File")},
+    {"file.new_file",       "Ctrl+N",         QT_TRANSLATE_NOOP("Shortcut", "New File")},
     {"file.new_folder",     "F7",             QT_TRANSLATE_NOOP("Shortcut", "New Folder")},
-    {"file.quit",           "Ctrl+Q",         QT_TRANSLATE_NOOP("Shortcut", "Quit")},
+    {"file.quit",           "",               QT_TRANSLATE_NOOP("Shortcut", "Quit")},
 
     // 选项卡上下文菜单
     {"tab.close",           "",               QT_TRANSLATE_NOOP("Shortcut", "Close Tab (Context)")},
@@ -31,12 +31,12 @@ const DefaultShortcut kDefaultShortcuts[] = {
 
     // 文件列表右键菜单（选中）
     {"filelist.open",       "Return",         QT_TRANSLATE_NOOP("Shortcut", "Open")},
-    {"filelist.open_with",  "",               QT_TRANSLATE_NOOP("Shortcut", "Open With...")},
+    {"filelist.open_with",  "Ctrl+Shift+O",   QT_TRANSLATE_NOOP("Shortcut", "Open With...")},
     {"filelist.rename",     "F2",             QT_TRANSLATE_NOOP("Shortcut", "Rename")},
     {"filelist.cut",        "Ctrl+X",         QT_TRANSLATE_NOOP("Shortcut", "Cut")},
     {"filelist.copy",       "Ctrl+C",         QT_TRANSLATE_NOOP("Shortcut", "Copy")},
-    {"filelist.cut_to_opposite", "",          QT_TRANSLATE_NOOP("Shortcut", "Cut to Opposite")},
-    {"filelist.copy_to_opposite", "",         QT_TRANSLATE_NOOP("Shortcut", "Copy to Opposite")},
+    {"filelist.cut_to_opposite", "F6",        QT_TRANSLATE_NOOP("Shortcut", "Cut to Opposite")},
+    {"filelist.copy_to_opposite", "F5",      QT_TRANSLATE_NOOP("Shortcut", "Copy to Opposite")},
     {"filelist.copy_path",  "Ctrl+Shift+C",   QT_TRANSLATE_NOOP("Shortcut", "Copy Path")},
     {"filelist.copy_name",  "Ctrl+Shift+N",   QT_TRANSLATE_NOOP("Shortcut", "Copy File Name")},
     {"filelist.paste",      "Ctrl+V",         QT_TRANSLATE_NOOP("Shortcut", "Paste")},
@@ -61,8 +61,7 @@ const DefaultShortcut kDefaultShortcuts[] = {
     {"help.about",          "",               QT_TRANSLATE_NOOP("Shortcut", "About")},
 
     // 键盘导航
-    {"nav.focus_tab_bar",   "Ctrl+L",         QT_TRANSLATE_NOOP("Shortcut", "Focus Tab Bar")},
-    {"nav.focus_panel",     "Ctrl+Tab",       QT_TRANSLATE_NOOP("Shortcut", "Focus Panel")},
+    {"nav.focus_panel",     "Ctrl+Tab",       QT_TRANSLATE_NOOP("Shortcut", "Next Tab")},
 };
 
 const int kDefaultShortcutCount = sizeof(kDefaultShortcuts) / sizeof(DefaultShortcut);
@@ -120,12 +119,16 @@ bool ShortcutManager::setShortcut(const QString &id, const QKeySequence &seq) {
     it.value().currentKey = seq.toString();
     // 重新检测冲突
     detectConflicts();
+    // 重新应用到所有已绑定的 QAction，使修改立即生效
+    reapplyShortcuts();
     emit shortcutsChanged();
     return true;
 }
 
 void ShortcutManager::applyToAction(QAction *action, const QString &id) {
     if (!action) return;
+    // 记录绑定，以便设置变更后重新应用
+    actionBindings_[id] = action;
     auto it = items_.constFind(id);
     if (it == items_.constEnd()) return;
     const auto &item = it.value();
@@ -136,6 +139,14 @@ void ShortcutManager::applyToAction(QAction *action, const QString &id) {
     }
     const QString key = item.currentKey.isEmpty() ? item.defaultKey : item.currentKey;
     action->setShortcut(QKeySequence(key));
+}
+
+void ShortcutManager::reapplyShortcuts() {
+    for (auto it = actionBindings_.begin(); it != actionBindings_.end(); ++it) {
+        if (it.value()) {
+            applyToAction(it.value(), it.key());
+        }
+    }
 }
 
 void ShortcutManager::detectConflicts() {

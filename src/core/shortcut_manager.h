@@ -3,6 +3,7 @@
 
 #include <QKeySequence>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QList>
 #include <QMap>
@@ -59,8 +60,11 @@ signals:
 private:
     ShortcutManager(QObject *parent = nullptr);
 
+    // 重新对所有已绑定 QAction 应用当前快捷键（设置变更后调用）
+    void reapplyShortcuts();
+
     QMap<QString, ShortcutItem> items_;     // id -> item
-    QMap<QString, QString> actionBindings_; // id -> QAction* 通过 setObjectProperty
+    QMap<QString, QPointer<QAction>> actionBindings_; // id -> QAction（弱引用）
 };
 
 } // namespace fm

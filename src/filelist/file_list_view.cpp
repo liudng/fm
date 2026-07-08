@@ -97,11 +97,6 @@ void FileListView::keyPressEvent(QKeyEvent *event) {
         emit parentDirRequested();
         return;
     }
-    // F5：刷新（Ctrl+R 由 QAction 处理，F5 作为补充）
-    if (key == Qt::Key_F5 && mods == Qt::NoModifier) {
-        emit refreshRequested();
-        return;
-    }
     // Ctrl+A：全选（无对应快捷键配置项，始终由键盘处理）
     if (key == Qt::Key_A && mods == Qt::ControlModifier) {
         emit selectAllRequested();
