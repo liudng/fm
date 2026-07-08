@@ -178,7 +178,7 @@ int PanelWidget::addTab(const QString &path, int index) {
     connect(view, &FileListView::openKeyPressed, this, &PanelWidget::onOpen);
     connect(view, &FileListView::renameRequested, this, &PanelWidget::onRename);
     connect(view, &FileListView::refreshRequested, this, &PanelWidget::refresh);
-    connect(view, &FileListView::selectAllRequested, view, &QAbstractItemView::selectAll);
+    connect(view, &FileListView::selectAllRequested, view, &FileListView::selectAllFiles);
     connect(view, &FileListView::trashRequested, this, &PanelWidget::onTrash);
     connect(view, &FileListView::deletePermanentlyRequested, this, &PanelWidget::onDeletePermanently);
     connect(view, &FileListView::copyRequested, this, &PanelWidget::onCopy);
@@ -209,12 +209,18 @@ void PanelWidget::closeTab(int index) {
 
     // 先从 ColumnManager 注销
     ColumnManager::instance()->unregisterView(tabs_.at(index).view);
-
-    QWidget *w = stack_->widget(index);
-    stack_->removeWidget(w);
-    delete w;
-    tabBar_->removeTab(index);
+    // 先从 tabs_ 移除数据，避免后续 removeTab 触发 currentChanged 时访问悬空 view
+    FileListView *view = tabs_.at(index).view;
     tabs_.removeAt(index);
+    // 从 stack 移除并删除 widget
+    stack_->removeWidget(view);
+    delete view;
+    // 从 tabBar 移除（可能触发 currentChanged；此时 tabs_ 已与新结构一致）
+    tabBar_->removeTab(index);
+    // 确保 current index 有效（删除当前 tab 后 Qt 会自动选相邻项，这里兜底）
+    if (tabBar_->currentIndex() < 0 && tabs_.size() > 0) {
+        tabBar_->setCurrentIndex(qMin(index, tabs_.size() - 1));
+    }
     emit tabCountChanged();
 }
 
@@ -480,12 +486,16 @@ void PanelWidget::createActions() {
 }
 
 QList<QAction*> PanelWidget::toolbarActions() const {
+    // 顺序：后退、前进、向上、刷新 | 新建文件、新建文件夹 | 打开、打开...
+    // | 重命名、剪切、复制、粘贴、剪切到对面、复制到对面、复制路径、复制文件名
+    // | 移到回收站、彻底删除、属性
     return {
-        actBack_, actForward_, actUp_, nullptr,
-        actNewFile_, actNewFolder_, actRefresh_, nullptr,
-        actOpen_, actCut_, actCopy_, actPaste_, actDelete_, nullptr,
-        actCutToOpp_, actCopyToOpp_, nullptr,
-        actRename_, actTrash_, actProperties_
+        actBack_, actForward_, actUp_, actRefresh_, nullptr,
+        actNewFile_, actNewFolder_, nullptr,
+        actOpen_, actOpenWith_, nullptr,
+        actRename_, actCut_, actCopy_, actPaste_, actCutToOpp_, actCopyToOpp_,
+        actCopyPath_, actCopyName_, nullptr,
+        actTrash_, actDelete_, actProperties_
     };
 }
 
@@ -564,13 +574,15 @@ QList<TabState> PanelWidget::tabStates() const {
 }
 
 void PanelWidget::clearAllTabs() {
+    // 阻塞 tabBar 信号，避免删除过程中 currentChanged 访问已删除的 view
+    const QSignalBlocker blocker(tabBar_);
     while (!tabs_.isEmpty()) {
-        ColumnManager::instance()->unregisterView(tabs_.last().view);
-        QWidget *w = stack_->widget(tabs_.size() - 1);
-        stack_->removeWidget(w);
-        delete w;
-        tabBar_->removeTab(tabs_.size() - 1);
+        FileListView *view = tabs_.last().view;
+        ColumnManager::instance()->unregisterView(view);
         tabs_.removeLast();
+        stack_->removeWidget(view);
+        delete view;
+        tabBar_->removeTab(tabBar_->count() - 1);
     }
     emit tabCountChanged();
 }
@@ -646,46 +658,40 @@ void PanelWidget::showContextMenu(const QPoint &globalPos, bool hasSelection) {
     auto *menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
-    const bool canPaste = ClipboardManager::instance()->hasFiles();
-
-    // 弹出前刷新动作状态
+    // 弹出前刷新动作状态（粘贴项的 enabled 由 canPaste 决定）
     updateActionStates();
 
     if (hasSelection) {
+        // 顺序与工具栏一致：打开、打开...、重命名、剪切、复制、粘贴、
+        // 剪切到对面、复制到对面、复制路径、复制文件名、移到回收站、彻底删除、属性
         menu->addAction(actOpen_);
         menu->addAction(actOpenWith_);
         menu->addSeparator();
         menu->addAction(actRename_);
         menu->addAction(actCut_);
         menu->addAction(actCopy_);
-        menu->addSeparator();
+        menu->addAction(actPaste_);
         menu->addAction(actCutToOpp_);
         menu->addAction(actCopyToOpp_);
         menu->addSeparator();
         menu->addAction(actCopyPath_);
         menu->addAction(actCopyName_);
-        if (canPaste) {
-            menu->addSeparator();
-            menu->addAction(actPaste_);
-        }
         menu->addSeparator();
         menu->addAction(actTrash_);
         menu->addAction(actDelete_);
         menu->addSeparator();
         menu->addAction(actProperties_);
     } else {
+        // 无选中：导航 + 新建 + 粘贴（粘贴一律显示，enabled 由状态控制）
         menu->addAction(actBack_);
         menu->addAction(actForward_);
         menu->addAction(actUp_);
+        menu->addAction(actRefresh_);
         menu->addSeparator();
         menu->addAction(actNewFile_);
         menu->addAction(actNewFolder_);
         menu->addSeparator();
-        menu->addAction(actRefresh_);
-        if (canPaste) {
-            menu->addSeparator();
-            menu->addAction(actPaste_);
-        }
+        menu->addAction(actPaste_);
     }
 
     menu->popup(globalPos);

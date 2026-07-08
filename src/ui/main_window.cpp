@@ -25,6 +25,7 @@
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QStyleFactory>
+#include <QTimer>
 #include <QToolBar>
 
 namespace fm {
@@ -221,8 +222,18 @@ void MainWindow::buildSettingsMenu(QMenu *menu) {
     languageGroup_->addAction(zhAction);
     connect(languageGroup_, &QActionGroup::triggered, this, &MainWindow::onLanguageChanged);
 
-    // 默认选中英文
-    enAction->setChecked(true);
+    // 根据配置选中当前语言（而非硬编码英文）
+    const QString curLang = ConfigManager::instance()->value(
+        QStringLiteral("UI"), QStringLiteral("language"), QStringLiteral("en")).toString();
+    bool langChecked = false;
+    for (QAction *a : languageGroup_->actions()) {
+        if (a->data().toString() == curLang) {
+            a->setChecked(true);
+            langChecked = true;
+            break;
+        }
+    }
+    if (!langChecked) enAction->setChecked(true);
 
     // 主题子菜单
     themeMenu_ = menu->addMenu(tr("&Theme"));
@@ -250,6 +261,9 @@ void MainWindow::buildSettingsMenu(QMenu *menu) {
     toggleOrientationAction_ = menu->addAction(QString(), this,
                                                   &MainWindow::onToggleOrientation);
     ShortcutManager::instance()->applyToAction(toggleOrientationAction_, QStringLiteral("settings.toggle_orientation"));
+
+    auto *resetSplitterAction = menu->addAction(tr("&Reset Splitter"), this,
+                                                    &MainWindow::onResetSplitter);
 
     menu->addSeparator();
 
@@ -371,10 +385,16 @@ void MainWindow::restoreSession() {
     panelContainer_->setPanelVisible(PanelId::Panel1, state.panelVisible[0]);
     panelContainer_->setPanelVisible(PanelId::Panel2, state.panelVisible[1]);
     // 应用当前方向的保存比例（若有）
-    const QList<int> &curSizes = (state.orientation == Qt::Horizontal)
+    // 注意：在窗口 show() 之前调用 setSplitterSizes 通常不会生效
+    // （splitter 尺寸为 0，比例计算无意义）。因此延后到事件循环中执行，
+    // 此时窗口已 show，并避免被后续 applyPanelConfig 的 setPanelVisible 覆盖。
+    const QList<int> curSizes = (state.orientation == Qt::Horizontal)
         ? state.horizontalSizes : state.verticalSizes;
-    if (!curSizes.isEmpty())
-        panelContainer_->setSplitterSizes(curSizes);
+    if (!curSizes.isEmpty()) {
+        QTimer::singleShot(0, this, [this, curSizes]() {
+            panelContainer_->setSplitterSizes(curSizes);
+        });
+    }
 
     for (int i = 0; i < 2; ++i) {
         auto *p = panelContainer_->panel(static_cast<PanelId>(i));
@@ -562,6 +582,16 @@ void MainWindow::onToggleActivePanel() {
 void MainWindow::onToggleOrientation() {
     const bool horizontal = panelContainer_->orientation() == Qt::Horizontal;
     panelContainer_->setOrientation(horizontal ? Qt::Vertical : Qt::Horizontal);
+}
+
+void MainWindow::onResetSplitter() {
+    // 将两个面板的比例重置为各占窗口一半
+    panelContainer_->setSplitterSizes({1, 1});
+    // 同步更新当前方向的记忆比例，避免下次切换方向时恢复为旧值
+    const Qt::Orientation curOri = panelContainer_->orientation();
+    const QList<int> sizes = panelContainer_->splitterSizes();
+    if (curOri == Qt::Horizontal) panelContainer_->setHorizontalSizes(sizes);
+    else panelContainer_->setVerticalSizes(sizes);
 }
 
 void MainWindow::onTogglePanel1Visible() {

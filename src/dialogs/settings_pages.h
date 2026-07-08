@@ -33,8 +33,10 @@ private:
     QWidget *widget_ = nullptr;
     QComboBox *langCombo_ = nullptr;
     QComboBox *themeCombo_ = nullptr;
+    QComboBox *iconCombo_ = nullptr;
     QString origLang_;
     QString origTheme_;
+    QString origIconTheme_;
 };
 
 // === 面板设置页：活动面板 + 布局 + 显示面板 ===

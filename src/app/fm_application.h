@@ -25,6 +25,8 @@ public:
 
 private:
     void loadTranslation(const QString &language);
+    // 从配置读取并应用图标主题（UI/iconTheme）
+    void applyIconTheme();
 
     MainWindow *mainWindow_ = nullptr;
     QTranslator translator_;

@@ -35,6 +35,7 @@ translations = {
     '&Switch Active Panel': '切换活动面板(&S)',
     'Switch to &Vertical Layout': '切换到垂直布局(&V)',
     'Switch to &Horizontal Layout': '切换到水平布局(&H)',
+    '&Reset Splitter': '重置分隔(&R)',
     'Hide &Panel 1': '隐藏面板 1(&P)',
     'Show &Panel 1': '显示面板 1(&P)',
     'Hide &Panel 2': '隐藏面板 2(&P)',
@@ -266,6 +267,9 @@ translations = {
     # 设置页补充
     'Language:': '语言：',
     'Theme:': '主题：',
+    'Icon Theme': '图标主题',
+    'Icon theme:': '图标主题：',
+    'Automatic': '自动',
 
     # 进度对话框
     'Working...': '处理中...',

@@ -39,6 +39,7 @@ private slots:
     // 设置菜单
     void onToggleActivePanel();
     void onToggleOrientation();
+    void onResetSplitter();
     void onTogglePanel1Visible();
     void onTogglePanel2Visible();
     void onToggleHiddenFiles();

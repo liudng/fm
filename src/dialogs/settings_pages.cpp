@@ -8,15 +8,18 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QDir>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QIcon>
 #include <QKeySequenceEdit>
 #include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QSet>
 #include <QStyleFactory>
 #include <QTableWidget>
 #include <QTableWidgetItem>
@@ -52,6 +55,32 @@ UiSettingsPage::UiSettingsPage(QObject *parent)
     themeLayout->addRow(tr("Theme:"), themeCombo_);
     layout->addWidget(themeBox);
 
+    // 图标主题
+    auto *iconBox = new QGroupBox(tr("Icon Theme"));
+    auto *iconLayout = new QFormLayout(iconBox);
+    iconCombo_ = new QComboBox;
+    // 第一项：自动（空值表示由程序根据可用性选择，默认 gnome）
+    iconCombo_->addItem(tr("Automatic"), QString());
+    // 枚举系统中已安装的图标主题（含 index.theme 的目录）
+    QSet<QString> themes;
+    for (const QString &path : QIcon::themeSearchPaths()) {
+        QDir dir(path);
+        if (!dir.exists()) continue;
+        const QStringList entries = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString &name : entries) {
+            if (QFileInfo(dir.absoluteFilePath(name + QStringLiteral("/index.theme"))).exists()) {
+                themes.insert(name);
+            }
+        }
+    }
+    QStringList sorted = themes.values();
+    sorted.sort();
+    for (const QString &name : sorted) {
+        iconCombo_->addItem(name, name);
+    }
+    iconLayout->addRow(tr("Icon theme:"), iconCombo_);
+    layout->addWidget(iconBox);
+
     layout->addStretch(1);
 }
 
@@ -63,6 +92,8 @@ void UiSettingsPage::load() {
                             QStringLiteral("en")).toString();
     origTheme_ = cfg->value(QStringLiteral("UI"), QStringLiteral("theme"),
                              QStringLiteral("Fusion")).toString();
+    origIconTheme_ = cfg->value(QStringLiteral("UI"), QStringLiteral("iconTheme"),
+                                  QString()).toString();
 
     // 选择当前值
     for (int i = 0; i < langCombo_->count(); ++i) {
@@ -77,16 +108,25 @@ void UiSettingsPage::load() {
             break;
         }
     }
+    for (int i = 0; i < iconCombo_->count(); ++i) {
+        if (iconCombo_->itemData(i).toString() == origIconTheme_) {
+            iconCombo_->setCurrentIndex(i);
+            break;
+        }
+    }
 }
 
 void UiSettingsPage::apply() {
     auto *cfg = ConfigManager::instance();
     const QString lang = langCombo_->currentData().toString();
     const QString theme = themeCombo_->currentData().toString();
+    const QString iconTheme = iconCombo_->currentData().toString();
     cfg->setValue(QStringLiteral("UI"), QStringLiteral("language"), lang);
     cfg->setValue(QStringLiteral("UI"), QStringLiteral("theme"), theme);
+    cfg->setValue(QStringLiteral("UI"), QStringLiteral("iconTheme"), iconTheme);
     origLang_ = lang;
     origTheme_ = theme;
+    origIconTheme_ = iconTheme;
 }
 
 // ============ PanelSettingsPage ============

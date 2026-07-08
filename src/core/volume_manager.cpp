@@ -77,15 +77,13 @@ VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath) {
                                 QDBusConnection::systemBus());
     if (!blockIface.isValid()) return info;
 
-    info.deviceFile = blockIface.property("Device").toString();
-    // Device 是 byte array 形式，需要特殊处理
+    // Device 属性为 ay（字节数组，带尾部 null），用 constData() 在首个 null 截断，
+    // 避免 QString 包含 U+0000 导致路径末尾出现方框字符
     const QVariant devVar = blockIface.property("Device");
-    if (devVar.isValid()) {
-        if (devVar.userType() == QMetaType::QByteArray) {
-            info.deviceFile = QString::fromUtf8(devVar.toByteArray());
-        } else {
-            info.deviceFile = devVar.toString();
-        }
+    if (devVar.isValid() && devVar.userType() == QMetaType::QByteArray) {
+        info.deviceFile = QString::fromUtf8(devVar.toByteArray().constData());
+    } else {
+        info.deviceFile = devVar.toString();
     }
 
     // IdUsage=filesystem 且 IdType 才有意义
@@ -104,7 +102,8 @@ VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath) {
     if (mpVar.isValid()) {
         const auto list = qdbus_cast<QList<QByteArray>>(mpVar);
         if (!list.isEmpty()) {
-            info.mountPoint = QString::fromUtf8(list.first());
+            // MountPoints 为 aay（每项带尾部 null），用 constData() 截断
+            info.mountPoint = QString::fromUtf8(list.first().constData());
             info.isMounted = !info.mountPoint.isEmpty();
         }
     }
