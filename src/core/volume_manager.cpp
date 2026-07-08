@@ -7,6 +7,7 @@
 #include <QDBusArgument>
 #include <QDBusObjectPath>
 #include <QDBusMetaType>
+#include <QDBusVariant>
 #include <QDebug>
 #include <QFile>
 #include <QStorageInfo>
@@ -37,6 +38,9 @@ VolumeManager *VolumeManager::instance() {
 
 VolumeManager::VolumeManager(QObject *parent)
     : QObject(parent) {
+    // 注册 D-Bus 自定义类型，避免读取 MountPoints (aay) 等属性时出现
+    // "type QDBusRawType<0x616179>* must be registered with Qt D-Bus" 警告
+    qDBusRegisterMetaType<QList<QByteArray>>();
 }
 
 // 将设备文件路径（/dev/sdb1）转换为 UDisks2 D-Bus 对象路径
@@ -93,18 +97,26 @@ VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath) {
         return info;
     }
 
-    // 文件系统接口
-    QDBusInterface fsIface(kUDisks2Service, blockPath, kFsWithIface,
-                              QDBusConnection::systemBus());
-
-    // MountPoints
-    const QVariant mpVar = fsIface.property("MountPoints");
-    if (mpVar.isValid()) {
-        const auto list = qdbus_cast<QList<QByteArray>>(mpVar);
-        if (!list.isEmpty()) {
-            // MountPoints 为 aay（每项带尾部 null），用 constData() 截断
-            info.mountPoint = QString::fromUtf8(list.first().constData());
-            info.isMounted = !info.mountPoint.isEmpty();
+    // MountPoints：通过 org.freedesktop.DBus.Properties.Get 读取，
+    // 避免 QDBusInterface::property() 对 aay 类型产生 QDBusRawType 警告
+    // （property() 内部走 QDBusRawType 路径，即便注册了 metatype 仍会告警）
+    QDBusInterface propsIface(kUDisks2Service, blockPath,
+                                 QStringLiteral("org.freedesktop.DBus.Properties"),
+                                 QDBusConnection::systemBus());
+    QDBusReply<QDBusVariant> mpReply = propsIface.call(QStringLiteral("Get"),
+                                                        kFsWithIface,
+                                                        QStringLiteral("MountPoints"));
+    if (mpReply.isValid()) {
+        const QVariant v = mpReply.value().variant();
+        if (v.canConvert<QDBusArgument>()) {
+            const QDBusArgument arg = v.value<QDBusArgument>();
+            QList<QByteArray> mountPoints;
+            arg >> mountPoints;
+            if (!mountPoints.isEmpty()) {
+                // MountPoints 为 aay（每项带尾部 null），用 constData() 截断
+                info.mountPoint = QString::fromUtf8(mountPoints.first().constData());
+                info.isMounted = !info.mountPoint.isEmpty();
+            }
         }
     }
 
