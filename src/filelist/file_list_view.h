@@ -10,7 +10,6 @@ namespace fm {
 // - 双击 ".." 触发 parentDirRequested
 // - 右键菜单：通过 contextMenuRequested 信号
 // - 键盘导航：Enter/Backspace/F2/F5/Ctrl+A 等
-// - ".." 行可被单独选中，但不会出现在多选集合中
 class FileListView : public QTreeView {
     Q_OBJECT
 public:
@@ -18,10 +17,6 @@ public:
 
     void setColumnConfig(const QList<int> &visibleColumns,
                          const QMap<int, int> &columnWidths);
-
-public slots:
-    // 选中除 ".." 行以外的所有行（用于 Ctrl+A）
-    void selectAllFiles();
 
 signals:
     void openRequested(const QModelIndex &proxyIndex);
@@ -44,11 +39,6 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
-
-private:
-    // 从当前选中集合中移除 ".." 行（多选操作后调用）
-    void deselectParentRow();
 };
 
 } // namespace fm

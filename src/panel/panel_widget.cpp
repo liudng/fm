@@ -178,7 +178,7 @@ int PanelWidget::addTab(const QString &path, int index) {
     connect(view, &FileListView::openKeyPressed, this, &PanelWidget::onOpen);
     connect(view, &FileListView::renameRequested, this, &PanelWidget::onRename);
     connect(view, &FileListView::refreshRequested, this, &PanelWidget::refresh);
-    connect(view, &FileListView::selectAllRequested, view, &FileListView::selectAllFiles);
+    connect(view, &FileListView::selectAllRequested, view, &QAbstractItemView::selectAll);
     connect(view, &FileListView::trashRequested, this, &PanelWidget::onTrash);
     connect(view, &FileListView::deletePermanentlyRequested, this, &PanelWidget::onDeletePermanently);
     connect(view, &FileListView::copyRequested, this, &PanelWidget::onCopy);

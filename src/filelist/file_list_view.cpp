@@ -84,44 +84,6 @@ void FileListView::contextMenuEvent(QContextMenuEvent *event) {
     emit contextMenuRequested(event->globalPos());
 }
 
-void FileListView::mousePressEvent(QMouseEvent *event) {
-    QTreeView::mousePressEvent(event);
-    // 需求：".." 行可被单独选中，但不能出现在多选集合中。
-    // 当用户使用 Ctrl/Shift 进行多选操作后，确保 ".." 行被移出选中集合。
-    // 普通点击（无修饰键）不处理：单独选中 ".." 是允许的。
-    if (event->button() == Qt::LeftButton &&
-        (event->modifiers() & (Qt::ControlModifier | Qt::ShiftModifier))) {
-        deselectParentRow();
-    }
-}
-
-void FileListView::deselectParentRow() {
-    auto *proxy = qobject_cast<FileListSortProxy*>(model());
-    auto *fileModel = proxy ? qobject_cast<FileListModel*>(proxy->sourceModel()) : nullptr;
-    if (!proxy || !fileModel || !selectionModel()) return;
-
-    // 遍历 proxy 行，找到 ".." 行的 proxy 索引
-    const int rows = proxy->rowCount();
-    for (int i = 0; i < rows; ++i) {
-        const QModelIndex proxyIdx = proxy->index(i, 0);
-        const QModelIndex srcIdx = proxy->mapToSource(proxyIdx);
-        if (fileModel->isParentRow(srcIdx)) {
-            if (selectionModel()->isSelected(proxyIdx)) {
-                // 选中行整行取消选中
-                selectionModel()->select(proxyIdx,
-                    QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
-            }
-            return;
-        }
-    }
-}
-
-void FileListView::selectAllFiles() {
-    // 全选后移除 ".." 行，保证 ".." 不出现在多选集合中
-    selectAll();
-    deselectParentRow();
-}
-
 void FileListView::keyPressEvent(QKeyEvent *event) {
     const Qt::KeyboardModifiers mods = event->modifiers();
     const int key = event->key();
