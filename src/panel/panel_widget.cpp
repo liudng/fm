@@ -23,6 +23,7 @@
 #include <QClipboard>
 #include <QDir>
 #include <QFileInfo>
+#include <QHeaderView>
 #include <QIcon>
 #include <QMenu>
 #include <QMimeDatabase>
@@ -111,6 +112,8 @@ int PanelWidget::addTab(const QString &path, int index) {
     auto *proxy = new FileListSortProxy(view);
     proxy->setSourceModel(model);
     view->setModel(proxy);
+    // 默认按"文件全名"列升序排序（而非 Icon 列）
+    view->header()->setSortIndicator(FileListModel::ColName, Qt::AscendingOrder);
     applyColumnConfig(view);
 
     TabData td;
@@ -567,7 +570,8 @@ QList<TabState> PanelWidget::tabStates() const {
     for (const auto &td : tabs_) {
         TabState s;
         s.path = td.model->path();
-        // 排序列/顺序在后续阶段记录
+        s.sortColumn = td.view->header()->sortIndicatorSection();
+        s.sortOrder = td.view->header()->sortIndicatorOrder();
         states.append(s);
     }
     return states;
@@ -591,9 +595,12 @@ void PanelWidget::setTabStates(const QList<TabState> &states, int activeIndex) {
     // 先清空所有选项卡（包括最后一个）
     clearAllTabs();
 
-    // 重新添加
+    // 重新添加并恢复每个 tab 的排序状态
     for (const auto &s : states) {
-        addTab(s.path, -1);
+        const int idx = addTab(s.path, -1);
+        if (idx >= 0 && idx < tabs_.size() && s.sortColumn >= 0) {
+            tabs_[idx].view->header()->setSortIndicator(s.sortColumn, s.sortOrder);
+        }
     }
     if (!states.isEmpty()) {
         setActiveTab(qBound(0, activeIndex, states.size() - 1));

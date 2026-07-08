@@ -82,7 +82,7 @@ bool SessionState::deserialize(const QString &data, LayoutState &outState) {
         for (int t = 0; t < tabCount; ++t) {
             TabState tab;
             tab.path = kv.value(QStringLiteral("panel%1_tab%2_path").arg(p).arg(t));
-            tab.sortColumn = kv.value(QStringLiteral("panel%1_tab%2_sortCol").arg(p).arg(t), "0").toInt();
+            tab.sortColumn = kv.value(QStringLiteral("panel%1_tab%2_sortCol").arg(p).arg(t), "1").toInt();
             tab.sortOrder = static_cast<Qt::SortOrder>(
                 kv.value(QStringLiteral("panel%1_tab%2_sortOrder").arg(p).arg(t), "0").toInt());
             if (!tab.path.isEmpty()) panel.tabs.append(tab);

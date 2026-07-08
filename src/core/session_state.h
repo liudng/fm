@@ -10,7 +10,7 @@ namespace fm {
 // 单个选项卡的状态
 struct TabState {
     QString path;
-    int sortColumn = 0;
+    int sortColumn = 1;  // 默认按"文件全名"列排序
     Qt::SortOrder sortOrder = Qt::AscendingOrder;
 };
 
