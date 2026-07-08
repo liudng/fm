@@ -34,6 +34,10 @@ public:
     // 列举所有已挂载的块设备文件系统（通过 QStorageInfo）
     QList<VolumeInfo> listVolumes();
 
+    // 列举所有外部（可移动）块设备（含未挂载，通过 UDisks2）
+    // 每个块设备（分区）一项；已挂载设备的卷会同时出现在 listVolumes() 中
+    QList<VolumeInfo> listExternalDevices();
+
     // 挂载设备（返回挂载点；失败返回空字符串）
     QString mount(const QString &devicePath, QString *errorMsg = nullptr);
     // 卸载设备

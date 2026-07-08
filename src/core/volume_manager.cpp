@@ -58,7 +58,8 @@ QStringList VolumeManager::enumerateBlockDevices() {
                            QDBusConnection::systemBus());
     if (!iface.isValid()) return result;
 
-    QDBusReply<QList<QDBusObjectPath>> reply = iface.call(QStringLiteral("GetBlockDevices"));
+    // GetBlockDevices 签名为 (IN a{sv} options)，必须传一个空 dict 参数
+    QDBusReply<QList<QDBusObjectPath>> reply = iface.call(QStringLiteral("GetBlockDevices"), QVariantMap{});
     if (!reply.isValid()) return result;
 
     for (const QDBusObjectPath &p : reply.value()) {
@@ -108,13 +109,16 @@ VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath) {
         }
     }
 
-    // 通过 QStorageInfo 获取 label（更可靠）
+    // label：已挂载时优先用 QStorageInfo（更可靠），否则用 IdLabel
     if (info.isMounted) {
         const QStorageInfo si(info.mountPoint);
         info.label = si.name();
     }
+    if (info.label.isEmpty()) {
+        info.label = blockIface.property("IdLabel").toString();
+    }
 
-    // 标记是否外部设备
+    // 标记是否外部设备，并补充 label（型号）
     const QString drivePath = blockIface.property("Drive").value<QDBusObjectPath>().path();
     if (!drivePath.isEmpty() && drivePath != "/") {
         QDBusInterface driveIface(kUDisks2Service, drivePath, kDriveIface,
@@ -123,6 +127,10 @@ VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath) {
             const bool removable = driveIface.property("Removable").toBool();
             info.isRemovable = removable;
             info.isExternal = removable;
+            // 仍无 label 时用驱动器型号补充
+            if (info.label.isEmpty()) {
+                info.label = driveIface.property("Model").toString();
+            }
         }
     }
 
@@ -154,6 +162,20 @@ QList<VolumeInfo> VolumeManager::listVolumes() {
     return result;
 }
 
+QList<VolumeInfo> VolumeManager::listExternalDevices() {
+    QList<VolumeInfo> result;
+    const QStringList blockPaths = enumerateBlockDevices();
+    for (const QString &bp : blockPaths) {
+        VolumeInfo info = getBlockDeviceProperties(bp);
+        if (info.deviceFile.isEmpty()) continue;
+        // 仅保留外部（可移动）设备；仅含文件系统的块设备
+        if (!info.isExternal) continue;
+        if (info.fsType.isEmpty()) continue;
+        result.append(info);
+    }
+    return result;
+}
+
 QString VolumeManager::mount(const QString &devicePath, QString *errorMsg) {
     const QString objPath = toUDisks2ObjectPath(devicePath);
     QDBusInterface fsIface(kUDisks2Service, objPath, kFsWithIface,
@@ -168,6 +190,7 @@ QString VolumeManager::mount(const QString &devicePath, QString *errorMsg) {
         if (errorMsg) *errorMsg = reply.error().message();
         return {};
     }
+    emit volumesChanged();
     return reply.value();
 }
 

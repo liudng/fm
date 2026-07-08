@@ -75,8 +75,10 @@ private:
     QMenu *languageMenu_ = nullptr;
     QMenu *themeMenu_ = nullptr;
     QMenu *fileMenu_ = nullptr;
-    QAction *volSeparator_ = nullptr;     // 卷项与 Quit 之间的分隔符
+    QAction *volSeparator_ = nullptr;     // 卷项与外部设备项之间的分隔符
+    QAction *extSeparator_ = nullptr;     // 外部设备项与 Quit 之间的分隔符
     QList<QAction*> volActions_;          // 动态卷项（aboutToShow 时刷新）
+    QList<QAction*> extActions_;          // 动态外部设备项（aboutToShow 时刷新）
     QActionGroup *languageGroup_ = nullptr;
     QActionGroup *themeGroup_ = nullptr;
 };

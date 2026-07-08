@@ -101,10 +101,12 @@ void MainWindow::buildMenuBar() {
 
 void MainWindow::buildFileMenu(QMenu *menu) {
     fileMenu_ = menu;
-    // 卷项在 aboutToShow 时动态添加到分隔符之前
+    // 卷项在 aboutToShow 时动态插入到 volSeparator_ 之前；
+    // 外部设备项动态插入到 volSeparator_ 与 extSeparator_ 之间
     volSeparator_ = menu->addSeparator();
+    extSeparator_ = menu->addSeparator();
     connect(menu, &QMenu::aboutToShow, this, &MainWindow::refreshFileMenuVolumes);
-    // 安装事件过滤器，支持右键卸载/弹出卷
+    // 安装事件过滤器，支持右键挂载/卸载/弹出
     menu->installEventFilter(this);
 
     auto *exitAction = menu->addAction(tr("&Quit"), QKeySequence::Quit,
@@ -114,7 +116,8 @@ void MainWindow::buildFileMenu(QMenu *menu) {
 }
 
 void MainWindow::refreshFileMenuVolumes() {
-    if (!fileMenu_ || !volSeparator_) return;
+    if (!fileMenu_ || !volSeparator_ || !extSeparator_) return;
+
     // 移除旧卷项
     for (QAction *a : volActions_) {
         fileMenu_->removeAction(a);
@@ -122,32 +125,67 @@ void MainWindow::refreshFileMenuVolumes() {
     }
     volActions_.clear();
 
-    // 枚举挂载点
+    // 移除旧外部设备项
+    for (QAction *a : extActions_) {
+        fileMenu_->removeAction(a);
+        a->deleteLater();
+    }
+    extActions_.clear();
+
+    // === 卷段（已挂载卷，QStorageInfo）===
     const QList<VolumeInfo> volumes = VolumeManager::instance()->listVolumes();
     if (volumes.isEmpty()) {
         auto *placeholder = fileMenu_->addAction(tr("(No volumes)"));
         placeholder->setEnabled(false);
         fileMenu_->insertAction(volSeparator_, placeholder);
         volActions_.append(placeholder);
-        return;
+    } else {
+        for (const VolumeInfo &v : volumes) {
+            QString text = v.label.isEmpty() ? v.mountPoint : v.label;
+            if (!v.mountPoint.isEmpty() && text != v.mountPoint) {
+                text += QStringLiteral("  (%1)").arg(v.mountPoint);
+            }
+            auto *act = new QAction(v.icon, text, fileMenu_);
+            // data 存储挂载点（左键导航用）；deviceFile/isMounted 供右键用
+            act->setData(v.mountPoint);
+            act->setProperty("deviceFile", v.deviceFile);
+            act->setProperty("isMounted", true);  // 卷项均为已挂载
+            connect(act, &QAction::triggered, this, [this, mp = v.mountPoint]() {
+                // 在活动面板的活动选项卡中打开挂载点（不新建选项卡）
+                auto *p = panelContainer_->activePanel();
+                if (p) p->openPath(mp);
+            });
+            fileMenu_->insertAction(volSeparator_, act);
+            volActions_.append(act);
+        }
     }
 
-    for (const VolumeInfo &v : volumes) {
-        QString text = v.label.isEmpty() ? v.mountPoint : v.label;
-        if (!v.mountPoint.isEmpty() && text != v.mountPoint) {
-            text += QStringLiteral("  (%1)").arg(v.mountPoint);
+    // === 外部设备段（含未挂载，UDisks2）===
+    const QList<VolumeInfo> devices = VolumeManager::instance()->listExternalDevices();
+    if (devices.isEmpty()) {
+        auto *placeholder = fileMenu_->addAction(tr("(No external devices)"));
+        placeholder->setEnabled(false);
+        fileMenu_->insertAction(extSeparator_, placeholder);
+        extActions_.append(placeholder);
+    } else {
+        for (const VolumeInfo &d : devices) {
+            // 设备名称：设备文件名必显示；有卷标/型号时前置
+            QString text = d.deviceFile;
+            if (!d.label.isEmpty()) {
+                text = QStringLiteral("%1 (%2)").arg(d.label, d.deviceFile);
+            }
+            // 已挂载追加挂载点
+            if (d.isMounted && !d.mountPoint.isEmpty()) {
+                text += QStringLiteral("  (%1)").arg(d.mountPoint);
+            }
+            auto *act = new QAction(d.icon, text, fileMenu_);
+            act->setProperty("deviceFile", d.deviceFile);
+            act->setProperty("isMounted", d.isMounted);
+            act->setProperty("mountPoint", d.mountPoint);
+            // 左键仅选中不操作（不连接 triggered）
+            fileMenu_->insertAction(extSeparator_, act);
+            extActions_.append(act);
         }
-        auto *act = new QAction(v.icon, text, fileMenu_);
-        // data 存储挂载点（左键导航用）；deviceFile 属性供右键卸载/弹出用
-        act->setData(v.mountPoint);
-        act->setProperty("deviceFile", v.deviceFile);
-        connect(act, &QAction::triggered, this, [this, mp = v.mountPoint]() {
-            // 在活动面板的活动选项卡中打开挂载点（不新建选项卡）
-            auto *p = panelContainer_->activePanel();
-            if (p) p->openPath(mp);
-        });
-        fileMenu_->insertAction(volSeparator_, act);
-        volActions_.append(act);
     }
 }
 
@@ -399,24 +437,37 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
             }
         }
     }
-    // 文件菜单卷项右键：弹出卸载/弹出菜单
+    // 文件菜单卷项/外部设备项右键：挂载/卸载/弹出
     if (obj == fileMenu_ && event->type() == QEvent::MouseButtonPress) {
         auto *me = static_cast<QMouseEvent*>(event);
         if (me->button() == Qt::RightButton) {
             auto *menu = static_cast<QMenu*>(obj);
             QAction *act = menu->actionAt(me->pos());
-            if (act && volActions_.contains(act)) {
+            if (act && (volActions_.contains(act) || extActions_.contains(act))) {
                 const QString deviceFile = act->property("deviceFile").toString();
                 if (!deviceFile.isEmpty()) {
+                    const bool isExternal = extActions_.contains(act);
+                    const bool isMounted = act->property("isMounted").toBool();
                     QMenu ctx(menu);
-                    auto *unmountAct = ctx.addAction(tr("Safely Unmount"));
-                    unmountAct->setIcon(QIcon::fromTheme(QStringLiteral("media-eject")));
-                    auto *ejectAct = ctx.addAction(tr("Eject"));
-                    ejectAct->setIcon(QIcon::fromTheme(QStringLiteral("media-eject")));
+                    QAction *mountAct = nullptr, *unmountAct = nullptr, *ejectAct = nullptr;
+                    if (isExternal && !isMounted) {
+                        // 未挂载外部设备：仅显示挂载
+                        mountAct = ctx.addAction(tr("Mount"));
+                        mountAct->setIcon(QIcon::fromTheme(QStringLiteral("media-mount")));
+                    } else {
+                        // 卷项（已挂载）或已挂载设备项：卸载/弹出
+                        unmountAct = ctx.addAction(tr("Safely Unmount"));
+                        unmountAct->setIcon(QIcon::fromTheme(QStringLiteral("media-eject")));
+                        ejectAct = ctx.addAction(tr("Eject"));
+                        ejectAct->setIcon(QIcon::fromTheme(QStringLiteral("media-eject")));
+                    }
                     const QAction *chosen = ctx.exec(me->globalPosition().toPoint());
                     QString errMsg;
                     bool ok = false;
-                    if (chosen == unmountAct) {
+                    if (chosen == mountAct) {
+                        QString mp = VolumeManager::instance()->mount(deviceFile, &errMsg);
+                        ok = !mp.isEmpty();
+                    } else if (chosen == unmountAct) {
                         ok = VolumeManager::instance()->unmount(deviceFile, &errMsg);
                     } else if (chosen == ejectAct) {
                         ok = VolumeManager::instance()->eject(deviceFile, &errMsg);
@@ -426,6 +477,8 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
                     if (!ok && !errMsg.isEmpty()) {
                         QMessageBox::warning(this, tr("Volume Operation Failed"), errMsg);
                     }
+                    // 操作成功后刷新整个文件菜单（挂载/卸载后卷段与设备段都会更新）
+                    if (ok) refreshFileMenuVolumes();
                     return true;  // 事件已处理
                 }
             }
