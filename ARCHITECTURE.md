@@ -41,8 +41,8 @@
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
 │ volume       │  │ settings     │  │ dialogs      │
 │ VolumeMgr    │  │ SettingsDlg  │  │ PropertiesDlg│
-│ VolumeMenu   │  │ ISettingsPage│  │ OpenWithDlg  │
-│ (UDisks2)    │  │ 4 pages      │  │ AboutDlg ... │
+│ (QStorageInfo│  │ ISettingsPage│  │ OpenWithDlg  │
+│  + UDisks2)  │  │ 4 pages      │  │ AboutDlg ... │
 └──────────────┘  └──────────────┘  └──────────────┘
 ```
 
@@ -120,10 +120,8 @@ fm-qt/
 │   │   ├── trash_can.h               # FreeDesktop Trash 规范实现
 │   │   └── trash_can.cpp
 │   ├── volume/
-│   │   ├── volume_manager.h          # UDisks2 D-Bus 封装
+│   │   ├── volume_manager.h          # QStorageInfo 枚举 + UDisks2 D-Bus 卸载/弹出
 │   │   ├── volume_manager.cpp
-│   │   ├── volume_menu.h             # 文件菜单中的卷列表
-│   │   ├── volume_menu.cpp
 │   │   ├── udisks2_client.h          # D-Bus 接口定义
 │   │   └── udisks2_client.cpp
 │   ├── settings/
@@ -372,7 +370,7 @@ class MenuBarManager : public QObject {
     Q_OBJECT
 public:
     MenuBarManager(MainWindow *window);
-    void rebuildVolumeMenu();      // 打开时实时枚举
+    void refreshFileMenuVolumes(); // 文件菜单 aboutToShow 时实时枚举卷
     void rebuildFavoritesMenu();
     void refreshActionStates();     // 切换活动面板等状态后刷新文字/选中
 
@@ -387,7 +385,8 @@ signals:
 
 private:
     QMenu *fileMenu_, *favoritesMenu_, *settingsMenu_, *helpMenu_;
-    VolumeMenu *volumeMenu_;
+    QAction *volSeparator_;          // 文件菜单中卷项与退出之间的分隔符
+    QList<QAction*> volActions_;     // 动态卷项
 };
 ```
 
@@ -750,20 +749,15 @@ private:
 };
 ```
 
-#### `VolumeMenu`
-**职责**：构建文件菜单中的卷子菜单，左键打开，右键弹出卸载/弹出
+#### 文件菜单卷项（MainWindow 内联实现）
+**职责**：文件菜单 aboutToShow 时通过 `VolumeManager::listVolumes()` 枚举已挂载卷，动态添加为 QAction。左键在活动面板活动选项卡打开挂载点（`PanelWidget::openPath`），右键通过 MainWindow 的 eventFilter 弹出"安全卸载"/"弹出"上下文菜单。
 ```cpp
-class VolumeMenu : public QObject {
-    Q_OBJECT
-public:
-    VolumeMenu(QMenu *parent);
-    void refresh();   // 菜单 aboutToShow 时调用
+// MainWindow 私有成员
+QMenu *fileMenu_;
+QAction *volSeparator_;          // 卷项与 Quit 之间的分隔符
+QList<QAction*> volActions_;     // 动态卷项（aboutToShow 时刷新）
 
-signals:
-    void volumeOpenRequested(const QString &mountPoint);
-    void volumeUnmountRequested(const QString &device);
-    void volumeEjectRequested(const QString &device);
-};
+// eventFilter 处理文件菜单右键，调用 VolumeManager::unmount/eject
 ```
 
 ---
@@ -1031,7 +1025,7 @@ install(FILES resources/fm.qrc DESTINATION share/fm)
 15. ColumnManager
 
 ### Phase 4：高级功能
-16. VolumeManager（UDisks2）+ VolumeMenu
+16. VolumeManager（QStorageInfo 枚举 + UDisks2 卸载/弹出）
 17. TrashCan（FreeDesktop 规范）
 18. ProgressDialog + ConflictResolver
 19. 单实例（QLocalServer）

@@ -13,7 +13,6 @@ namespace fm {
 
 class PanelContainer;
 class PanelWidget;
-class VolumeMenu;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -32,13 +31,6 @@ protected:
 
 private slots:
     void onExit();
-
-    // 文件菜单
-    void onNewTab();
-    void onCloseTab();
-    void onCloneTab();
-    void onNewFile();
-    void onNewFolder();
 
     // 收藏菜单
     void onAddFavorite();
@@ -64,6 +56,7 @@ private:
     void buildSettingsMenu(QMenu *menu);
     void buildHelpMenu(QMenu *menu);
     void refreshFavoritesMenu();
+    void refreshFileMenuVolumes();
     void refreshPanelActions();
     void updateToolbar();
     void restoreSession();
@@ -81,10 +74,11 @@ private:
     QMenu *favoritesMenu_ = nullptr;
     QMenu *languageMenu_ = nullptr;
     QMenu *themeMenu_ = nullptr;
-    QMenu *volumesMenu_ = nullptr;
+    QMenu *fileMenu_ = nullptr;
+    QAction *volSeparator_ = nullptr;     // 卷项与 Quit 之间的分隔符
+    QList<QAction*> volActions_;          // 动态卷项（aboutToShow 时刷新）
     QActionGroup *languageGroup_ = nullptr;
     QActionGroup *themeGroup_ = nullptr;
-    VolumeMenu *volumeMenu_ = nullptr;
 };
 
 } // namespace fm

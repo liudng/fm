@@ -349,6 +349,10 @@ void PanelWidget::refresh() {
     tabs_.at(idx).model->reload();
 }
 
+void PanelWidget::openPath(const QString &path) {
+    navigateTo(path, true);
+}
+
 // === 持久化动作 ===
 
 void PanelWidget::createActions() {

@@ -77,6 +77,7 @@ public slots:
     void navigateForward();
     void navigateUp();
     void refresh();
+    void openPath(const QString &path);  // 在活动选项卡中打开路径
 
 public slots:
     // 右键菜单/工具栏动作槽

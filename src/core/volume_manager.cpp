@@ -39,6 +39,19 @@ VolumeManager::VolumeManager(QObject *parent)
     : QObject(parent) {
 }
 
+// 将设备文件路径（/dev/sdb1）转换为 UDisks2 D-Bus 对象路径
+// (/org/freedesktop/UDisks2/block_devices/sdb1)
+QString toUDisks2ObjectPath(const QString &device) {
+    if (device.startsWith(QStringLiteral("/org/freedesktop/UDisks2/"))) {
+        return device;  // 已是 D-Bus 路径
+    }
+    if (device.startsWith(QStringLiteral("/dev/"))) {
+        return QStringLiteral("/org/freedesktop/UDisks2/block_devices/")
+               + device.mid(5);
+    }
+    return device;
+}
+
 QStringList VolumeManager::enumerateBlockDevices() {
     QStringList result;
     QDBusInterface iface(kUDisks2Service, kManagerPath, kManagerIface,
@@ -122,20 +135,28 @@ VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath) {
 
 QList<VolumeInfo> VolumeManager::listVolumes() {
     QList<VolumeInfo> result;
-    const QStringList blockPaths = enumerateBlockDevices();
-    for (const QString &path : blockPaths) {
-        VolumeInfo info = getBlockDeviceProperties(path);
-        // 只保留文件系统设备（已挂载或未挂载都可显示）
-        if (info.fsType.isEmpty()) continue;
-        // 排除根文件系统（已通过 QStorageInfo 列出）
-        if (info.mountPoint == QStringLiteral("/")) continue;
+    for (const QStorageInfo &si : QStorageInfo::mountedVolumes()) {
+        if (!si.isReady()) continue;
+        const QString mp = si.rootPath();
+        if (mp == QStringLiteral("/")) continue;
+        const QString dev = QString::fromUtf8(si.device());
+        if (!dev.startsWith(QStringLiteral("/dev/"))) continue;  // 跳过伪文件系统
+
+        VolumeInfo info;
+        info.deviceFile = dev;
+        info.mountPoint = mp;
+        info.label = si.name();
+        info.fsType = QString::fromUtf8(si.fileSystemType());
+        info.isMounted = true;
+        info.icon = QIcon::fromTheme(QStringLiteral("drive-harddisk"));
         result.append(info);
     }
     return result;
 }
 
 QString VolumeManager::mount(const QString &devicePath, QString *errorMsg) {
-    QDBusInterface fsIface(kUDisks2Service, devicePath, kFsWithIface,
+    const QString objPath = toUDisks2ObjectPath(devicePath);
+    QDBusInterface fsIface(kUDisks2Service, objPath, kFsWithIface,
                             QDBusConnection::systemBus());
     if (!fsIface.isValid()) {
         if (errorMsg) *errorMsg = tr("Invalid device path: %1").arg(devicePath);
@@ -151,7 +172,8 @@ QString VolumeManager::mount(const QString &devicePath, QString *errorMsg) {
 }
 
 bool VolumeManager::unmount(const QString &devicePath, QString *errorMsg) {
-    QDBusInterface fsIface(kUDisks2Service, devicePath, kFsWithIface,
+    const QString objPath = toUDisks2ObjectPath(devicePath);
+    QDBusInterface fsIface(kUDisks2Service, objPath, kFsWithIface,
                             QDBusConnection::systemBus());
     if (!fsIface.isValid()) {
         if (errorMsg) *errorMsg = tr("Invalid device path: %1").arg(devicePath);
@@ -167,8 +189,9 @@ bool VolumeManager::unmount(const QString &devicePath, QString *errorMsg) {
 }
 
 bool VolumeManager::eject(const QString &devicePath, QString *errorMsg) {
+    const QString objPath = toUDisks2ObjectPath(devicePath);
     // Eject 需要通过 Drive 接口
-    QDBusInterface blockIface(kUDisks2Service, devicePath, kBlockIface,
+    QDBusInterface blockIface(kUDisks2Service, objPath, kBlockIface,
                                 QDBusConnection::systemBus());
     const QString drivePath = blockIface.property("Drive").value<QDBusObjectPath>().path();
     if (drivePath.isEmpty() || drivePath == "/") {

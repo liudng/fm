@@ -7,20 +7,16 @@
 #include "../core/shortcut_manager.h"
 #include "../core/volume_manager.h"
 #include "../dialogs/about_dialog.h"
-#include "../dialogs/input_name_dialog.h"
 #include "../dialogs/settings_dialog.h"
 #include "../dialogs/settings_pages.h"
 #include "../filelist/file_list_model.h"
-#include "../fileops/file_operations.h"
 #include "../panel/panel_container.h"
 #include "../panel/panel_widget.h"
-#include "../ui/volume_menu.h"
 
 #include <QAction>
 #include <QActionGroup>
 #include <QApplication>
 #include <QCloseEvent>
-#include <QDir>
 #include <QEvent>
 #include <QInputDialog>
 #include <QMouseEvent>
@@ -104,70 +100,55 @@ void MainWindow::buildMenuBar() {
 }
 
 void MainWindow::buildFileMenu(QMenu *menu) {
-    // 卷子菜单（Phase 4：使用 VolumeMenu）
-    volumesMenu_ = menu->addMenu(tr("&Volumes"));
-    volumesMenu_->setIcon(QIcon::fromTheme(QStringLiteral("drive-harddisk")));
-    volumeMenu_ = new VolumeMenu(volumesMenu_);
-    connect(volumesMenu_, &QMenu::aboutToShow, this, [this]() {
-        volumeMenu_->refresh();
-    });
-    connect(volumeMenu_, &VolumeMenu::volumeOpenRequested, this, [this](const QString &mp) {
-        panelContainer_->activePanel()->addTab(mp, -1);
-    });
-    connect(volumeMenu_, &VolumeMenu::volumeMountFailed, this, [this](const QString &err) {
-        QMessageBox::warning(this, tr("Mount Failed"), err);
-    });
-    connect(volumeMenu_, &VolumeMenu::volumeUnmountRequested, this, [this](const QString &dev) {
-        QString err;
-        if (!VolumeManager::instance()->unmount(dev, &err)) {
-            QMessageBox::warning(this, tr("Unmount Failed"), err);
-        }
-    });
-    connect(volumeMenu_, &VolumeMenu::volumeEjectRequested, this, [this](const QString &dev) {
-        QString err;
-        if (!VolumeManager::instance()->eject(dev, &err)) {
-            QMessageBox::warning(this, tr("Eject Failed"), err);
-        }
-    });
-    // 第一次添加占位项，aboutToShow 时刷新
-    auto *volPlaceholder = volumesMenu_->addAction(tr("(Loading...)"));
-    volPlaceholder->setEnabled(false);
-
-    menu->addSeparator();
-
-    auto *newTabAction = menu->addAction(tr("New &Tab"), QKeySequence(Qt::CTRL | Qt::Key_T),
-                                          this, &MainWindow::onNewTab);
-    newTabAction->setIcon(QIcon::fromTheme(QStringLiteral("tab-new")));
-    ShortcutManager::instance()->applyToAction(newTabAction, QStringLiteral("file.new_tab"));
-
-    auto *closeTabAction = menu->addAction(tr("&Close Tab"), QKeySequence(Qt::CTRL | Qt::Key_W),
-                                            this, &MainWindow::onCloseTab);
-    closeTabAction->setIcon(QIcon::fromTheme(QStringLiteral("tab-close")));
-    ShortcutManager::instance()->applyToAction(closeTabAction, QStringLiteral("file.close_tab"));
-
-    auto *cloneTabAction = menu->addAction(tr("&Clone Tab"),
-                                            QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_T),
-                                            this, &MainWindow::onCloneTab);
-    cloneTabAction->setIcon(QIcon::fromTheme(QStringLiteral("tab-new")));
-    ShortcutManager::instance()->applyToAction(cloneTabAction, QStringLiteral("file.clone_tab"));
-
-    menu->addSeparator();
-
-    auto *newFileAction = menu->addAction(tr("New &File"), this, &MainWindow::onNewFile);
-    newFileAction->setIcon(QIcon::fromTheme(QStringLiteral("document-new")));
-    ShortcutManager::instance()->applyToAction(newFileAction, QStringLiteral("file.new_file"));
-
-    auto *newFolderAction = menu->addAction(tr("New &Folder"), QKeySequence(Qt::Key_F7),
-                                             this, &MainWindow::onNewFolder);
-    newFolderAction->setIcon(QIcon::fromTheme(QStringLiteral("folder-new")));
-    ShortcutManager::instance()->applyToAction(newFolderAction, QStringLiteral("file.new_folder"));
-
-    menu->addSeparator();
+    fileMenu_ = menu;
+    // 卷项在 aboutToShow 时动态添加到分隔符之前
+    volSeparator_ = menu->addSeparator();
+    connect(menu, &QMenu::aboutToShow, this, &MainWindow::refreshFileMenuVolumes);
+    // 安装事件过滤器，支持右键卸载/弹出卷
+    menu->installEventFilter(this);
 
     auto *exitAction = menu->addAction(tr("&Quit"), QKeySequence::Quit,
                                         this, &MainWindow::onExit);
     exitAction->setIcon(QIcon::fromTheme(QStringLiteral("application-exit")));
     ShortcutManager::instance()->applyToAction(exitAction, QStringLiteral("file.quit"));
+}
+
+void MainWindow::refreshFileMenuVolumes() {
+    if (!fileMenu_ || !volSeparator_) return;
+    // 移除旧卷项
+    for (QAction *a : volActions_) {
+        fileMenu_->removeAction(a);
+        a->deleteLater();
+    }
+    volActions_.clear();
+
+    // 枚举挂载点
+    const QList<VolumeInfo> volumes = VolumeManager::instance()->listVolumes();
+    if (volumes.isEmpty()) {
+        auto *placeholder = fileMenu_->addAction(tr("(No volumes)"));
+        placeholder->setEnabled(false);
+        fileMenu_->insertAction(volSeparator_, placeholder);
+        volActions_.append(placeholder);
+        return;
+    }
+
+    for (const VolumeInfo &v : volumes) {
+        QString text = v.label.isEmpty() ? v.mountPoint : v.label;
+        if (!v.mountPoint.isEmpty() && text != v.mountPoint) {
+            text += QStringLiteral("  (%1)").arg(v.mountPoint);
+        }
+        auto *act = new QAction(v.icon, text, fileMenu_);
+        // data 存储挂载点（左键导航用）；deviceFile 属性供右键卸载/弹出用
+        act->setData(v.mountPoint);
+        act->setProperty("deviceFile", v.deviceFile);
+        connect(act, &QAction::triggered, this, [this, mp = v.mountPoint]() {
+            // 在活动面板的活动选项卡中打开挂载点（不新建选项卡）
+            auto *p = panelContainer_->activePanel();
+            if (p) p->openPath(mp);
+        });
+        fileMenu_->insertAction(volSeparator_, act);
+        volActions_.append(act);
+    }
 }
 
 void MainWindow::buildFavoritesMenu(QMenu *menu) {
@@ -418,6 +399,38 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
             }
         }
     }
+    // 文件菜单卷项右键：弹出卸载/弹出菜单
+    if (obj == fileMenu_ && event->type() == QEvent::MouseButtonPress) {
+        auto *me = static_cast<QMouseEvent*>(event);
+        if (me->button() == Qt::RightButton) {
+            auto *menu = static_cast<QMenu*>(obj);
+            QAction *act = menu->actionAt(me->pos());
+            if (act && volActions_.contains(act)) {
+                const QString deviceFile = act->property("deviceFile").toString();
+                if (!deviceFile.isEmpty()) {
+                    QMenu ctx(menu);
+                    auto *unmountAct = ctx.addAction(tr("Safely Unmount"));
+                    unmountAct->setIcon(QIcon::fromTheme(QStringLiteral("media-eject")));
+                    auto *ejectAct = ctx.addAction(tr("Eject"));
+                    ejectAct->setIcon(QIcon::fromTheme(QStringLiteral("media-eject")));
+                    const QAction *chosen = ctx.exec(me->globalPosition().toPoint());
+                    QString errMsg;
+                    bool ok = false;
+                    if (chosen == unmountAct) {
+                        ok = VolumeManager::instance()->unmount(deviceFile, &errMsg);
+                    } else if (chosen == ejectAct) {
+                        ok = VolumeManager::instance()->eject(deviceFile, &errMsg);
+                    } else {
+                        return true;  // 取消，仍消费事件
+                    }
+                    if (!ok && !errMsg.isEmpty()) {
+                        QMessageBox::warning(this, tr("Volume Operation Failed"), errMsg);
+                    }
+                    return true;  // 事件已处理
+                }
+            }
+        }
+    }
     return QMainWindow::eventFilter(obj, event);
 }
 
@@ -429,51 +442,6 @@ void MainWindow::addPathsToPanels(const QStringList &paths) {
         panelContainer_->panel(PanelId::Panel2)->addTab(paths.at(1), -1);
     }
     panelContainer_->setActivePanel(PanelId::Panel1);
-}
-
-// === 文件菜单 ===
-
-void MainWindow::onNewTab() {
-    auto *p = panelContainer_->activePanel();
-    if (p) p->addTab(p->activeTabPath(), -1);
-}
-
-void MainWindow::onCloseTab() {
-    auto *p = panelContainer_->activePanel();
-    if (p) p->closeTab(p->activeTabIndex());
-}
-
-void MainWindow::onCloneTab() {
-    auto *p = panelContainer_->activePanel();
-    if (p) p->cloneTab(p->activeTabIndex());
-}
-
-void MainWindow::onNewFile() {
-    auto *p = panelContainer_->activePanel();
-    if (!p) return;
-    const QString dir = p->activeTabPath();
-    if (dir.isEmpty()) return;
-    InputNameDialog dlg(tr("New File"), tr("File name:"), tr("New File"), this);
-    QStringList existing = QDir(dir).entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
-    dlg.setExistingNames(existing);
-    if (dlg.exec() != QDialog::Accepted) return;
-    const QString name = dlg.name();
-    if (name.isEmpty()) return;
-    FileOperations::instance()->createFile(dir, name);
-}
-
-void MainWindow::onNewFolder() {
-    auto *p = panelContainer_->activePanel();
-    if (!p) return;
-    const QString dir = p->activeTabPath();
-    if (dir.isEmpty()) return;
-    InputNameDialog dlg(tr("New Folder"), tr("Folder name:"), tr("New Folder"), this);
-    QStringList existing = QDir(dir).entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
-    dlg.setExistingNames(existing);
-    if (dlg.exec() != QDialog::Accepted) return;
-    const QString name = dlg.name();
-    if (name.isEmpty()) return;
-    FileOperations::instance()->createDir(dir, name);
 }
 
 // === 收藏菜单 ===

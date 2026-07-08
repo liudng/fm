@@ -81,8 +81,6 @@ qt_add_executable(fm
     src/panel/panel_container.cpp
     src/ui/main_window.h
     src/ui/main_window.cpp
-    src/ui/volume_menu.h
-    src/ui/volume_menu.cpp
 )
 
 target_link_libraries(fm PRIVATE

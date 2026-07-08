@@ -23,14 +23,15 @@ struct VolumeInfo {
 };
 
 // 卷管理（单例）
-// - 通过 UDisks2 D-Bus 接口枚举卷、挂载、卸载、弹出
+// - 卷列表通过 QStorageInfo::mountedVolumes() 枚举（仅已挂载卷）
+// - 挂载/卸载/弹出操作通过 UDisks2 D-Bus 接口
 // - 同步调用（菜单 aboutToShow 时调用）
 class VolumeManager : public QObject {
     Q_OBJECT
 public:
     static VolumeManager *instance();
 
-    // 列举所有已挂载/可挂载的块设备文件系统
+    // 列举所有已挂载的块设备文件系统（通过 QStorageInfo）
     QList<VolumeInfo> listVolumes();
 
     // 挂载设备（返回挂载点；失败返回空字符串）
