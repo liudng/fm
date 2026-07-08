@@ -43,9 +43,6 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
     stack_ = new QStackedWidget(this);
     layout->addWidget(stack_, 1);
 
-    setStyleSheet(QStringLiteral(
-        "QWidget#activePanel { border: 1px solid palette(highlight); }"));
-
     connect(tabBar_, &QTabBar::currentChanged, this, &PanelWidget::onTabChanged);
     connect(tabBar_, &FileTabBar::newTabRequested, this, [this]() {
         // 新选项卡默认打开活动选项卡同目录
@@ -538,6 +535,16 @@ bool PanelWidget::oppositePanelVisible() const {
     return container->isPanelVisible(opp);
 }
 
+void PanelWidget::setActivePanel(bool active) {
+    if (isActivePanel_ == active) return;
+    isActivePanel_ = active;
+    if (tabBar_) {
+        tabBar_->setStyleSheet(active
+            ? QStringLiteral("QTabBar::tab:selected { font-weight: bold; }")
+            : QString());
+    }
+}
+
 QList<TabState> PanelWidget::tabStates() const {
     QList<TabState> states;
     for (const auto &td : tabs_) {
@@ -549,10 +556,21 @@ QList<TabState> PanelWidget::tabStates() const {
     return states;
 }
 
+void PanelWidget::clearAllTabs() {
+    while (!tabs_.isEmpty()) {
+        ColumnManager::instance()->unregisterView(tabs_.last().view);
+        QWidget *w = stack_->widget(tabs_.size() - 1);
+        stack_->removeWidget(w);
+        delete w;
+        tabBar_->removeTab(tabs_.size() - 1);
+        tabs_.removeLast();
+    }
+    emit tabCountChanged();
+}
+
 void PanelWidget::setTabStates(const QList<TabState> &states, int activeIndex) {
-    // 清空已有选项卡
-    while (tabs_.size() > 1) closeTab(tabs_.size() - 1);
-    if (!tabs_.isEmpty()) closeTab(0);
+    // 先清空所有选项卡（包括最后一个）
+    clearAllTabs();
 
     // 重新添加
     for (const auto &s : states) {

@@ -89,7 +89,6 @@ void ConfigManager::ensureDefaultConfig() {
     setValue(QStringLiteral("UI"), QStringLiteral("theme"), QStringLiteral("Fusion"));
 
     // [Panels]
-    setValue(QStringLiteral("Panels"), QStringLiteral("activePanel"), 1);  // Panel1
     setValue(QStringLiteral("Panels"), QStringLiteral("orientation"),
              static_cast<int>(Qt::Horizontal));  // 左右
     setValue(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true);

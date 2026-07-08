@@ -97,15 +97,6 @@ PanelSettingsPage::PanelSettingsPage(QObject *parent)
 
     auto *layout = new QVBoxLayout(widget_);
 
-    // 活动面板
-    auto *activeBox = new QGroupBox(tr("Active Panel"));
-    auto *activeLayout = new QVBoxLayout(activeBox);
-    panel1Radio_ = new QRadioButton(tr("Panel 1"));
-    panel2Radio_ = new QRadioButton(tr("Panel 2"));
-    activeLayout->addWidget(panel1Radio_);
-    activeLayout->addWidget(panel2Radio_);
-    layout->addWidget(activeBox);
-
     // 布局切换
     auto *orientBox = new QGroupBox(tr("Layout"));
     auto *orientLayout = new QVBoxLayout(orientBox);
@@ -137,13 +128,11 @@ QString PanelSettingsPage::title() const { return tr("Panels"); }
 
 void PanelSettingsPage::load() {
     auto *cfg = ConfigManager::instance();
-    origActivePanel_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("activePanel"), 0).toInt();
     origOrientation_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("orientation"),
                                     static_cast<int>(Qt::Horizontal)).toInt();
     origPanel1Visible_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true).toBool();
     origPanel2Visible_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), true).toBool();
 
-    (origActivePanel_ == 0 ? panel1Radio_ : panel2Radio_)->setChecked(true);
     (origOrientation_ == Qt::Horizontal ? horizontalRadio_ : verticalRadio_)->setChecked(true);
     panel1VisibleCheck_->setChecked(origPanel1Visible_);
     panel2VisibleCheck_->setChecked(origPanel2Visible_);
@@ -152,17 +141,14 @@ void PanelSettingsPage::load() {
 
 void PanelSettingsPage::apply() {
     auto *cfg = ConfigManager::instance();
-    const int active = panel1Radio_->isChecked() ? 0 : 1;
     const int orient = horizontalRadio_->isChecked() ? Qt::Horizontal : Qt::Vertical;
     const bool p1Visible = panel1VisibleCheck_->isChecked();
     const bool p2Visible = panel2VisibleCheck_->isChecked();
 
-    cfg->setValue(QStringLiteral("Panels"), QStringLiteral("activePanel"), active);
     cfg->setValue(QStringLiteral("Panels"), QStringLiteral("orientation"), orient);
     cfg->setValue(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), p1Visible);
     cfg->setValue(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), p2Visible);
 
-    origActivePanel_ = active;
     origOrientation_ = orient;
     origPanel1Visible_ = p1Visible;
     origPanel2Visible_ = p2Visible;

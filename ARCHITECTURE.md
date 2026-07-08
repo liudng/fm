@@ -250,7 +250,6 @@ struct PanelState {
 struct LayoutState {
     Qt::Orientation orientation;   // 横向=左右，纵向=上下
     QList<PanelState> panels;     // size==2
-    int activePanelIndex;
     QList<int> splitterSizes;     // 比例
     bool panelVisible[2];
 };

@@ -2,6 +2,7 @@
 
 #include "../panel/panel_widget.h"
 
+#include <QApplication>
 #include <QSplitter>
 #include <QVBoxLayout>
 
@@ -23,13 +24,25 @@ PanelContainer::PanelContainer(QWidget *parent)
     splitter_->setSizes({640, 640});  // 默认 50:50
     splitter_->setChildrenCollapsible(false);
 
-    // 点击面板激活
+    // 选项卡切换时激活面板
     for (int i = 0; i < 2; ++i) {
         connect(panels_[i], &PanelWidget::activeTabChanged, this, [this, i]() {
             setActivePanel(i == 0 ? PanelId::Panel1 : PanelId::Panel2);
         });
     }
-    updateActiveHighlight();
+    // 点击面板内任意可获焦控件时激活该面板
+    connect(qApp, &QApplication::focusChanged, this, [this](QWidget *old, QWidget *now) {
+        Q_UNUSED(old);
+        if (!now) return;
+        for (int i = 0; i < 2; ++i) {
+            if (panels_[i]->isAncestorOf(now) || now == panels_[i]) {
+                setActivePanel(i == 0 ? PanelId::Panel1 : PanelId::Panel2);
+                break;
+            }
+        }
+    });
+    // 初始活动面板为 Panel1
+    panels_[0]->setActivePanel(true);
 }
 
 PanelWidget *PanelContainer::panel(PanelId id) const {
@@ -43,7 +56,9 @@ PanelWidget *PanelContainer::activePanel() const {
 void PanelContainer::setActivePanel(PanelId id) {
     if (activePanel_ == id) return;
     activePanel_ = id;
-    updateActiveHighlight();
+    // 更新两个面板的活动选项卡字体粗细
+    panels_[0]->setActivePanel(id == PanelId::Panel1);
+    panels_[1]->setActivePanel(id == PanelId::Panel2);
     emit activePanelChanged(id);
 }
 
@@ -113,17 +128,6 @@ void PanelContainer::setHorizontalSizes(const QList<int> &sizes) {
 
 void PanelContainer::setVerticalSizes(const QList<int> &sizes) {
     verticalSizes_ = sizes;
-}
-
-void PanelContainer::updateActiveHighlight() {
-    // 高亮活动面板：通过样式边框
-    for (int i = 0; i < 2; ++i) {
-        auto *p = panels_[i];
-        const bool active = (static_cast<PanelId>(i) == activePanel_);
-        p->setStyleSheet(active
-            ? QStringLiteral("PanelWidget { border: 2px solid palette(highlight); }")
-            : QStringLiteral("PanelWidget { border: 2px solid transparent; }"));
-    }
 }
 
 } // namespace fm

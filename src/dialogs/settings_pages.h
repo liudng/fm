@@ -55,14 +55,11 @@ private slots:
 
 private:
     QWidget *widget_ = nullptr;
-    QRadioButton *panel1Radio_ = nullptr;
-    QRadioButton *panel2Radio_ = nullptr;
     QRadioButton *horizontalRadio_ = nullptr;
     QRadioButton *verticalRadio_ = nullptr;
     QCheckBox *panel1VisibleCheck_ = nullptr;
     QCheckBox *panel2VisibleCheck_ = nullptr;
 
-    int origActivePanel_ = 0;
     int origOrientation_ = 0;
     bool origPanel1Visible_ = true;
     bool origPanel2Visible_ = true;

@@ -361,7 +361,6 @@ void MainWindow::restoreSession() {
         auto *p = panelContainer_->panel(static_cast<PanelId>(i));
         p->setTabStates(state.panels[i].tabs, state.panels[i].activeTabIndex);
     }
-    panelContainer_->setActivePanel(static_cast<PanelId>(state.activePanelIndex));
 }
 
 void MainWindow::onExit() {
@@ -372,7 +371,6 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     // 保存布局到 [Session]
     LayoutState state;
     state.orientation = panelContainer_->orientation();
-    state.activePanelIndex = static_cast<int>(panelContainer_->activePanelId());
     state.panelVisible[0] = panelContainer_->isPanelVisible(PanelId::Panel1);
     state.panelVisible[1] = panelContainer_->isPanelVisible(PanelId::Panel2);
     // 当前方向的实际比例同步到对应成员，再分别持久化左右/上下比例
@@ -490,7 +488,6 @@ void MainWindow::onAddFavorite() {
     // 构建当前布局状态
     LayoutState state;
     state.orientation = panelContainer_->orientation();
-    state.activePanelIndex = static_cast<int>(panelContainer_->activePanelId());
     state.panelVisible[0] = panelContainer_->isPanelVisible(PanelId::Panel1);
     state.panelVisible[1] = panelContainer_->isPanelVisible(PanelId::Panel2);
     // 当前方向的实际比例同步到对应成员，再分别持久化左右/上下比例
@@ -532,7 +529,6 @@ void MainWindow::onFavoriteTriggered(const QString &name) {
         auto *p = panelContainer_->panel(static_cast<PanelId>(i));
         p->setTabStates(state.panels[i].tabs, state.panels[i].activeTabIndex);
     }
-    panelContainer_->setActivePanel(static_cast<PanelId>(state.activePanelIndex));
 }
 
 // === 设置菜单 ===
@@ -594,7 +590,6 @@ void MainWindow::onOpenSettings() {
 
 void MainWindow::applyPanelConfig() {
     auto *cfg = ConfigManager::instance();
-    const int active = cfg->value(QStringLiteral("Panels"), QStringLiteral("activePanel"), 0).toInt();
     const int orient = cfg->value(QStringLiteral("Panels"), QStringLiteral("orientation"),
                                     static_cast<int>(Qt::Horizontal)).toInt();
     const bool p1Visible = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true).toBool();
@@ -603,10 +598,7 @@ void MainWindow::applyPanelConfig() {
     panelContainer_->setOrientation(static_cast<Qt::Orientation>(orient));
     panelContainer_->setPanelVisible(PanelId::Panel1, p1Visible);
     panelContainer_->setPanelVisible(PanelId::Panel2, p2Visible);
-    panelContainer_->setActivePanel(static_cast<PanelId>(active));
-    if (toggleHiddenAction_) {
-        // 暂无相关
-    }
+    // 活动面板由会话恢复，不在此处设置
 }
 
 void MainWindow::applyFileBrowserConfig() {

@@ -12,7 +12,6 @@ QString SessionState::serialize(const LayoutState &state) {
     QString out;
     QTextStream ts(&out);
     ts << "orientation=" << (state.orientation == Qt::Horizontal ? "H" : "V") << '\n';
-    ts << "activePanel=" << state.activePanelIndex << '\n';
     ts << "panel1Visible=" << (state.panelVisible[0] ? 1 : 0) << '\n';
     ts << "panel2Visible=" << (state.panelVisible[1] ? 1 : 0) << '\n';
     // 左右/上下比例分别记忆
@@ -70,7 +69,6 @@ bool SessionState::deserialize(const QString &data, LayoutState &outState) {
     if (kv.isEmpty()) return false;
 
     outState.orientation = (kv.value("orientation") == "V") ? Qt::Vertical : Qt::Horizontal;
-    outState.activePanelIndex = kv.value("activePanel", "0").toInt();
     outState.panelVisible[0] = kv.value("panel1Visible", "1").toInt() != 0;
     outState.panelVisible[1] = kv.value("panel2Visible", "1").toInt() != 0;
     outState.horizontalSizes = parseIntList(kv.value("horizontal"));
@@ -96,7 +94,6 @@ bool SessionState::deserialize(const QString &data, LayoutState &outState) {
 LayoutState SessionState::defaultLayout() {
     LayoutState state;
     state.orientation = Qt::Horizontal;
-    state.activePanelIndex = 0;
     state.panelVisible[0] = true;
     state.panelVisible[1] = true;
 

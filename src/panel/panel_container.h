@@ -46,8 +46,6 @@ signals:
     void orientationChanged();
 
 private:
-    void updateActiveHighlight();
-
     QSplitter *splitter_;
     PanelWidget *panels_[2] = {nullptr, nullptr};
     PanelId activePanel_ = PanelId::Panel1;

@@ -60,6 +60,9 @@ public:
     QList<QAction*> toolbarActions() const;
     void updateActionStates();
 
+    // 活动面板状态（用于活动选项卡粗体显示）
+    void setActivePanel(bool active);
+
 signals:
     void activeTabChanged(int index);
     void tabCountChanged();
@@ -110,11 +113,13 @@ private:
     void createActions();
     void applyColumnConfig(FileListView *view);
     void navigateTo(const QString &path, bool addHistory);
+    void clearAllTabs();  // 清空所有选项卡（包括最后一个，不受 closeTab 限制）
     QString oppositePanelPath() const;
     bool oppositePanelVisible() const;
     QString currentDir() const;
 
     PanelId id_;
+    bool isActivePanel_ = false;  // 是否为活动面板
     FileTabBar *tabBar_ = nullptr;
     QStackedWidget *stack_ = nullptr;
     QList<TabData> tabs_;
