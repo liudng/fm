@@ -96,6 +96,8 @@ void ConfigManager::ensureDefaultConfig() {
 
     // [File_Browser]
     setValue(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false);
+    setValue(QStringLiteral("File_Browser"), QStringLiteral("dateTimeFormat"),
+             QStringLiteral("yyyy-MM-dd HH:mm:ss"));
 
     // [File_Browser_Columns] - 默认四列可见
     setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("columns"),

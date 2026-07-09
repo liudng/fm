@@ -16,6 +16,7 @@
 #include <QIcon>
 #include <QKeySequenceEdit>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QPushButton>
 #include <QRadioButton>
@@ -218,6 +219,48 @@ FileBrowserSettingsPage::FileBrowserSettingsPage(QObject *parent)
     showHiddenCheck_ = new QCheckBox(tr("Show hidden files (. prefix)"));
     layout->addWidget(showHiddenCheck_);
 
+    // 日期时间格式
+    auto *dtBox = new QGroupBox(tr("Date/Time Format"));
+    auto *dtLayout = new QVBoxLayout(dtBox);
+    dateTimeFormatEdit_ = new QLineEdit;
+    dateTimeFormatEdit_->setPlaceholderText(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    dtLayout->addWidget(dateTimeFormatEdit_);
+
+    // 占位符说明
+    auto *hint = new QLabel(
+        tr("<b>Format placeholders</b> (Qt date/time format):<br>"
+           "<table cellpadding='2'>"
+           "<tr><td><b>yyyy</b></td><td>4-digit year (2026)</td>"
+               "<td><b>yy</b></td><td>2-digit year (26)</td></tr>"
+           "<tr><td><b>MM</b></td><td>Month, 2 digits (01-12)</td>"
+               "<td><b>M</b></td><td>Month, no leading zero (1-12)</td></tr>"
+           "<tr><td><b>MMM</b></td><td>Short month name (Jan)</td>"
+               "<td><b>MMMM</b></td><td>Long month name (January)</td></tr>"
+           "<tr><td><b>dd</b></td><td>Day, 2 digits (01-31)</td>"
+               "<td><b>d</b></td><td>Day, no leading zero (1-31)</td></tr>"
+           "<tr><td><b>ddd</b></td><td>Short day name (Mon)</td>"
+               "<td><b>dddd</b></td><td>Long day name (Monday)</td></tr>"
+           "<tr><td><b>HH</b></td><td>Hour 24h, 2 digits (00-23)</td>"
+               "<td><b>H</b></td><td>Hour 24h, no leading zero (0-23)</td></tr>"
+           "<tr><td><b>hh</b></td><td>Hour 12h, 2 digits (01-12)</td>"
+               "<td><b>h</b></td><td>Hour 12h, no leading zero (1-12)</td></tr>"
+           "<tr><td><b>mm</b></td><td>Minute, 2 digits (00-59)</td>"
+               "<td><b>m</b></td><td>Minute, no leading zero (0-59)</td></tr>"
+           "<tr><td><b>ss</b></td><td>Second, 2 digits (00-59)</td>"
+               "<td><b>s</b></td><td>Second, no leading zero (0-59)</td></tr>"
+           "<tr><td><b>ap</b></td><td>am/pm (lowercase)</td>"
+               "<td><b>AP</b></td><td>AM/PM (uppercase)</td></tr>"
+           "<tr><td><b>zzz</b></td><td>Milliseconds (000-999)</td>"
+               "<td><b>z</b></td><td>Milliseconds, no leading zero</td></tr>"
+           "</table>"
+           "<br>Leave empty to use the default <i>yyyy-MM-dd HH:mm:ss</i>.<br>"
+           "Examples: <code>yyyy-MM-dd</code>, <code>yyyy/MM/dd HH:mm</code>, "
+           "<code>MMM d, yyyy h:mm AP</code>"));
+    hint->setTextFormat(Qt::RichText);
+    hint->setWordWrap(true);
+    dtLayout->addWidget(hint);
+    layout->addWidget(dtBox);
+
     // 列选择
     auto *colsBox = new QGroupBox(tr("Visible Columns"));
     auto *colsLayout = new QVBoxLayout(colsBox);
@@ -233,6 +276,11 @@ void FileBrowserSettingsPage::load() {
     auto *cfg = ConfigManager::instance();
     origShowHidden_ = cfg->value(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false).toBool();
     showHiddenCheck_->setChecked(origShowHidden_);
+
+    origDateTimeFormat_ = cfg->value(QStringLiteral("File_Browser"),
+                                        QStringLiteral("dateTimeFormat"),
+                                        QStringLiteral("yyyy-MM-dd HH:mm:ss")).toString();
+    dateTimeFormatEdit_->setText(origDateTimeFormat_);
 
     // 列选择
     const QStringList allCols = ColumnManager::instance()->allColumnNames();
@@ -252,6 +300,12 @@ void FileBrowserSettingsPage::apply() {
     const bool showHidden = showHiddenCheck_->isChecked();
     cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), showHidden);
     origShowHidden_ = showHidden;
+
+    // 日期时间格式：空值视为使用默认
+    QString dtFmt = dateTimeFormatEdit_->text().trimmed();
+    if (dtFmt.isEmpty()) dtFmt = QStringLiteral("yyyy-MM-dd HH:mm:ss");
+    cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("dateTimeFormat"), dtFmt);
+    origDateTimeFormat_ = dtFmt;
 
     // 应用列选择：按列表顺序收集选中项
     QStringList visibleCols;
@@ -298,11 +352,77 @@ QString ShortcutSettingsPage::title() const { return tr("Shortcuts"); }
 
 void ShortcutSettingsPage::load() {
     const QList<ShortcutItem> items = ShortcutManager::instance()->allShortcuts();
-    table_->setRowCount(items.size());
+
+    // 定义显示顺序（按相关性分组）
+    static const QStringList kDisplayOrder = {
+        // 文件/标签页操作
+        QStringLiteral("file.new_tab"),
+        QStringLiteral("file.close_tab"),
+        QStringLiteral("file.clone_tab"),
+        QStringLiteral("file.new_file"),
+        QStringLiteral("file.new_folder"),
+        // 导航
+        QStringLiteral("filelist.back"),
+        QStringLiteral("filelist.forward"),
+        QStringLiteral("filelist.up"),
+        QStringLiteral("filelist.refresh"),
+        QStringLiteral("nav.focus_panel"),
+        // 文件操作
+        QStringLiteral("filelist.open"),
+        QStringLiteral("filelist.open_with"),
+        QStringLiteral("filelist.rename"),
+        QStringLiteral("filelist.cut"),
+        QStringLiteral("filelist.copy"),
+        QStringLiteral("filelist.paste"),
+        QStringLiteral("filelist.cut_to_opposite"),
+        QStringLiteral("filelist.copy_to_opposite"),
+        QStringLiteral("filelist.copy_path"),
+        QStringLiteral("filelist.copy_name"),
+        // 删除
+        QStringLiteral("filelist.trash"),
+        QStringLiteral("filelist.delete"),
+        // 属性
+        QStringLiteral("filelist.properties"),
+        // 视图/面板
+        QStringLiteral("settings.toggle_hidden"),
+        QStringLiteral("settings.switch_active_panel"),
+        QStringLiteral("settings.toggle_orientation"),
+        QStringLiteral("settings.toggle_panel1"),
+        QStringLiteral("settings.toggle_panel2"),
+        // 其他
+        QStringLiteral("file.quit"),
+        QStringLiteral("help.about"),
+        // 选项卡上下文菜单
+        QStringLiteral("tab.close"),
+        QStringLiteral("tab.close_others"),
+        QStringLiteral("tab.clone"),
+    };
+
+    // 按 kDisplayOrder 排序，未列入的追加到末尾
+    QHash<QString, ShortcutItem> itemMap;
+    for (const auto &item : items) {
+        itemMap.insert(item.id, item);
+    }
+    QList<ShortcutItem> orderedItems;
+    QSet<QString> added;
+    for (const QString &id : kDisplayOrder) {
+        auto it = itemMap.find(id);
+        if (it != itemMap.end()) {
+            orderedItems.append(it.value());
+            added.insert(id);
+        }
+    }
+    for (const auto &item : items) {
+        if (!added.contains(item.id)) {
+            orderedItems.append(item);
+        }
+    }
+
+    table_->setRowCount(orderedItems.size());
     editedShortcuts_.clear();
 
-    for (int i = 0; i < items.size(); ++i) {
-        const ShortcutItem &item = items.at(i);
+    for (int i = 0; i < orderedItems.size(); ++i) {
+        const ShortcutItem &item = orderedItems.at(i);
 
         // 动作名
         auto *nameItem = new QTableWidgetItem(item.displayText);

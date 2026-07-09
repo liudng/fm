@@ -18,6 +18,9 @@
 #include <QTextStream>
 #include <QtConcurrent>
 
+#include <atomic>
+#include <memory>
+
 namespace fm {
 
 namespace {
@@ -37,26 +40,34 @@ qint64 countBytes(const QString &path) {
 }
 
 // 分块复制文件并报告进度（支持大文件复制进度显示）
-bool copyFileChunked(const QString &src, const QString &dst,
-                     qint64 *processedBytes, qint64 totalBytes,
-                     ProgressDialog *progress, const QString &fileName) {
+// 返回值：0=成功, 1=用户取消, -1=失败
+int copyFileChunked(const QString &src, const QString &dst,
+                    qint64 *processedBytes, qint64 totalBytes,
+                    ProgressDialog *progress, const QString &fileName,
+                    const std::atomic<bool> &canceled) {
     QFile srcFile(src);
-    if (!srcFile.open(QIODevice::ReadOnly)) return false;
+    if (!srcFile.open(QIODevice::ReadOnly)) return -1;
     QFile dstFile(dst);
     if (!dstFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         srcFile.close();
-        return false;
+        return -1;
     }
-    constexpr qint64 chunkSize = 1024 * 1024;  // 1 MB
+    constexpr qint64 chunkSize = 4 * 1024 * 1024;  // 4 MB
     QByteArray buffer;
     buffer.resize(static_cast<int>(chunkSize));
     while (!srcFile.atEnd()) {
+        // 检查取消标志
+        if (canceled.load()) {
+            srcFile.close();
+            dstFile.close();
+            return 1;  // 用户取消
+        }
         const qint64 n = srcFile.read(buffer.data(), chunkSize);
         if (n <= 0) break;
         if (dstFile.write(buffer.data(), n) != n) {
             srcFile.close();
             dstFile.close();
-            return false;
+            return -1;
         }
         *processedBytes += n;
         const int percent = (totalBytes > 0)
@@ -69,28 +80,30 @@ bool copyFileChunked(const QString &src, const QString &dst,
     }
     srcFile.close();
     dstFile.close();
-    return true;
+    return 0;
 }
 
 // 递归复制目录（带进度报告）
-bool copyRecursively(const QString &src, const QString &dst, QString *error,
-                     qint64 *processedBytes = nullptr, qint64 totalBytes = 0,
-                     ProgressDialog *progress = nullptr) {
+// 返回值：0=成功, 1=用户取消, -1=失败
+int copyRecursively(const QString &src, const QString &dst, QString *error,
+                    qint64 *processedBytes, qint64 totalBytes,
+                    ProgressDialog *progress, const std::atomic<bool> &canceled) {
     QFileInfo srcInfo(src);
     if (srcInfo.isFile()) {
         const QString name = srcInfo.fileName();
         if (progress) {
-            if (!copyFileChunked(src, dst, processedBytes, totalBytes, progress, name)) {
-                if (error) *error = QObject::tr("Cannot copy: %1 -> %2").arg(src, dst);
-                return false;
+            const int ret = copyFileChunked(src, dst, processedBytes, totalBytes, progress, name, canceled);
+            if (ret != 0) {
+                if (ret == -1 && error) *error = QObject::tr("Cannot copy: %1 -> %2").arg(src, dst);
+                return ret;
             }
         } else {
             if (!QFile::copy(src, dst)) {
                 if (error) *error = QObject::tr("Cannot copy: %1 -> %2").arg(src, dst);
-                return false;
+                return -1;
             }
         }
-        return true;
+        return 0;
     }
     QDir().mkpath(dst);
     QDir srcDir(src);
@@ -99,9 +112,10 @@ bool copyRecursively(const QString &src, const QString &dst, QString *error,
     for (const QString &e : entries) {
         const QString s = srcDir.filePath(e);
         const QString d = dst + QDir::separator() + e;
-        if (!copyRecursively(s, d, error, processedBytes, totalBytes, progress)) return false;
+        const int ret = copyRecursively(s, d, error, processedBytes, totalBytes, progress, canceled);
+        if (ret != 0) return ret;
     }
-    return true;
+    return 0;
 }
 
 // 递归删除目录
@@ -203,6 +217,7 @@ void FileOperations::runCopyMove(const QList<QUrl> &sources, const QString &dest
     // ConflictDialog::exec() 的本地事件循环中触发，导致进度对话框
     // 覆盖在冲突对话框之上，使其无法操作。
     QList<QPair<QString, QString>> plan;  // src -> dst
+    bool userCanceled = false;  // 用户点击冲突对话框"取消"
     for (const QUrl &u : sources) {
         const QString src = u.toLocalFile();
         const QString name = QFileInfo(src).fileName();
@@ -231,7 +246,11 @@ void FileOperations::runCopyMove(const QList<QUrl> &sources, const QString &dest
 
         if (QFileInfo::exists(dst)) {
             ConflictResolution r = resolveConflict(name, dst, sources.size() > 1);
-            if (r == ConflictResolution::Cancel) continue;
+            if (r == ConflictResolution::Cancel) {
+                // 取消整个粘贴操作
+                userCanceled = true;
+                break;
+            }
             if (r == ConflictResolution::Skip ||
                 r == ConflictResolution::SkipAll) continue;
             if (r == ConflictResolution::Rename ||
@@ -248,11 +267,25 @@ void FileOperations::runCopyMove(const QList<QUrl> &sources, const QString &dest
         plan.append({src, dst});
     }
 
+    // 用户在冲突对话框中点击了"取消"，或没有文件需要处理：直接结束
+    if (userCanceled || plan.isEmpty()) {
+        if (userCanceled) {
+            emit operationCompleted();  // 刷新目标目录
+        }
+        delete watcher;
+        return;
+    }
+
     // 冲突解决完毕后创建进度对话框（避免 showDelayed 在冲突对话框事件循环中触发）
     progressDialog_ = new ProgressDialog(nullptr);
     progressDialog_->setOperationTitle(isMove ? tr("Moving...") : tr("Copying..."));
     progressDialog_->showDelayed();
-    connect(progressDialog_, &ProgressDialog::canceled, watcher, &QFutureWatcher<bool>::cancel);
+
+    // 取消标志（用于进度对话框取消后通知工作线程停止）
+    auto cancelFlag = std::make_shared<std::atomic<bool>>(false);
+    connect(progressDialog_, &ProgressDialog::canceled, this, [cancelFlag]() {
+        cancelFlag->store(true);
+    });
 
     connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, destDir, isMove]() {
         bool ok = watcher->result();
@@ -289,20 +322,27 @@ void FileOperations::runCopyMove(const QList<QUrl> &sources, const QString &dest
     }
 
     ProgressDialog *progress = progressDialog_;  // 捕获进度对话框指针
-    auto future = QtConcurrent::run([plan, isMove, errPtr, totalBytes, progress]() -> bool {
+    auto future = QtConcurrent::run([plan, isMove, errPtr, totalBytes, progress, cancelFlag]() -> bool {
         qint64 processedBytes = 0;
         for (const auto &p : plan) {
+            // 检查取消标志
+            if (cancelFlag->load()) break;
+
             if (isMove) {
                 if (!QFile::rename(p.first, p.second)) {
                     // 跨设备，复制+删除
-                    if (!copyRecursively(p.first, p.second, errPtr, &processedBytes, totalBytes, progress)) return false;
+                    const int ret = copyRecursively(p.first, p.second, errPtr, &processedBytes, totalBytes, progress, *cancelFlag);
+                    if (ret == 1) break;  // 用户取消，保留已复制部分
+                    if (ret == -1) return false;
                     if (!removeRecursively(p.first, errPtr)) return false;
                 }
             } else {
-                if (!copyRecursively(p.first, p.second, errPtr, &processedBytes, totalBytes, progress)) return false;
+                const int ret = copyRecursively(p.first, p.second, errPtr, &processedBytes, totalBytes, progress, *cancelFlag);
+                if (ret == 1) break;  // 用户取消，保留已复制部分
+                if (ret == -1) return false;
             }
         }
-        return true;
+        return true;  // 即使取消也返回 true（部分成功，不回滚）
     });
     watcher->setFuture(future);
 

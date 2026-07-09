@@ -45,6 +45,10 @@ public:
     bool showHidden() const { return showHidden_; }
     void setShowHidden(bool show);
 
+    // 日期时间显示格式（空字符串表示使用默认 ISO 格式）
+    QString dateTimeFormat() const { return dateTimeFormat_; }
+    void setDateTimeFormat(const QString &format);
+
     // 行数据访问
     FileItem itemAt(const QModelIndex &index) const;
     bool isParentRow(const QModelIndex &index) const;
@@ -75,6 +79,7 @@ private:
     bool showHidden_ = false;
     bool hasParent_ = false;          // 是否存在 ".." 行
     QString lastError_;
+    QString dateTimeFormat_;          // 日期时间显示格式（空=ISO 默认）
 };
 
 } // namespace fm

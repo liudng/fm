@@ -40,6 +40,17 @@ bool FileListSortProxy::lessThan(const QModelIndex &left, const QModelIndex &rig
         if (leftParent && rightParent) return false;
         if (leftParent)  return lastSortOrder_ == Qt::AscendingOrder;
         if (rightParent) return lastSortOrder_ == Qt::DescendingOrder;
+
+        // 文件大小列：按真实字节数比较，而非格式化字符串
+        if (left.column() == FileListModel::ColSize) {
+            const FileItem &li = model->itemAt(left);
+            const FileItem &ri = model->itemAt(right);
+            // 目录大小为 0，排在文件之后（递增时）
+            const qint64 ls = li.isDir ? -1 : li.size;
+            const qint64 rs = ri.isDir ? -1 : ri.size;
+            if (ls != rs) return ls < rs;
+            // 大小相同，回退到名称比较
+        }
     }
 
     // 主键比较

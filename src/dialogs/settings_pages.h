@@ -13,6 +13,7 @@ class QListWidget;
 class QTableWidget;
 class QTableWidgetItem;
 class QKeySequenceEdit;
+class QLineEdit;
 
 namespace fm {
 
@@ -84,9 +85,11 @@ private:
     QWidget *widget_ = nullptr;
     QCheckBox *showHiddenCheck_ = nullptr;
     QListWidget *columnList_ = nullptr;
+    QLineEdit *dateTimeFormatEdit_ = nullptr;
 
     bool origShowHidden_ = false;
     QStringList origVisibleColumns_;
+    QString origDateTimeFormat_;
 };
 
 // === 快捷键设置页：表格 + QKeySequenceEdit ===

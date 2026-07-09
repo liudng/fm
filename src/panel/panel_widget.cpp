@@ -86,8 +86,14 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
             auto *c = ConfigManager::instance();
             const bool showHidden = c->value(QStringLiteral("File_Browser"),
                                                 QStringLiteral("showHidden"), false).toBool();
+            const QString dtFmt = c->value(QStringLiteral("File_Browser"),
+                                              QStringLiteral("dateTimeFormat"),
+                                              QStringLiteral("yyyy-MM-dd HH:mm:ss")).toString();
             for (const auto &td : std::as_const(tabs_)) {
-                if (td.model) td.model->setShowHidden(showHidden);
+                if (td.model) {
+                    td.model->setShowHidden(showHidden);
+                    td.model->setDateTimeFormat(dtFmt);
+                }
             }
         } else if (section == QStringLiteral("File_Browser_Columns")) {
             for (const auto &td : std::as_const(tabs_)) {
@@ -150,6 +156,11 @@ int PanelWidget::addTab(const QString &path, int index) {
     const bool showHidden = cfg->value(QStringLiteral("File_Browser"),
                                           QStringLiteral("showHidden"), false).toBool();
     model->setShowHidden(showHidden);
+    // 应用日期时间格式
+    const QString dtFmt = cfg->value(QStringLiteral("File_Browser"),
+                                        QStringLiteral("dateTimeFormat"),
+                                        QStringLiteral("yyyy-MM-dd HH:mm:ss")).toString();
+    model->setDateTimeFormat(dtFmt);
 
     // 注册到 ColumnManager
     ColumnManager::instance()->registerView(view);

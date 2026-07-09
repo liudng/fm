@@ -86,6 +86,16 @@ void FileListModel::setShowHidden(bool show) {
     reload();
 }
 
+void FileListModel::setDateTimeFormat(const QString &format) {
+    if (dateTimeFormat_ == format) return;
+    dateTimeFormat_ = format;
+    // 通知创建/修改日期列的数据已变化
+    if (!items_.isEmpty()) {
+        const int lastRow = rowCount({}) - 1;
+        emit dataChanged(index(0, ColCreated), index(lastRow, ColModified));
+    }
+}
+
 void FileListModel::loadDirectory() {
     items_.clear();
     lastError_.clear();
@@ -227,8 +237,12 @@ QVariant FileListModel::data(const QModelIndex &index, int role) const {
             case ColMimeType:    return item.mimeTypeName;
             case ColGroup:       return item.group;
             case ColOwner:       return item.owner;
-            case ColCreated:     return item.created.toString(Qt::ISODate);
-            case ColModified:    return item.modified.toString(Qt::ISODate);
+            case ColCreated:     return dateTimeFormat_.isEmpty()
+                                    ? item.created.toString(Qt::ISODate)
+                                    : item.created.toString(dateTimeFormat_);
+            case ColModified:    return dateTimeFormat_.isEmpty()
+                                    ? item.modified.toString(Qt::ISODate)
+                                    : item.modified.toString(dateTimeFormat_);
             case ColPermissions: return permissionsToString(item.permissions);
         }
     }
