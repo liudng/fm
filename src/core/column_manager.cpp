@@ -18,16 +18,21 @@ struct ColumnDef {
 };
 
 const ColumnDef kColumnDefs[] = {
-    {"Icon",        FileListModel::ColIcon,        28},
-    {"Name",        FileListModel::ColName,        0},   // Stretch，不存储
-    {"Size",        FileListModel::ColSize,        80},
-    {"Type",        FileListModel::ColType,        100},
-    {"MimeType",    FileListModel::ColMimeType,    120},
-    {"Group",       FileListModel::ColGroup,       80},
-    {"Owner",       FileListModel::ColOwner,       80},
-    {"Created",     FileListModel::ColCreated,     140},
-    {"Modified",    FileListModel::ColModified,    140},
-    {"Permissions", FileListModel::ColPermissions, 100},
+    {"Icon",          FileListModel::ColIcon,          28},
+    {"Name",          FileListModel::ColName,          0},   // Stretch，不存储
+    {"Size",          FileListModel::ColSize,          80},
+    {"Type",          FileListModel::ColType,          100},
+    {"MimeType",      FileListModel::ColMimeType,      120},
+    {"Group",         FileListModel::ColGroup,         80},
+    {"Owner",         FileListModel::ColOwner,         80},
+    {"UID",           FileListModel::ColOwnerUid,      60},
+    {"GID",           FileListModel::ColGroupGid,      60},
+    {"Created",       FileListModel::ColCreated,       140},
+    {"Modified",      FileListModel::ColModified,      140},
+    {"Accessed",      FileListModel::ColAccessed,     140},
+    {"Disk Usage",    FileListModel::ColDiskUsage,     100},
+    {"Status Changed",FileListModel::ColStatusChanged,140},
+    {"Permissions",   FileListModel::ColPermissions,   100},
 };
 const int kColumnCount = sizeof(kColumnDefs) / sizeof(ColumnDef);
 

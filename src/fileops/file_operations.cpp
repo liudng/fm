@@ -60,6 +60,8 @@ int copyFileChunked(const QString &src, const QString &dst,
         if (canceled.load()) {
             srcFile.close();
             dstFile.close();
+            // 删除未复制完成的不完整文件（已完成的不回滚）
+            QFile::remove(dst);
             return 1;  // 用户取消
         }
         const qint64 n = srcFile.read(buffer.data(), chunkSize);

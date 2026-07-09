@@ -51,6 +51,37 @@ bool FileListSortProxy::lessThan(const QModelIndex &left, const QModelIndex &rig
             if (ls != rs) return ls < rs;
             // 大小相同，回退到名称比较
         }
+
+        // 实际占用磁盘空间：按真实字节数比较
+        if (left.column() == FileListModel::ColDiskUsage) {
+            const FileItem &li = model->itemAt(left);
+            const FileItem &ri = model->itemAt(right);
+            if (li.diskUsage != ri.diskUsage) return li.diskUsage < ri.diskUsage;
+        }
+
+        // UID/GID：按数值比较，而非字符串
+        if (left.column() == FileListModel::ColOwnerUid) {
+            const FileItem &li = model->itemAt(left);
+            const FileItem &ri = model->itemAt(right);
+            if (li.ownerId != ri.ownerId) return li.ownerId < ri.ownerId;
+        }
+        if (left.column() == FileListModel::ColGroupGid) {
+            const FileItem &li = model->itemAt(left);
+            const FileItem &ri = model->itemAt(right);
+            if (li.groupId != ri.groupId) return li.groupId < ri.groupId;
+        }
+
+        // 日期列：按 QDateTime 比较，避免格式化字符串排序不一致
+        if (left.column() == FileListModel::ColAccessed) {
+            const FileItem &li = model->itemAt(left);
+            const FileItem &ri = model->itemAt(right);
+            if (li.accessed != ri.accessed) return li.accessed < ri.accessed;
+        }
+        if (left.column() == FileListModel::ColStatusChanged) {
+            const FileItem &li = model->itemAt(left);
+            const FileItem &ri = model->itemAt(right);
+            if (li.statusChanged != ri.statusChanged) return li.statusChanged < ri.statusChanged;
+        }
     }
 
     // 主键比较

@@ -89,10 +89,10 @@ void FileListModel::setShowHidden(bool show) {
 void FileListModel::setDateTimeFormat(const QString &format) {
     if (dateTimeFormat_ == format) return;
     dateTimeFormat_ = format;
-    // 通知创建/修改日期列的数据已变化
+    // 通知所有日期列的数据已变化（含 Created/Modified/Accessed/StatusChanged）
     if (!items_.isEmpty()) {
         const int lastRow = rowCount({}) - 1;
-        emit dataChanged(index(0, ColCreated), index(lastRow, ColModified));
+        emit dataChanged(index(0, ColCreated), index(lastRow, ColStatusChanged));
     }
 }
 
@@ -142,11 +142,16 @@ void FileListModel::loadDirectory() {
         item.group = fi.group();
         item.created = fi.birthTime();
         item.modified = fi.lastModified();
+        item.accessed = fi.lastRead();
         item.permissions = fi.permissions();
-        // inode 通过 stat() 获取（QFileInfo 无 inodeId 方法）
+        // inode、UID/GID、磁盘占用、状态变更时间 通过 stat() 获取
         struct stat st;
         if (::stat(fi.absoluteFilePath().toLocal8Bit().constData(), &st) == 0) {
             item.inode = st.st_ino;
+            item.ownerId = st.st_uid;
+            item.groupId = st.st_gid;
+            item.diskUsage = static_cast<qint64>(st.st_blocks) * 512;
+            item.statusChanged = QDateTime::fromSecsSinceEpoch(st.st_ctime);
         }
 
         // MIME 类型
@@ -237,18 +242,29 @@ QVariant FileListModel::data(const QModelIndex &index, int role) const {
             case ColMimeType:    return item.mimeTypeName;
             case ColGroup:       return item.group;
             case ColOwner:       return item.owner;
+            case ColOwnerUid:    return QString::number(item.ownerId);
+            case ColGroupGid:    return QString::number(item.groupId);
             case ColCreated:     return dateTimeFormat_.isEmpty()
                                     ? item.created.toString(Qt::ISODate)
                                     : item.created.toString(dateTimeFormat_);
             case ColModified:    return dateTimeFormat_.isEmpty()
                                     ? item.modified.toString(Qt::ISODate)
                                     : item.modified.toString(dateTimeFormat_);
+            case ColAccessed:    return dateTimeFormat_.isEmpty()
+                                    ? item.accessed.toString(Qt::ISODate)
+                                    : item.accessed.toString(dateTimeFormat_);
+            case ColDiskUsage:   return item.isDir ? QString()
+                                    : QLocale().formattedDataSize(item.diskUsage);
+            case ColStatusChanged: return dateTimeFormat_.isEmpty()
+                                    ? item.statusChanged.toString(Qt::ISODate)
+                                    : item.statusChanged.toString(dateTimeFormat_);
             case ColPermissions: return permissionsToString(item.permissions);
         }
     }
 
     if (role == Qt::TextAlignmentRole) {
-        if (col == ColSize) return Qt::AlignRight;
+        if (col == ColSize || col == ColDiskUsage || col == ColOwnerUid || col == ColGroupGid)
+            return Qt::AlignRight;
     }
 
     return {};
@@ -264,8 +280,13 @@ QVariant FileListModel::headerData(int section, Qt::Orientation orientation, int
         case ColMimeType:    return tr("MIME");
         case ColGroup:       return tr("Group");
         case ColOwner:       return tr("Owner");
+        case ColOwnerUid:    return tr("UID");
+        case ColGroupGid:    return tr("GID");
         case ColCreated:     return tr("Created");
         case ColModified:    return tr("Modified");
+        case ColAccessed:    return tr("Accessed");
+        case ColDiskUsage:   return tr("Disk Usage");
+        case ColStatusChanged: return tr("Status Changed");
         case ColPermissions: return tr("Permissions");
     }
     return {};

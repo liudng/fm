@@ -46,6 +46,16 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
     layout->addWidget(stack_, 1);
 
     connect(tabBar_, &QTabBar::currentChanged, this, &PanelWidget::onTabChanged);
+    // 拖拽调整选项卡顺序时，同步移动 TabData 与 QStackedWidget 中的内容
+    connect(tabBar_, &QTabBar::tabMoved, this, [this](int from, int to) {
+        if (from == to) return;
+        if (from < 0 || from >= tabs_.size() || to < 0 || to >= tabs_.size()) return;
+        tabs_.move(from, to);
+        QWidget *w = stack_->widget(from);
+        if (w) stack_->insertWidget(to, w);  // 重新插入到目标位置
+        // 确保当前显示的 widget 与选项卡栏一致
+        stack_->setCurrentIndex(tabBar_->currentIndex());
+    });
     connect(tabBar_, &FileTabBar::newTabRequested, this, [this]() {
         // 新选项卡默认打开活动选项卡同目录
         addTab(activeTabPath(), -1);
@@ -88,7 +98,7 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
                                                 QStringLiteral("showHidden"), false).toBool();
             const QString dtFmt = c->value(QStringLiteral("File_Browser"),
                                               QStringLiteral("dateTimeFormat"),
-                                              QStringLiteral("yyyy-MM-dd HH:mm:ss")).toString();
+                                              QStringLiteral("yyyy-MM-dd HH:mm")).toString();
             for (const auto &td : std::as_const(tabs_)) {
                 if (td.model) {
                     td.model->setShowHidden(showHidden);
@@ -159,7 +169,7 @@ int PanelWidget::addTab(const QString &path, int index) {
     // 应用日期时间格式
     const QString dtFmt = cfg->value(QStringLiteral("File_Browser"),
                                         QStringLiteral("dateTimeFormat"),
-                                        QStringLiteral("yyyy-MM-dd HH:mm:ss")).toString();
+                                        QStringLiteral("yyyy-MM-dd HH:mm")).toString();
     model->setDateTimeFormat(dtFmt);
 
     // 注册到 ColumnManager
@@ -201,8 +211,14 @@ int PanelWidget::addTab(const QString &path, int index) {
     connect(view, &FileListView::pasteRequested, this, &PanelWidget::onPaste);
     connect(view, &FileListView::copyPathRequested, this, &PanelWidget::onCopyPath);
     connect(view, &FileListView::copyFileNameRequested, this, &PanelWidget::onCopyFileName);
-    connect(model, &FileListModel::pathChanged, this, [this, index](const QString &p) {
-        if (index < tabBar_->count()) tabBar_->setTabPath(index, p);
+    connect(model, &FileListModel::pathChanged, this, [this, model](const QString &p) {
+        // 选项卡拖拽后索引会变化，按 model 指针动态查找当前索引
+        for (int i = 0; i < tabs_.size(); ++i) {
+            if (tabs_.at(i).model == model) {
+                tabBar_->setTabPath(i, p);
+                break;
+            }
+        }
         emit pathChanged(p);
     });
 

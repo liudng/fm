@@ -23,8 +23,13 @@ public:
         ColMimeType,
         ColGroup,
         ColOwner,
+        ColOwnerUid,
+        ColGroupGid,
         ColCreated,
         ColModified,
+        ColAccessed,
+        ColDiskUsage,
+        ColStatusChanged,
         ColPermissions,
         ColCount
     };

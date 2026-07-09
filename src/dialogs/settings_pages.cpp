@@ -223,7 +223,7 @@ FileBrowserSettingsPage::FileBrowserSettingsPage(QObject *parent)
     auto *dtBox = new QGroupBox(tr("Date/Time Format"));
     auto *dtLayout = new QVBoxLayout(dtBox);
     dateTimeFormatEdit_ = new QLineEdit;
-    dateTimeFormatEdit_->setPlaceholderText(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    dateTimeFormatEdit_->setPlaceholderText(QStringLiteral("yyyy-MM-dd HH:mm"));
     dtLayout->addWidget(dateTimeFormatEdit_);
 
     // 占位符说明
@@ -253,7 +253,7 @@ FileBrowserSettingsPage::FileBrowserSettingsPage(QObject *parent)
            "<tr><td><b>zzz</b></td><td>Milliseconds (000-999)</td>"
                "<td><b>z</b></td><td>Milliseconds, no leading zero</td></tr>"
            "</table>"
-           "<br>Leave empty to use the default <i>yyyy-MM-dd HH:mm:ss</i>.<br>"
+           "<br>Leave empty to use the default <i>yyyy-MM-dd HH:mm</i>.<br>"
            "Examples: <code>yyyy-MM-dd</code>, <code>yyyy/MM/dd HH:mm</code>, "
            "<code>MMM d, yyyy h:mm AP</code>"));
     hint->setTextFormat(Qt::RichText);
@@ -279,7 +279,7 @@ void FileBrowserSettingsPage::load() {
 
     origDateTimeFormat_ = cfg->value(QStringLiteral("File_Browser"),
                                         QStringLiteral("dateTimeFormat"),
-                                        QStringLiteral("yyyy-MM-dd HH:mm:ss")).toString();
+                                        QStringLiteral("yyyy-MM-dd HH:mm")).toString();
     dateTimeFormatEdit_->setText(origDateTimeFormat_);
 
     // 列选择
@@ -303,7 +303,7 @@ void FileBrowserSettingsPage::apply() {
 
     // 日期时间格式：空值视为使用默认
     QString dtFmt = dateTimeFormatEdit_->text().trimmed();
-    if (dtFmt.isEmpty()) dtFmt = QStringLiteral("yyyy-MM-dd HH:mm:ss");
+    if (dtFmt.isEmpty()) dtFmt = QStringLiteral("yyyy-MM-dd HH:mm");
     cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("dateTimeFormat"), dtFmt);
     origDateTimeFormat_ = dtFmt;
 
