@@ -8,3 +8,4 @@ Icon=fm
 Terminal=false
 Categories=System;FileManager;Qt;
 Keywords=file;manager;dual-panel;
+MimeType=inode/directory;

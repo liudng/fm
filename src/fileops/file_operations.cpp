@@ -44,7 +44,7 @@ qint64 countBytes(const QString &path) {
 // 返回值：0=成功, 1=用户取消, -1=失败
 int copyFileChunked(const QString &src, const QString &dst,
                     qint64 *processedBytes, qint64 totalBytes,
-                    ProgressDialog *progress, const QString &fileName,
+                    QPointer<ProgressDialog> progress, const QString &fileName,
                     const std::atomic<bool> &canceled) {
     QFile srcFile(src);
     if (!srcFile.open(QIODevice::ReadOnly)) return -1;
@@ -79,10 +79,15 @@ int copyFileChunked(const QString &src, const QString &dst,
         const int percent = (totalBytes > 0)
             ? static_cast<int>((*processedBytes * 100) / totalBytes) : 0;
         // 线程安全地更新进度对话框（工作线程 → 主线程）
-        QMetaObject::invokeMethod(progress, [progress, percent, fileName]() {
-            progress->setProgress(percent);
-            progress->setCurrentFile(fileName);
-        }, Qt::QueuedConnection);
+        // 使用 QPointer 防止进度对话框在异步投递期间被销毁导致悬空访问
+        if (progress) {
+            QMetaObject::invokeMethod(progress.data(), [progress, percent, fileName]() {
+                if (progress) {
+                    progress->setProgress(percent);
+                    progress->setCurrentFile(fileName);
+                }
+            }, Qt::QueuedConnection);
+        }
     }
     srcFile.close();
     dstFile.close();
@@ -93,7 +98,7 @@ int copyFileChunked(const QString &src, const QString &dst,
 // 返回值：0=成功, 1=用户取消, -1=失败
 int copyRecursively(const QString &src, const QString &dst, QString *error,
                     qint64 *processedBytes, qint64 totalBytes,
-                    ProgressDialog *progress, const std::atomic<bool> &canceled) {
+                    QPointer<ProgressDialog> progress, const std::atomic<bool> &canceled) {
     QFileInfo srcInfo(src);
     if (srcInfo.isFile()) {
         const QString name = srcInfo.fileName();
@@ -155,8 +160,7 @@ FileOperations *FileOperations::instance() {
 }
 
 FileOperations::FileOperations(QObject *parent)
-    : QObject(parent),
-      progressDialog_(nullptr) {
+    : QObject(parent) {
     qRegisterMetaType<ConflictResolution>("fm::ConflictResolution");
 }
 
@@ -327,7 +331,7 @@ void FileOperations::runCopyMove(const QList<QUrl> &sources, const QString &dest
         totalBytes += countBytes(p.first);
     }
 
-    ProgressDialog *progress = progressDialog_;  // 捕获进度对话框指针
+    QPointer<ProgressDialog> progress = progressDialog_;  // 捕获进度对话框指针（QPointer 防悬空）
     auto future = QtConcurrent::run([plan, isMove, errPtr, totalBytes, progress, cancelFlag]() -> bool {
         qint64 processedBytes = 0;
         for (const auto &p : plan) {

@@ -8,10 +8,13 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# 默认 Release 风格的调试信息
+# 默认带调试信息的优化构建（用户可通过 -DCMAKE_BUILD_TYPE= 覆盖）
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
+
+# 标准安装目录变量（跨发行版兼容）
+include(GNUInstallDirs)
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Core Gui Concurrent DBus Network LinguistTools)
 
@@ -101,13 +104,13 @@ qt_add_translations(fm
     RESOURCE_PREFIX "/i18n"
 )
 
-install(TARGETS fm RUNTIME DESTINATION bin)
+install(TARGETS fm RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # 安装 man 手册（压缩为 .gz）
-install(FILES fm.1 DESTINATION share/man/man1)
+install(FILES fm.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
 # 安装 .desktop 文件
-install(FILES fm.desktop DESTINATION share/applications)
+install(FILES fm.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 
 # 安装应用图标到 hicolor 主题（512x512）
-install(FILES fm.png DESTINATION share/icons/hicolor/512x512/apps RENAME fm.png)
+install(FILES fm.png DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps)

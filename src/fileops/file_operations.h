@@ -1,6 +1,7 @@
 #ifndef FM_FILEOPS_FILE_OPERATIONS_H
 #define FM_FILEOPS_FILE_OPERATIONS_H
 
+#include <QPointer>
 #include <QObject>
 #include <QUrl>
 
@@ -67,7 +68,7 @@ private:
     ConflictResolution batchResolution_;
     bool hasBatchResolution_ = false;
 
-    ProgressDialog *progressDialog_;
+    QPointer<ProgressDialog> progressDialog_;
 };
 
 } // namespace fm

@@ -10,6 +10,8 @@
 #include <QDBusVariant>
 #include <QDebug>
 #include <QFile>
+#include <QCoreApplication>
+#include <QPointer>
 #include <QStorageInfo>
 
 namespace fm {
@@ -32,8 +34,14 @@ QVariant getProperty(const QVariantMap &props, const QString &key) {
 } // namespace
 
 VolumeManager *VolumeManager::instance() {
-    static VolumeManager inst;
-    return &inst;
+    // 用 QPointer 持有单例，并由 qApp 作为 QObject 父对象托管：
+    // - 确保 VolumeManager 随 QApplication 析构而析构，信号断开顺序正确
+    // - QPointer 防止程序退出阶段访问已销毁对象
+    static QPointer<VolumeManager> inst;
+    if (!inst) {
+        inst = new VolumeManager(qApp);
+    }
+    return inst;
 }
 
 VolumeManager::VolumeManager(QObject *parent)
