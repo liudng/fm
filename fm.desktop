@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=fm
+Name=File Manager
 Comment=Linux dual-panel file manager
 Comment[zh_CN]=Linux 双面板文件管理器
 Exec=fm

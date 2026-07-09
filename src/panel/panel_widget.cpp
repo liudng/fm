@@ -26,6 +26,7 @@
 #include <QHeaderView>
 #include <QIcon>
 #include <QMenu>
+#include <QMessageBox>
 #include <QMimeDatabase>
 #include <QStackedWidget>
 #include <QVBoxLayout>
@@ -861,6 +862,20 @@ void PanelWidget::onTrash() {
 void PanelWidget::onDeletePermanently() {
     const QList<QUrl> urls = selectedUrls();
     if (urls.isEmpty()) return;
+
+    // 确认对话框
+    const int count = urls.size();
+    const QString msg = (count == 1)
+        ? tr("Are you sure you want to permanently delete \"%1\"?\n"
+             "This action cannot be undone.")
+              .arg(QFileInfo(urls.first().toLocalFile()).fileName())
+        : tr("Are you sure you want to permanently delete %1 items?\n"
+             "This action cannot be undone.")
+              .arg(count);
+    auto btn = QMessageBox::warning(this, tr("Delete Permanently"), msg,
+                                     QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (btn != QMessageBox::Yes) return;
+
     FileOperations::instance()->deletePermanently(urls);
 }
 

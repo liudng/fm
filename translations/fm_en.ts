@@ -9,57 +9,58 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="30"/>
+        <location filename="../src/fileops/file_operations.cpp" line="84"/>
+        <location filename="../src/fileops/file_operations.cpp" line="89"/>
         <source>Cannot copy: %1 -&gt; %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="52"/>
+        <location filename="../src/fileops/file_operations.cpp" line="112"/>
         <source>Cannot remove: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="64"/>
+        <location filename="../src/fileops/file_operations.cpp" line="124"/>
         <source>Cannot rmdir: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/trash_can.cpp" line="26"/>
+        <location filename="../src/fileops/trash_can.cpp" line="27"/>
         <source>Cannot create trash directory: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/trash_can.cpp" line="30"/>
+        <location filename="../src/fileops/trash_can.cpp" line="31"/>
         <source>Cannot create trash/files: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/trash_can.cpp" line="34"/>
+        <location filename="../src/fileops/trash_can.cpp" line="35"/>
         <source>Cannot create trash/info: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/trash_can.cpp" line="93"/>
+        <location filename="../src/fileops/trash_can.cpp" line="106"/>
         <source>Only local files are supported</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/trash_can.cpp" line="99"/>
+        <location filename="../src/fileops/trash_can.cpp" line="112"/>
         <source>File does not exist: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/trash_can.cpp" line="115"/>
+        <location filename="../src/fileops/trash_can.cpp" line="128"/>
         <source>Cannot write trash info: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/trash_can.cpp" line="125"/>
+        <location filename="../src/fileops/trash_can.cpp" line="138"/>
         <source>Cannot move to trash: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/trash_can.cpp" line="132"/>
+        <location filename="../src/fileops/trash_can.cpp" line="145"/>
         <source>Cannot remove source after copy: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -390,52 +391,52 @@ Would you like to overwrite it?</source>
 <context>
     <name>fm::FileOperations</name>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="159"/>
+        <location filename="../src/fileops/file_operations.cpp" line="219"/>
         <source>Cannot copy folder &quot;%1&quot; into itself.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="193"/>
+        <location filename="../src/fileops/file_operations.cpp" line="253"/>
         <source>Moving...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="193"/>
+        <location filename="../src/fileops/file_operations.cpp" line="253"/>
         <source>Copying...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="320"/>
+        <location filename="../src/fileops/file_operations.cpp" line="388"/>
         <source>Clipboard is empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="339"/>
+        <location filename="../src/fileops/file_operations.cpp" line="407"/>
         <source>Name already exists: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="343"/>
+        <location filename="../src/fileops/file_operations.cpp" line="411"/>
         <source>Cannot rename: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="354"/>
+        <location filename="../src/fileops/file_operations.cpp" line="422"/>
         <source>Cannot create file: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="365"/>
+        <location filename="../src/fileops/file_operations.cpp" line="433"/>
         <source>Cannot create folder: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="403"/>
+        <location filename="../src/fileops/file_operations.cpp" line="471"/>
         <source>Cannot open: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="421"/>
+        <location filename="../src/fileops/file_operations.cpp" line="489"/>
         <source>Invalid .desktop file: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -674,27 +675,27 @@ Would you like to overwrite it?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="159"/>
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="160"/>
         <source>Select an application to open &quot;%1&quot;:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="167"/>
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="169"/>
         <source>Custom command:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="169"/>
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="171"/>
         <source>Browse...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="176"/>
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="178"/>
         <source>Remember this choice for this file type</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="255"/>
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="257"/>
         <source>Select Application</source>
         <translation type="unfinished"></translation>
     </message>
@@ -740,169 +741,186 @@ Would you like to overwrite it?</source>
 <context>
     <name>fm::PanelWidget</name>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="412"/>
+        <location filename="../src/panel/panel_widget.cpp" line="413"/>
         <source>&amp;Open</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="416"/>
+        <location filename="../src/panel/panel_widget.cpp" line="417"/>
         <source>Open &amp;With...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="420"/>
+        <location filename="../src/panel/panel_widget.cpp" line="421"/>
         <source>&amp;Rename</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="425"/>
+        <location filename="../src/panel/panel_widget.cpp" line="426"/>
         <source>Cu&amp;t</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="430"/>
+        <location filename="../src/panel/panel_widget.cpp" line="431"/>
         <source>&amp;Copy</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="440"/>
+        <location filename="../src/panel/panel_widget.cpp" line="441"/>
         <source>Cut to &amp;Opposite</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="444"/>
+        <location filename="../src/panel/panel_widget.cpp" line="445"/>
         <source>Copy to O&amp;pposite</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="448"/>
+        <location filename="../src/panel/panel_widget.cpp" line="449"/>
         <source>Copy &amp;Path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="453"/>
+        <location filename="../src/panel/panel_widget.cpp" line="454"/>
         <source>Copy File &amp;Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="435"/>
+        <location filename="../src/panel/panel_widget.cpp" line="436"/>
         <source>&amp;Paste</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="458"/>
+        <location filename="../src/panel/panel_widget.cpp" line="459"/>
         <source>Move to &amp;Trash</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="463"/>
+        <location filename="../src/panel/panel_widget.cpp" line="464"/>
         <source>&amp;Delete Permanently</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="468"/>
+        <location filename="../src/panel/panel_widget.cpp" line="469"/>
         <source>P&amp;roperties</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="374"/>
+        <location filename="../src/panel/panel_widget.cpp" line="375"/>
         <source>&amp;Back</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="55"/>
+        <location filename="../src/panel/panel_widget.cpp" line="56"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="57"/>
+        <location filename="../src/panel/panel_widget.cpp" line="58"/>
         <source>Close Others</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="59"/>
+        <location filename="../src/panel/panel_widget.cpp" line="60"/>
         <source>Clone</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="379"/>
+        <location filename="../src/panel/panel_widget.cpp" line="380"/>
         <source>&amp;Forward</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="384"/>
+        <location filename="../src/panel/panel_widget.cpp" line="385"/>
         <source>&amp;Up</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="389"/>
+        <location filename="../src/panel/panel_widget.cpp" line="390"/>
         <source>&amp;Home</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="397"/>
+        <location filename="../src/panel/panel_widget.cpp" line="398"/>
         <source>New &amp;File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="401"/>
+        <location filename="../src/panel/panel_widget.cpp" line="402"/>
         <source>New &amp;Folder</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="406"/>
+        <location filename="../src/panel/panel_widget.cpp" line="407"/>
         <source>&amp;Refresh</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="496"/>
+        <location filename="../src/panel/panel_widget.cpp" line="497"/>
         <source>New Tab</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="503"/>
+        <location filename="../src/panel/panel_widget.cpp" line="504"/>
         <source>Close Tab</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="510"/>
+        <location filename="../src/panel/panel_widget.cpp" line="511"/>
         <source>Clone Tab</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="518"/>
+        <location filename="../src/panel/panel_widget.cpp" line="519"/>
         <source>Next Tab</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="884"/>
+        <location filename="../src/panel/panel_widget.cpp" line="869"/>
+        <source>Are you sure you want to permanently delete &quot;%1&quot;?
+This action cannot be undone.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/panel/panel_widget.cpp" line="872"/>
+        <source>Are you sure you want to permanently delete %1 items?
+This action cannot be undone.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/panel/panel_widget.cpp" line="875"/>
+        <source>Delete Permanently</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/panel/panel_widget.cpp" line="899"/>
         <source>Rename</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="884"/>
+        <location filename="../src/panel/panel_widget.cpp" line="899"/>
         <source>New name:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="921"/>
-        <location filename="../src/panel/panel_widget.cpp" line="922"/>
+        <location filename="../src/panel/panel_widget.cpp" line="936"/>
+        <location filename="../src/panel/panel_widget.cpp" line="937"/>
         <source>New File</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="922"/>
+        <location filename="../src/panel/panel_widget.cpp" line="937"/>
         <source>File name:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="937"/>
-        <location filename="../src/panel/panel_widget.cpp" line="938"/>
+        <location filename="../src/panel/panel_widget.cpp" line="952"/>
+        <location filename="../src/panel/panel_widget.cpp" line="953"/>
         <source>New Folder</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="938"/>
+        <location filename="../src/panel/panel_widget.cpp" line="953"/>
         <source>Folder name:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -915,12 +933,12 @@ Would you like to overwrite it?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/progress_dialog.cpp" line="30"/>
+        <location filename="../src/fileops/progress_dialog.cpp" line="32"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/fileops/progress_dialog.cpp" line="56"/>
+        <location filename="../src/fileops/progress_dialog.cpp" line="58"/>
         <source>Current: %1</source>
         <translation type="unfinished"></translation>
     </message>

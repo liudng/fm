@@ -143,6 +143,13 @@ translations = {
 
     # 文件操作错误
     'Cannot copy: %1 -> %2': '无法复制：%1 → %2',
+
+    # 彻底删除确认
+    'Delete Permanently': '彻底删除',
+    'Are you sure you want to permanently delete "%1"?\nThis action cannot be undone.':
+        '确定要彻底删除"%1"吗？\n此操作无法撤销。',
+    'Are you sure you want to permanently delete %1 items?\nThis action cannot be undone.':
+        '确定要彻底删除 %1 项吗？\n此操作无法撤销。',
     'Cannot remove: %1': '无法删除：%1',
     'Cannot rmdir: %1': '无法删除目录：%1',
     'Cannot create trash directory: %1': '无法创建回收站目录：%1',

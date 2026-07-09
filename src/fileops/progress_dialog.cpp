@@ -15,6 +15,8 @@ ProgressDialog::ProgressDialog(QWidget *parent)
     setMinimumWidth(400);
 
     auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(12, 10, 12, 10);
+    layout->setSpacing(6);
 
     titleLabel_ = new QLabel(this);
     layout->addWidget(titleLabel_);

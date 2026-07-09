@@ -152,6 +152,7 @@ OpenWithDialog::OpenWithDialog(const QString &mimeType, const QString &fileName,
     : QDialog(parent), mimeType_(mimeType) {
     setWindowTitle(tr("Open With"));
     setMinimumWidth(500);
+    setMinimumHeight(450);
     setModal(true);
 
     auto *layout = new QVBoxLayout(this);
@@ -160,6 +161,7 @@ OpenWithDialog::OpenWithDialog(const QString &mimeType, const QString &fileName,
     layout->addWidget(label);
 
     appList_ = new QListWidget(this);
+    appList_->setMinimumHeight(300);
     layout->addWidget(appList_);
 
     // 自定义命令

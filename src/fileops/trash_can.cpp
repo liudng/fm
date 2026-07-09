@@ -9,6 +9,7 @@
 #include <QTextStream>
 #include <QUrl>
 
+#include <sys/stat.h>
 #include <unistd.h>
 
 namespace fm {
@@ -49,14 +50,26 @@ QString TrashCan::trashDirForFile(const QString &filePath) {
         return homeTrash;
     }
 
-    // 外部分区：使用 .Trash-1000（UID）
+    // 外部分区：优先使用 .Trash/<uid>（FreeDesktop.org 标准），回退到 .Trash-<uid>
     const auto uid = getuid();
-    QString deviceRoot = fileStorage.rootPath();
-    QString topTrash = deviceRoot + QStringLiteral("/.Trash");
-    QString userTrash = deviceRoot + QStringLiteral("/.Trash-%1").arg(uid);
+    const QString deviceRoot = fileStorage.rootPath();
+    const QString topTrash = deviceRoot + QStringLiteral("/.Trash");
 
-    // 优先使用 .Trash-<uid>（无需 root，更安全）
-    return userTrash;
+    // 检查 .Trash 是否满足安全条件：
+    // 1. 存在且是目录
+    // 2. 不是符号链接
+    // 3. 设置了 sticky bit（防止其他用户篡改 uid 子目录）
+    QFileInfo trashInfo(topTrash);
+    if (trashInfo.exists() && trashInfo.isDir() && !trashInfo.isSymLink()) {
+        struct stat st;
+        if (stat(topTrash.toUtf8().constData(), &st) == 0 && (st.st_mode & S_ISVTX)) {
+            // .Trash 安全条件满足，使用 .Trash/<uid>
+            return topTrash + QDir::separator() + QString::number(uid);
+        }
+    }
+
+    // 回退到 .Trash-<uid>（无需 root，应用自行创建）
+    return deviceRoot + QStringLiteral("/.Trash-%1").arg(uid);
 }
 
 QString TrashCan::uniqueTrashName(const QString &trashFilesDir, const QString &originalName) {

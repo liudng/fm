@@ -22,13 +22,73 @@ namespace fm {
 
 namespace {
 
-// 递归复制目录
-bool copyRecursively(const QString &src, const QString &dst, QString *error) {
+// 递归计算路径的总字节数
+qint64 countBytes(const QString &path) {
+    QFileInfo fi(path);
+    if (fi.isFile()) return fi.size();
+    qint64 total = 0;
+    QDir dir(path);
+    const QStringList entries = dir.entryList(QDir::Files | QDir::Dirs |
+                                                QDir::NoDotAndDotDot | QDir::Hidden);
+    for (const QString &e : entries) {
+        total += countBytes(dir.filePath(e));
+    }
+    return total;
+}
+
+// 分块复制文件并报告进度（支持大文件复制进度显示）
+bool copyFileChunked(const QString &src, const QString &dst,
+                     qint64 *processedBytes, qint64 totalBytes,
+                     ProgressDialog *progress, const QString &fileName) {
+    QFile srcFile(src);
+    if (!srcFile.open(QIODevice::ReadOnly)) return false;
+    QFile dstFile(dst);
+    if (!dstFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        srcFile.close();
+        return false;
+    }
+    constexpr qint64 chunkSize = 1024 * 1024;  // 1 MB
+    QByteArray buffer;
+    buffer.resize(static_cast<int>(chunkSize));
+    while (!srcFile.atEnd()) {
+        const qint64 n = srcFile.read(buffer.data(), chunkSize);
+        if (n <= 0) break;
+        if (dstFile.write(buffer.data(), n) != n) {
+            srcFile.close();
+            dstFile.close();
+            return false;
+        }
+        *processedBytes += n;
+        const int percent = (totalBytes > 0)
+            ? static_cast<int>((*processedBytes * 100) / totalBytes) : 0;
+        // 线程安全地更新进度对话框（工作线程 → 主线程）
+        QMetaObject::invokeMethod(progress, [progress, percent, fileName]() {
+            progress->setProgress(percent);
+            progress->setCurrentFile(fileName);
+        }, Qt::QueuedConnection);
+    }
+    srcFile.close();
+    dstFile.close();
+    return true;
+}
+
+// 递归复制目录（带进度报告）
+bool copyRecursively(const QString &src, const QString &dst, QString *error,
+                     qint64 *processedBytes = nullptr, qint64 totalBytes = 0,
+                     ProgressDialog *progress = nullptr) {
     QFileInfo srcInfo(src);
     if (srcInfo.isFile()) {
-        if (!QFile::copy(src, dst)) {
-            if (error) *error = QObject::tr("Cannot copy: %1 -> %2").arg(src, dst);
-            return false;
+        const QString name = srcInfo.fileName();
+        if (progress) {
+            if (!copyFileChunked(src, dst, processedBytes, totalBytes, progress, name)) {
+                if (error) *error = QObject::tr("Cannot copy: %1 -> %2").arg(src, dst);
+                return false;
+            }
+        } else {
+            if (!QFile::copy(src, dst)) {
+                if (error) *error = QObject::tr("Cannot copy: %1 -> %2").arg(src, dst);
+                return false;
+            }
         }
         return true;
     }
@@ -39,7 +99,7 @@ bool copyRecursively(const QString &src, const QString &dst, QString *error) {
     for (const QString &e : entries) {
         const QString s = srcDir.filePath(e);
         const QString d = dst + QDir::separator() + e;
-        if (!copyRecursively(s, d, error)) return false;
+        if (!copyRecursively(s, d, error, processedBytes, totalBytes, progress)) return false;
     }
     return true;
 }
@@ -222,16 +282,24 @@ void FileOperations::runCopyMove(const QList<QUrl> &sources, const QString &dest
     *errPtr = errorMsg;
     watcher->setProperty("error", QVariant());
 
-    auto future = QtConcurrent::run([plan, isMove, errPtr]() -> bool {
+    // 预计算总字节数（用于进度显示）
+    qint64 totalBytes = 0;
+    for (const auto &p : plan) {
+        totalBytes += countBytes(p.first);
+    }
+
+    ProgressDialog *progress = progressDialog_;  // 捕获进度对话框指针
+    auto future = QtConcurrent::run([plan, isMove, errPtr, totalBytes, progress]() -> bool {
+        qint64 processedBytes = 0;
         for (const auto &p : plan) {
             if (isMove) {
                 if (!QFile::rename(p.first, p.second)) {
                     // 跨设备，复制+删除
-                    if (!copyRecursively(p.first, p.second, errPtr)) return false;
+                    if (!copyRecursively(p.first, p.second, errPtr, &processedBytes, totalBytes, progress)) return false;
                     if (!removeRecursively(p.first, errPtr)) return false;
                 }
             } else {
-                if (!copyRecursively(p.first, p.second, errPtr)) return false;
+                if (!copyRecursively(p.first, p.second, errPtr, &processedBytes, totalBytes, progress)) return false;
             }
         }
         return true;
