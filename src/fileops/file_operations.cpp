@@ -1,6 +1,7 @@
 #include "file_operations.h"
 
 #include "../core/clipboard_manager.h"
+#include "../core/config_manager.h"
 #include "../core/open_with_manager.h"
 #include "../dialogs/conflict_dialog.h"
 #include "../dialogs/error_dialog.h"
@@ -52,7 +53,10 @@ int copyFileChunked(const QString &src, const QString &dst,
         srcFile.close();
         return -1;
     }
-    constexpr qint64 chunkSize = 4 * 1024 * 1024;  // 4 MB
+    // 分块大小从配置读取（默认 1MB），可按存储介质类型调整
+    const qint64 chunkSize = static_cast<qint64>(
+        ConfigManager::instance()->value(QStringLiteral("File_Operations"),
+            QStringLiteral("chunkSizeMB"), 1).toInt()) * 1024 * 1024;
     QByteArray buffer;
     buffer.resize(static_cast<int>(chunkSize));
     while (!srcFile.atEnd()) {

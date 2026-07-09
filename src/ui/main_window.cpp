@@ -635,6 +635,7 @@ void MainWindow::onOpenSettings() {
     dlg.addPage(new UiSettingsPage(this));
     dlg.addPage(new PanelSettingsPage(this));
     dlg.addPage(new FileBrowserSettingsPage(this));
+    dlg.addPage(new FileOperationsSettingsPage(this));
     dlg.addPage(new ShortcutSettingsPage(this));
     dlg.exec();
 }

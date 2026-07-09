@@ -21,6 +21,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSet>
+#include <QSpinBox>
 #include <QStyleFactory>
 #include <QTableWidget>
 #include <QTableWidgetItem>
@@ -156,6 +157,13 @@ PanelSettingsPage::PanelSettingsPage(QObject *parent)
     visibleLayout->addWidget(panel2VisibleCheck_);
     layout->addWidget(visibleBox);
 
+    // 选项卡行为
+    auto *tabBox = new QGroupBox(tr("Tab Behavior"));
+    auto *tabLayout = new QVBoxLayout(tabBox);
+    tabsClosableCheck_ = new QCheckBox(tr("Enable tab close button"));
+    tabLayout->addWidget(tabsClosableCheck_);
+    layout->addWidget(tabBox);
+
     layout->addStretch(1);
 
     // 至少保持一个面板可见：禁用最后一个的取消
@@ -173,10 +181,12 @@ void PanelSettingsPage::load() {
                                     static_cast<int>(Qt::Horizontal)).toInt();
     origPanel1Visible_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true).toBool();
     origPanel2Visible_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), true).toBool();
+    origTabsClosable_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false).toBool();
 
     (origOrientation_ == Qt::Horizontal ? horizontalRadio_ : verticalRadio_)->setChecked(true);
     panel1VisibleCheck_->setChecked(origPanel1Visible_);
     panel2VisibleCheck_->setChecked(origPanel2Visible_);
+    tabsClosableCheck_->setChecked(origTabsClosable_);
     onPanelVisibilityChanged();
 }
 
@@ -185,14 +195,17 @@ void PanelSettingsPage::apply() {
     const int orient = horizontalRadio_->isChecked() ? Qt::Horizontal : Qt::Vertical;
     const bool p1Visible = panel1VisibleCheck_->isChecked();
     const bool p2Visible = panel2VisibleCheck_->isChecked();
+    const bool tabsClosable = tabsClosableCheck_->isChecked();
 
     cfg->setValue(QStringLiteral("Panels"), QStringLiteral("orientation"), orient);
     cfg->setValue(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), p1Visible);
     cfg->setValue(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), p2Visible);
+    cfg->setValue(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), tabsClosable);
 
     origOrientation_ = orient;
     origPanel1Visible_ = p1Visible;
     origPanel2Visible_ = p2Visible;
+    origTabsClosable_ = tabsClosable;
 }
 
 void PanelSettingsPage::onPanelVisibilityChanged() {
@@ -528,6 +541,59 @@ void ShortcutSettingsPage::refreshConflictHighlight() {
             conflictItem->setText({});
         }
     }
+}
+
+// ============ FileOperationsSettingsPage ============
+
+FileOperationsSettingsPage::FileOperationsSettingsPage(QObject *parent)
+    : QObject(parent) {
+    widget_ = new QWidget;
+
+    auto *layout = new QVBoxLayout(widget_);
+
+    // 粘贴分块大小
+    auto *chunkBox = new QGroupBox(tr("Paste Chunk Size"));
+    auto *chunkLayout = new QVBoxLayout(chunkBox);
+
+    auto *spinRow = new QHBoxLayout;
+    chunkSizeSpin_ = new QSpinBox;
+    chunkSizeSpin_->setRange(1, 64);
+    chunkSizeSpin_->setSuffix(tr(" MB"));
+    spinRow->addWidget(chunkSizeSpin_);
+    chunkLayout->addLayout(spinRow);
+
+    // 推荐值说明
+    auto *hint = new QLabel(
+        QStringLiteral(
+           "<b>推荐值：</b><br>"
+           "&bull; <b>1 MB</b> — HDD（机械硬盘），进度更新细腻<br>"
+           "&bull; <b>4 MB</b> — SATA SSD，减少系统调用开销<br>"
+           "&bull; <b>8–16 MB</b> — NVMe SSD，最大化吞吐<br>"
+           "<br>"
+           "分块越大，系统调用次数越少，但单次拷贝的进度更新粒度越粗。"
+           "对于大文件复制，较大的分块能更好地利用顺序 IO 吞吐。"));
+    hint->setTextFormat(Qt::RichText);
+    hint->setWordWrap(true);
+    chunkLayout->addWidget(hint);
+    layout->addWidget(chunkBox);
+
+    layout->addStretch(1);
+}
+
+QString FileOperationsSettingsPage::title() const { return tr("File Operations"); }
+
+void FileOperationsSettingsPage::load() {
+    auto *cfg = ConfigManager::instance();
+    origChunkSizeMB_ = cfg->value(QStringLiteral("File_Operations"),
+                                    QStringLiteral("chunkSizeMB"), 1).toInt();
+    chunkSizeSpin_->setValue(origChunkSizeMB_);
+}
+
+void FileOperationsSettingsPage::apply() {
+    auto *cfg = ConfigManager::instance();
+    const int mb = chunkSizeSpin_->value();
+    cfg->setValue(QStringLiteral("File_Operations"), QStringLiteral("chunkSizeMB"), mb);
+    origChunkSizeMB_ = mb;
 }
 
 } // namespace fm

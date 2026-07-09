@@ -15,14 +15,13 @@ constexpr int kNewTabButtonWidth = 28;
 
 FileTabBar::FileTabBar(QWidget *parent)
     : QTabBar(parent) {
-    setTabsClosable(true);
     setMovable(true);
     setExpanding(false);
     setElideMode(Qt::ElideNone);
     setUsesScrollButtons(true);
     setDocumentMode(true);
 
-    // 关闭按钮触发关闭信号
+    // 关闭按钮触发关闭信号（是否显示由 PanelWidget 根据配置控制）
     connect(this, &QTabBar::tabCloseRequested, this,
             [this](int index) { emit closeTabRequested(index); });
 }

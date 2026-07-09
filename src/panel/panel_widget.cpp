@@ -40,6 +40,9 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
     layout->setSpacing(0);
 
     tabBar_ = new FileTabBar(this);
+    // 选项卡关闭按钮是否显示由配置控制（默认不启用）
+    tabBar_->setTabsClosable(ConfigManager::instance()->value(
+        QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false).toBool());
     layout->addWidget(tabBar_);
 
     stack_ = new QStackedWidget(this);
@@ -89,10 +92,14 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
         }
     });
 
-    // 监听配置变更（隐藏文件、列设置）
+    // 监听配置变更（隐藏文件、列设置、选项卡关闭按钮）
     auto *cfg = ConfigManager::instance();
     connect(cfg, &ConfigManager::configChanged, this, [this](const QString &section) {
-        if (section == QStringLiteral("File_Browser")) {
+        if (section == QStringLiteral("Panels")) {
+            const bool closable = ConfigManager::instance()->value(
+                QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false).toBool();
+            tabBar_->setTabsClosable(closable);
+        } else if (section == QStringLiteral("File_Browser")) {
             auto *c = ConfigManager::instance();
             const bool showHidden = c->value(QStringLiteral("File_Browser"),
                                                 QStringLiteral("showHidden"), false).toBool();

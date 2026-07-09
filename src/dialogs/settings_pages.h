@@ -14,6 +14,7 @@ class QTableWidget;
 class QTableWidgetItem;
 class QKeySequenceEdit;
 class QLineEdit;
+class QSpinBox;
 
 namespace fm {
 
@@ -62,10 +63,12 @@ private:
     QRadioButton *verticalRadio_ = nullptr;
     QCheckBox *panel1VisibleCheck_ = nullptr;
     QCheckBox *panel2VisibleCheck_ = nullptr;
+    QCheckBox *tabsClosableCheck_ = nullptr;
 
     int origOrientation_ = 0;
     bool origPanel1Visible_ = true;
     bool origPanel2Visible_ = true;
+    bool origTabsClosable_ = false;
 };
 
 // === 文件浏览设置页：显示隐藏文件 + 列设置 ===
@@ -116,6 +119,25 @@ private:
     QTableWidget *table_ = nullptr;
     // 临时保存：row -> 当前编辑的快捷键
     QMap<int, QString> editedShortcuts_;
+};
+
+// === 文件操作设置页：粘贴分块大小等 ===
+class FileOperationsSettingsPage : public QObject, public ISettingsPage {
+    Q_OBJECT
+public:
+    explicit FileOperationsSettingsPage(QObject *parent = nullptr);
+
+    QString id() const override { return QStringLiteral("fileops"); }
+    QString title() const override;
+    QWidget *widget() override { return widget_; }
+    void load() override;
+    void apply() override;
+    void reset() override { load(); }
+
+private:
+    QWidget *widget_ = nullptr;
+    QSpinBox *chunkSizeSpin_ = nullptr;
+    int origChunkSizeMB_ = 1;
 };
 
 } // namespace fm

@@ -93,6 +93,10 @@ void ConfigManager::ensureDefaultConfig() {
              static_cast<int>(Qt::Horizontal));  // 左右
     setValue(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true);
     setValue(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), true);
+    setValue(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false);  // 默认不启用
+
+    // [File_Operations]
+    setValue(QStringLiteral("File_Operations"), QStringLiteral("chunkSizeMB"), 1);  // 默认 1MB
 
     // [File_Browser]
     setValue(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false);

@@ -289,6 +289,88 @@ translations = {
     # 关于对话框 HTML
     '<h2>fm</h2><p>Linux dual-panel file manager</p><p><b>Version:</b> 1.0.0</p><p><b>Author:</b> liudng</p><p>Copyright © 2026 liudng</p><p>Licensed under GPL-3.0-or-later</p><p><a href="https://github.com/liudng/fm-qt">https://github.com/liudng/fm-qt</a></p>':
         '<h2>fm</h2><p>Linux 双面板文件管理器</p><p><b>版本：</b> 1.0.0</p><p><b>作者：</b> liudng</p><p>Copyright © 2026 liudng</p><p>采用 GPL-3.0-or-later 许可证</p><p><a href="https://github.com/liudng/fm-qt">https://github.com/liudng/fm-qt</a></p>',
+
+    # 属性对话框（重新分组后的新字符串）
+    'Basic Information': '基本信息',
+    'Disk Usage': '实际占用磁盘空间',
+    'Accessed': '访问时间',
+    'Owner UID': '所有者 UID',
+    'Group GID': '所属组 GID',
+    'ACL': 'ACL',
+    'Status Changed': '状态变更时间',
+    'Filesystem Flags': '文件系统标志位',
+    'Symlink Target': '符号链接目标',
+    '(none or unavailable)': '(无或不可用)',
+    '(unavailable)': '(不可用)',
+    '(unknown)': '(未知)',
+
+    # 列名（新增列）
+    'UID': 'UID',
+    'GID': 'GID',
+
+    # 设置页（新增）
+    'Tab Behavior': '选项卡行为',
+    'Enable tab close button': '启用选项卡关闭按钮',
+    'Date/Time Format': '日期时间格式',
+    'File Operations': '文件操作',
+    'Paste Chunk Size': '粘贴分块大小',
+    ' MB': ' MB',
+
+    # 日期时间格式占位符说明（长 HTML）
+    '<b>Format placeholders</b> (Qt date/time format):<br><table cellpadding=\'2\'>'
+    '<tr><td><b>yyyy</b></td><td>4-digit year (2026)</td>'
+        '<td><b>yy</b></td><td>2-digit year (26)</td></tr>'
+    '<tr><td><b>MM</b></td><td>Month, 2 digits (01-12)</td>'
+        '<td><b>M</b></td><td>Month, no leading zero (1-12)</td></tr>'
+    '<tr><td><b>MMM</b></td><td>Short month name (Jan)</td>'
+        '<td><b>MMMM</b></td><td>Long month name (January)</td></tr>'
+    '<tr><td><b>dd</b></td><td>Day, 2 digits (01-31)</td>'
+        '<td><b>d</b></td><td>Day, no leading zero (1-31)</td></tr>'
+    '<tr><td><b>ddd</b></td><td>Short day name (Mon)</td>'
+        '<td><b>dddd</b></td><td>Long day name (Monday)</td></tr>'
+    '<tr><td><b>HH</b></td><td>Hour 24h, 2 digits (00-23)</td>'
+        '<td><b>H</b></td><td>Hour 24h, no leading zero (0-23)</td></tr>'
+    '<tr><td><b>hh</b></td><td>Hour 12h, 2 digits (01-12)</td>'
+        '<td><b>h</b></td><td>Hour 12h, no leading zero (1-12)</td></tr>'
+    '<tr><td><b>mm</b></td><td>Minute, 2 digits (00-59)</td>'
+        '<td><b>m</b></td><td>Minute, no leading zero (0-59)</td></tr>'
+    '<tr><td><b>ss</b></td><td>Second, 2 digits (00-59)</td>'
+        '<td><b>s</b></td><td>Second, no leading zero (0-59)</td></tr>'
+    '<tr><td><b>ap</b></td><td>am/pm (lowercase)</td>'
+        '<td><b>AP</b></td><td>AM/PM (uppercase)</td></tr>'
+    '<tr><td><b>zzz</b></td><td>Milliseconds (000-999)</td>'
+        '<td><b>z</b></td><td>Milliseconds, no leading zero</td></tr>'
+    '</table>'
+    '<br>Leave empty to use the default <i>yyyy-MM-dd HH:mm</i>.<br>'
+    'Examples: <code>yyyy-MM-dd</code>, <code>yyyy/MM/dd HH:mm</code>, '
+    '<code>MMM d, yyyy h:mm AP</code>':
+        '<b>格式占位符</b>（Qt 日期/时间格式）：<br><table cellpadding=\'2\'>'
+        '<tr><td><b>yyyy</b></td><td>4位年份 (2026)</td>'
+            '<td><b>yy</b></td><td>2位年份 (26)</td></tr>'
+        '<tr><td><b>MM</b></td><td>月份，2位 (01-12)</td>'
+            '<td><b>M</b></td><td>月份，无前导零 (1-12)</td></tr>'
+        '<tr><td><b>MMM</b></td><td>月份缩写 (Jan)</td>'
+            '<td><b>MMMM</b></td><td>月份全称 (January)</td></tr>'
+        '<tr><td><b>dd</b></td><td>日，2位 (01-31)</td>'
+            '<td><b>d</b></td><td>日，无前导零 (1-31)</td></tr>'
+        '<tr><td><b>ddd</b></td><td>星期缩写 (Mon)</td>'
+            '<td><b>dddd</b></td><td>星期全称 (Monday)</td></tr>'
+        '<tr><td><b>HH</b></td><td>小时24h，2位 (00-23)</td>'
+            '<td><b>H</b></td><td>小时24h，无前导零 (0-23)</td></tr>'
+        '<tr><td><b>hh</b></td><td>小时12h，2位 (01-12)</td>'
+            '<td><b>h</b></td><td>小时12h，无前导零 (1-12)</td></tr>'
+        '<tr><td><b>mm</b></td><td>分钟，2位 (00-59)</td>'
+            '<td><b>m</b></td><td>分钟，无前导零 (0-59)</td></tr>'
+        '<tr><td><b>ss</b></td><td>秒，2位 (00-59)</td>'
+            '<td><b>s</b></td><td>秒，无前导零 (0-59)</td></tr>'
+        '<tr><td><b>ap</b></td><td>am/pm（小写）</td>'
+            '<td><b>AP</b></td><td>AM/PM（大写）</td></tr>'
+        '<tr><td><b>zzz</b></td><td>毫秒 (000-999)</td>'
+            '<td><b>z</b></td><td>毫秒，无前导零</td></tr>'
+        '</table>'
+        '<br>留空则使用默认值 <i>yyyy-MM-dd HH:mm</i>。<br>'
+        '示例：<code>yyyy-MM-dd</code>、<code>yyyy/MM/dd HH:mm</code>、'
+        '<code>MMM d, yyyy h:mm AP</code>',
 }
 
 # 读取 .ts 文件
