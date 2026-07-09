@@ -148,6 +148,19 @@ void FileOperations::runCopyMove(const QList<QUrl> &sources, const QString &dest
         const QString name = QFileInfo(src).fileName();
         QString dst = destDir + QDir::separator() + name;
 
+        // 防止将文件夹复制/移动到自身或其子目录中（会导致无限递归）
+        if (QFileInfo(src).isDir()) {
+            const QString srcCanon = QDir(src).canonicalPath();
+            const QString dstCanon = QDir(destDir).canonicalPath();
+            if (!srcCanon.isEmpty() && !dstCanon.isEmpty() &&
+                (dstCanon == srcCanon ||
+                 dstCanon.startsWith(srcCanon + QLatin1Char('/')))) {
+                ErrorDialog::show(nullptr,
+                    tr("Cannot copy folder \"%1\" into itself.").arg(name));
+                continue;
+            }
+        }
+
         if (src == dst) {
             // 同文件夹粘贴（源与目标相同）：自动重命名
             const QString newName = uniqueName(destDir, name);
