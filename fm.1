@@ -1,0 +1,131 @@
+.TH FM 1 "July 2026" "fm 1.0.0" "User Commands"
+.SH NAME
+fm \- Linux dual-panel file manager
+.SH SYNOPSIS
+.B fm
+[\fIpath1\fR] [\fIpath2\fR]
+.SH DESCRIPTION
+.B fm
+is a lightweight dual-panel file manager built with Qt6 Widgets.
+It supports multi-tab browsing, file operations, favorites management,
+session restore, and removable device management via UDisks2.
+
+If an instance is already running, a new invocation sends its path
+arguments to the existing window and exits (single-instance mode).
+
+By default, the left pane opens
+.I path1
+and the right pane opens
+.IR path2 .
+If only one path is given, it opens in the left pane; the right pane
+defaults to the user's home directory. With no arguments, both panes
+open the home directory.
+
+.SH OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Display help text and exit.
+.TP
+.BR \-v ", " \-\-version
+Display version information and exit.
+.TP
+\fIpath1\fR [\fIpath2\fR]
+Optional directory paths to open in the first (and optionally second) pane.
+
+.SH FEATURES
+.TP
+Dual-pane layout
+Switchable horizontal/vertical orientation with adjustable split ratio.
+Either pane can be hidden to use the full window width.
+.TP
+Multi-tab
+Each pane supports multiple tabs with independent navigation history.
+Tabs can be reordered by drag, cloned, or closed individually.
+.TP
+File operations
+Copy, move, rename, delete, move to trash, and view properties.
+Operations run asynchronously with a progress dialog.
+Conflict resolution offers overwrite, skip, rename, or apply-to-all.
+.TP
+Favorites
+Save the current layout and tab paths as a favorite for one-click restore.
+Loading a favorite clears all existing tabs first.
+.TP
+Session restore
+Window state, pane layout, tab paths, and sort settings are saved on exit
+and restored on the next launch.
+.TP
+Volume management
+The File menu lists mounted volumes (via QStorageInfo) and external removable
+devices (via UDisks2, including unmounted ones).
+Right-click a device to mount, unmount, or eject.
+.TP
+Configurable shortcuts
+All keyboard shortcuts are customizable via the Settings dialog and take
+effect immediately.
+
+.SH KEYBOARD SHORTCUTS
+.TP
+Ctrl+X / Ctrl+C / Ctrl+V
+Cut / Copy / Paste
+.TP
+F5 / F6
+Copy to opposite pane / Cut to opposite pane
+.TP
+Ctrl+N / F7
+New file / New folder
+.TP
+Ctrl+Shift+O
+Open with...
+.TP
+Return / F2
+Open / Rename
+.TP
+Delete / Shift+Delete
+Move to trash / Delete permanently
+.TP
+Alt+Left / Alt+Right / Alt+Up
+Back / Forward / Up one level
+.TP
+Ctrl+R
+Refresh
+.TP
+Ctrl+T / Ctrl+W / Ctrl+Shift+T
+New tab / Close tab / Clone tab
+.TP
+Ctrl+Tab
+Switch to next tab in active pane
+.TP
+Tab
+Switch active pane
+.TP
+Ctrl+H
+Toggle hidden files
+.TP
+Alt+Return
+File properties
+
+.SH FILES
+.TP
+.I ~/.config/fm/fm.conf
+Main configuration file (INI format). Contains UI settings, column widths,
+tab paths, shortcuts, favorites, and open-with associations.
+Generated automatically on first run; can be safely deleted to reset to defaults.
+
+.SH ENVIRONMENT
+.TP
+.B XDG_CONFIG_HOME
+Determines the configuration directory. Defaults to
+.I ~/.config
+if unset.
+.TP
+.B XDG_DATA_HOME
+Determines the application data search path (for .desktop files and
+mimeapps.list). Defaults to
+.I ~/.local/share
+if unset.
+
+.SH SEE ALSO
+.BR xdg-open (1),
+.BR udisksctl (1),
+.BR udisksd (8)

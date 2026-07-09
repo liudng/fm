@@ -59,6 +59,7 @@ translations = {
     '&Back': '后退(&B)',
     '&Forward': '前进(&F)',
     '&Up': '上一级(&U)',
+    '&Home': '主目录(&H)',
     '&Refresh': '刷新(&R)',
 
     # 选项卡上下文菜单
@@ -73,6 +74,10 @@ translations = {
     # 键盘导航
     'Focus Tab Bar': '聚焦标签栏',
     'Focus Panel': '聚焦面板',
+    'Next Tab': '下一个标签页',
+
+    # 文件操作错误
+    'Cannot copy folder "%1" into itself.': '无法将文件夹“%1”复制到自身。',
 
     # 对话框
     'Open With': '打开方式',
@@ -275,8 +280,8 @@ translations = {
     'Working...': '处理中...',
 
     # 关于对话框 HTML
-    '<h2>fm</h2><p>Linux dual-panel file manager</p><p><b>Version:</b> 1.0.0</p><p><b>Author:</b> fm team</p><p>Copyright © 2026 fm team</p><p>Licensed under GPL-3.0-or-later</p>':
-        '<h2>fm</h2><p>Linux 双面板文件管理器</p><p><b>版本：</b> 1.0.0</p><p><b>作者：</b> fm 团队</p><p>Copyright © 2026 fm 团队</p><p>采用 GPL-3.0-or-later 许可证</p>',
+    '<h2>fm</h2><p>Linux dual-panel file manager</p><p><b>Version:</b> 1.0.0</p><p><b>Author:</b> liudng</p><p>Copyright © 2026 liudng</p><p>Licensed under GPL-3.0-or-later</p><p><a href="https://github.com/liudng/fm-qt">https://github.com/liudng/fm-qt</a></p>':
+        '<h2>fm</h2><p>Linux 双面板文件管理器</p><p><b>版本：</b> 1.0.0</p><p><b>作者：</b> liudng</p><p>Copyright © 2026 liudng</p><p>采用 GPL-3.0-or-later 许可证</p><p><a href="https://github.com/liudng/fm-qt">https://github.com/liudng/fm-qt</a></p>',
 }
 
 # 读取 .ts 文件

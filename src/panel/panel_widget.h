@@ -131,6 +131,7 @@ private:
     QAction *actBack_ = nullptr;
     QAction *actForward_ = nullptr;
     QAction *actUp_ = nullptr;
+    QAction *actHome_ = nullptr;
     QAction *actNewFile_ = nullptr;
     QAction *actNewFolder_ = nullptr;
     QAction *actRefresh_ = nullptr;

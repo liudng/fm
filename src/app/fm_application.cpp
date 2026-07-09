@@ -23,7 +23,12 @@ FmApplication::FmApplication(int &argc, char **argv)
     setApplicationName(QStringLiteral("fm"));
     setApplicationVersion(QStringLiteral("1.0.0"));
     setOrganizationName(QStringLiteral("fm"));
-    setWindowIcon(QIcon::fromTheme(QStringLiteral("system-file-manager")));
+    // 优先使用内置 fm.png 图标；未安装到系统图标主题时也能正常显示
+    QIcon appIcon(QStringLiteral(":/fm.png"));
+    if (appIcon.isNull()) {
+        appIcon = QIcon::fromTheme(QStringLiteral("fm"));
+    }
+    setWindowIcon(appIcon);
 
     // 注册 metatype
     qRegisterMetaType<FileItem>("fm::FileItem");

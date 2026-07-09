@@ -26,12 +26,14 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<h2>fm</h2>"
         "<p>Linux dual-panel file manager</p>"
         "<p><b>Version:</b> 1.0.0</p>"
-        "<p><b>Author:</b> fm team</p>"
-        "<p>Copyright © 2026 fm team</p>"
+        "<p><b>Author:</b> liudng</p>"
+        "<p>Copyright © 2026 liudng</p>"
         "<p>Licensed under GPL-3.0-or-later</p>"
+        "<p><a href=\"https://github.com/liudng/fm-qt\">https://github.com/liudng/fm-qt</a></p>"
     ));
     label->setAlignment(Qt::AlignCenter);
-    label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    label->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::LinksAccessibleByMouse);
+    label->setOpenExternalLinks(true);
     layout->addWidget(label);
 
     auto *closeBtn = new QPushButton(tr("Close"), this);

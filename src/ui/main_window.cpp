@@ -146,7 +146,7 @@ void MainWindow::refreshFileMenuVolumes() {
             if (!v.mountPoint.isEmpty() && text != v.mountPoint) {
                 text += QStringLiteral("  (%1)").arg(v.mountPoint);
             }
-            auto *act = new QAction(v.icon, text, fileMenu_);
+            auto *act = new QAction(QIcon::fromTheme(QStringLiteral("drive-harddisk")), text, fileMenu_);
             // data 存储挂载点（左键导航用）；deviceFile/isMounted 供右键用
             act->setData(v.mountPoint);
             act->setProperty("deviceFile", v.deviceFile);
@@ -179,7 +179,7 @@ void MainWindow::refreshFileMenuVolumes() {
             if (d.isMounted && !d.mountPoint.isEmpty()) {
                 text += QStringLiteral("  (%1)").arg(d.mountPoint);
             }
-            auto *act = new QAction(d.icon, text, fileMenu_);
+            auto *act = new QAction(QIcon::fromTheme(QStringLiteral("drive-removable-media")), text, fileMenu_);
             act->setProperty("deviceFile", d.deviceFile);
             act->setProperty("isMounted", d.isMounted);
             act->setProperty("mountPoint", d.mountPoint);

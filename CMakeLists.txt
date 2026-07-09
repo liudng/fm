@@ -81,6 +81,7 @@ qt_add_executable(fm
     src/panel/panel_container.cpp
     src/ui/main_window.h
     src/ui/main_window.cpp
+    resources.qrc
 )
 
 target_link_libraries(fm PRIVATE
@@ -101,3 +102,12 @@ qt_add_translations(fm
 )
 
 install(TARGETS fm RUNTIME DESTINATION bin)
+
+# 安装 man 手册（压缩为 .gz）
+install(FILES fm.1 DESTINATION share/man/man1)
+
+# 安装 .desktop 文件
+install(FILES fm.desktop DESTINATION share/applications)
+
+# 安装应用图标到 hicolor 主题（512x512）
+install(FILES fm.png DESTINATION share/icons/hicolor/512x512/apps RENAME fm.png)

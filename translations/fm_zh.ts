@@ -227,13 +227,16 @@
     </message>
     <message>
         <location filename="../src/core/shortcut_manager.cpp" line="64" />
-        <source>Focus Tab Bar</source>
-        <translation>聚焦标签栏</translation>
+        <source>Next Tab</source>
+        <translation>下一个标签页</translation>
     </message>
     <message>
-        <location filename="../src/core/shortcut_manager.cpp" line="65" />
+        <source>Focus Tab Bar</source>
+        <translation type="vanished">聚焦标签栏</translation>
+    </message>
+    <message>
         <source>Focus Panel</source>
-        <translation>聚焦面板</translation>
+        <translation type="vanished">聚焦面板</translation>
     </message>
 </context>
 <context>
@@ -245,11 +248,11 @@
     </message>
     <message>
         <location filename="../src/dialogs/about_dialog.cpp" line="25" />
-        <source>&lt;h2&gt;fm&lt;/h2&gt;&lt;p&gt;Linux dual-panel file manager&lt;/p&gt;&lt;p&gt;&lt;b&gt;Version:&lt;/b&gt; 1.0.0&lt;/p&gt;&lt;p&gt;&lt;b&gt;Author:&lt;/b&gt; fm team&lt;/p&gt;&lt;p&gt;Copyright © 2026 fm team&lt;/p&gt;&lt;p&gt;Licensed under GPL-3.0-or-later&lt;/p&gt;</source>
-        <translation>&lt;h2&gt;fm&lt;/h2&gt;&lt;p&gt;Linux 双面板文件管理器&lt;/p&gt;&lt;p&gt;&lt;b&gt;版本：&lt;/b&gt; 1.0.0&lt;/p&gt;&lt;p&gt;&lt;b&gt;作者：&lt;/b&gt; fm 团队&lt;/p&gt;&lt;p&gt;Copyright © 2026 fm 团队&lt;/p&gt;&lt;p&gt;采用 GPL-3.0-or-later 许可证&lt;/p&gt;</translation>
+        <source>&lt;h2&gt;fm&lt;/h2&gt;&lt;p&gt;Linux dual-panel file manager&lt;/p&gt;&lt;p&gt;&lt;b&gt;Version:&lt;/b&gt; 1.0.0&lt;/p&gt;&lt;p&gt;&lt;b&gt;Author:&lt;/b&gt; liudng&lt;/p&gt;&lt;p&gt;Copyright © 2026 liudng&lt;/p&gt;&lt;p&gt;Licensed under GPL-3.0-or-later&lt;/p&gt;&lt;p&gt;&lt;a href="https://github.com/liudng/fm-qt"&gt;https://github.com/liudng/fm-qt&lt;/a&gt;&lt;/p&gt;</source>
+        <translation>&lt;h2&gt;fm&lt;/h2&gt;&lt;p&gt;Linux 双面板文件管理器&lt;/p&gt;&lt;p&gt;&lt;b&gt;版本：&lt;/b&gt; 1.0.0&lt;/p&gt;&lt;p&gt;&lt;b&gt;作者：&lt;/b&gt; liudng&lt;/p&gt;&lt;p&gt;Copyright © 2026 liudng&lt;/p&gt;&lt;p&gt;采用 GPL-3.0-or-later 许可证&lt;/p&gt;&lt;p&gt;&lt;a href="https://github.com/liudng/fm-qt"&gt;https://github.com/liudng/fm-qt&lt;/a&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../src/dialogs/about_dialog.cpp" line="37" />
+        <location filename="../src/dialogs/about_dialog.cpp" line="39" />
         <source>Close</source>
         <translation>关闭</translation>
     </message>
@@ -397,27 +400,32 @@ Would you like to overwrite it?</source>
 <context>
     <name>fm::FileOperations</name>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="180" />
+        <location filename="../src/fileops/file_operations.cpp" line="159" />
+        <source>Cannot copy folder "%1" into itself.</source>
+        <translation>无法将文件夹“%1”复制到自身。</translation>
+    </message>
+    <message>
+        <location filename="../src/fileops/file_operations.cpp" line="193" />
         <source>Moving...</source>
         <translation>移动中...</translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="180" />
+        <location filename="../src/fileops/file_operations.cpp" line="193" />
         <source>Copying...</source>
         <translation>复制中...</translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="307" />
+        <location filename="../src/fileops/file_operations.cpp" line="320" />
         <source>Clipboard is empty.</source>
         <translation>剪贴板为空。</translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="326" />
+        <location filename="../src/fileops/file_operations.cpp" line="339" />
         <source>Name already exists: %1</source>
         <translation>名称已存在：%1</translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="330" />
+        <location filename="../src/fileops/file_operations.cpp" line="343" />
         <source>Cannot rename: %1</source>
         <translation>无法重命名：%1</translation>
     </message>
@@ -430,7 +438,7 @@ Would you like to overwrite it?</source>
         <translation type="vanished">文件名：</translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="341" />
+        <location filename="../src/fileops/file_operations.cpp" line="354" />
         <source>Cannot create file: %1</source>
         <translation>无法创建文件：%1</translation>
     </message>
@@ -443,17 +451,17 @@ Would you like to overwrite it?</source>
         <translation type="vanished">文件夹名：</translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="352" />
+        <location filename="../src/fileops/file_operations.cpp" line="365" />
         <source>Cannot create folder: %1</source>
         <translation>无法创建文件夹：%1</translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="390" />
+        <location filename="../src/fileops/file_operations.cpp" line="403" />
         <source>Cannot open: %1</source>
         <translation>无法打开：%1</translation>
     </message>
     <message>
-        <location filename="../src/fileops/file_operations.cpp" line="408" />
+        <location filename="../src/fileops/file_operations.cpp" line="421" />
         <source>Invalid .desktop file: %1</source>
         <translation>无效的 .desktop 文件：%1</translation>
     </message>
@@ -461,22 +469,22 @@ Would you like to overwrite it?</source>
 <context>
     <name>fm::FmApplication</name>
     <message>
-        <location filename="../src/app/fm_application.cpp" line="47" />
+        <location filename="../src/app/fm_application.cpp" line="52" />
         <source>Configuration Error</source>
         <translation>配置错误</translation>
     </message>
     <message>
-        <location filename="../src/app/fm_application.cpp" line="48" />
+        <location filename="../src/app/fm_application.cpp" line="53" />
         <source>The configuration file is corrupted or cannot be read.</source>
         <translation>配置文件已损坏或无法读取。</translation>
     </message>
     <message>
-        <location filename="../src/app/fm_application.cpp" line="50" />
+        <location filename="../src/app/fm_application.cpp" line="55" />
         <source>Rebuild</source>
         <translation>重建</translation>
     </message>
     <message>
-        <location filename="../src/app/fm_application.cpp" line="51" />
+        <location filename="../src/app/fm_application.cpp" line="56" />
         <source>Exit</source>
         <translation>退出</translation>
     </message>
@@ -743,32 +751,32 @@ Would you like to overwrite it?</source>
 <context>
     <name>fm::OpenWithDialog</name>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="86" />
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="153" />
         <source>Open With</source>
         <translation>打开方式</translation>
     </message>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="92" />
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="159" />
         <source>Select an application to open "%1":</source>
         <translation>选择用于打开 "%1" 的应用：</translation>
     </message>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="100" />
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="167" />
         <source>Custom command:</source>
         <translation>自定义命令：</translation>
     </message>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="102" />
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="169" />
         <source>Browse...</source>
         <translation>浏览...</translation>
     </message>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="109" />
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="176" />
         <source>Remember this choice for this file type</source>
         <translation>记住此文件类型的打开方式</translation>
     </message>
     <message>
-        <location filename="../src/dialogs/open_with_dialog.cpp" line="157" />
+        <location filename="../src/dialogs/open_with_dialog.cpp" line="255" />
         <source>Select Application</source>
         <translation>选择应用程序</translation>
     </message>
@@ -826,144 +834,169 @@ Would you like to overwrite it?</source>
 <context>
     <name>fm::PanelWidget</name>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="402" />
+        <location filename="../src/panel/panel_widget.cpp" line="412" />
         <source>&amp;Open</source>
         <translation>打开(&amp;O)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="406" />
+        <location filename="../src/panel/panel_widget.cpp" line="416" />
         <source>Open &amp;With...</source>
         <translation>打开方式(&amp;W)...</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="410" />
+        <location filename="../src/panel/panel_widget.cpp" line="420" />
         <source>&amp;Rename</source>
         <translation>重命名(&amp;R)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="415" />
+        <location filename="../src/panel/panel_widget.cpp" line="425" />
         <source>Cu&amp;t</source>
         <translation>剪切(&amp;T)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="420" />
+        <location filename="../src/panel/panel_widget.cpp" line="430" />
         <source>&amp;Copy</source>
         <translation>复制(&amp;C)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="430" />
+        <location filename="../src/panel/panel_widget.cpp" line="440" />
         <source>Cut to &amp;Opposite</source>
         <translation>剪切到对面(&amp;O)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="434" />
+        <location filename="../src/panel/panel_widget.cpp" line="444" />
         <source>Copy to O&amp;pposite</source>
         <translation>复制到对面(&amp;P)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="438" />
+        <location filename="../src/panel/panel_widget.cpp" line="448" />
         <source>Copy &amp;Path</source>
         <translation>复制路径(&amp;P)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="443" />
+        <location filename="../src/panel/panel_widget.cpp" line="453" />
         <source>Copy File &amp;Name</source>
         <translation>复制文件名(&amp;N)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="425" />
+        <location filename="../src/panel/panel_widget.cpp" line="435" />
         <source>&amp;Paste</source>
         <translation>粘贴(&amp;P)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="448" />
+        <location filename="../src/panel/panel_widget.cpp" line="458" />
         <source>Move to &amp;Trash</source>
         <translation>移到回收站(&amp;T)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="453" />
+        <location filename="../src/panel/panel_widget.cpp" line="463" />
         <source>&amp;Delete Permanently</source>
         <translation>彻底删除(&amp;D)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="458" />
+        <location filename="../src/panel/panel_widget.cpp" line="468" />
         <source>P&amp;roperties</source>
         <translation>属性(&amp;R)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="371" />
+        <location filename="../src/panel/panel_widget.cpp" line="374" />
         <source>&amp;Back</source>
         <translation>后退(&amp;B)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="54" />
+        <location filename="../src/panel/panel_widget.cpp" line="55" />
         <source>Close</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="56" />
+        <location filename="../src/panel/panel_widget.cpp" line="57" />
         <source>Close Others</source>
         <translation>关闭其他</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="58" />
+        <location filename="../src/panel/panel_widget.cpp" line="59" />
         <source>Clone</source>
         <translation>克隆</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="376" />
+        <location filename="../src/panel/panel_widget.cpp" line="379" />
         <source>&amp;Forward</source>
         <translation>前进(&amp;F)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="381" />
+        <location filename="../src/panel/panel_widget.cpp" line="384" />
         <source>&amp;Up</source>
         <translation>上一级(&amp;U)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="387" />
+        <location filename="../src/panel/panel_widget.cpp" line="389" />
+        <source>&amp;Home</source>
+        <translation>主目录(&amp;H)</translation>
+    </message>
+    <message>
+        <location filename="../src/panel/panel_widget.cpp" line="397" />
         <source>New &amp;File</source>
         <translation>新建文件(&amp;F)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="391" />
+        <location filename="../src/panel/panel_widget.cpp" line="401" />
         <source>New &amp;Folder</source>
         <translation>新建文件夹(&amp;F)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="396" />
+        <location filename="../src/panel/panel_widget.cpp" line="406" />
         <source>&amp;Refresh</source>
         <translation>刷新(&amp;R)</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="808" />
+        <location filename="../src/panel/panel_widget.cpp" line="496" />
+        <source>New Tab</source>
+        <translation>新建标签页</translation>
+    </message>
+    <message>
+        <location filename="../src/panel/panel_widget.cpp" line="503" />
+        <source>Close Tab</source>
+        <translation>关闭标签页</translation>
+    </message>
+    <message>
+        <location filename="../src/panel/panel_widget.cpp" line="510" />
+        <source>Clone Tab</source>
+        <translation>克隆标签页</translation>
+    </message>
+    <message>
+        <location filename="../src/panel/panel_widget.cpp" line="518" />
+        <source>Next Tab</source>
+        <translation>下一个标签页</translation>
+    </message>
+    <message>
+        <location filename="../src/panel/panel_widget.cpp" line="884" />
         <source>Rename</source>
         <translation>重命名</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="808" />
+        <location filename="../src/panel/panel_widget.cpp" line="884" />
         <source>New name:</source>
         <translation>新名称：</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="845" />
-        <location filename="../src/panel/panel_widget.cpp" line="846" />
+        <location filename="../src/panel/panel_widget.cpp" line="921" />
+        <location filename="../src/panel/panel_widget.cpp" line="922" />
         <source>New File</source>
         <translation>新建文件</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="846" />
+        <location filename="../src/panel/panel_widget.cpp" line="922" />
         <source>File name:</source>
         <translation>文件名：</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="861" />
-        <location filename="../src/panel/panel_widget.cpp" line="862" />
+        <location filename="../src/panel/panel_widget.cpp" line="937" />
+        <location filename="../src/panel/panel_widget.cpp" line="938" />
         <source>New Folder</source>
         <translation>新建文件夹</translation>
     </message>
     <message>
-        <location filename="../src/panel/panel_widget.cpp" line="862" />
+        <location filename="../src/panel/panel_widget.cpp" line="938" />
         <source>Folder name:</source>
         <translation>文件夹名：</translation>
     </message>
@@ -1197,13 +1230,13 @@ Would you like to overwrite it?</source>
 <context>
     <name>fm::VolumeManager</name>
     <message>
-        <location filename="../src/core/volume_manager.cpp" line="183" />
-        <location filename="../src/core/volume_manager.cpp" line="201" />
+        <location filename="../src/core/volume_manager.cpp" line="195" />
+        <location filename="../src/core/volume_manager.cpp" line="213" />
         <source>Invalid device path: %1</source>
         <translation>无效的设备路径：%1</translation>
     </message>
     <message>
-        <location filename="../src/core/volume_manager.cpp" line="220" />
+        <location filename="../src/core/volume_manager.cpp" line="232" />
         <source>No drive for device: %1</source>
         <translation>设备没有对应的驱动器：%1</translation>
     </message>

@@ -386,6 +386,13 @@ void PanelWidget::createActions() {
     actUp_->setShortcutContext(sc);
     connect(actUp_, &QAction::triggered, this, &PanelWidget::navigateUp);
 
+    actHome_ = new QAction(QIcon::fromTheme(QStringLiteral("go-home")), tr("&Home"), this);
+    actHome_->setShortcutContext(sc);
+    connect(actHome_, &QAction::triggered, this, [this]() {
+        const QString home = QDir::homePath();
+        if (!home.isEmpty()) navigateTo(home, true);
+    });
+
     // 新建
     actNewFile_ = new QAction(QIcon::fromTheme(QStringLiteral("document-new")), tr("New &File"), this);
     actNewFile_->setShortcutContext(sc);
@@ -406,7 +413,7 @@ void PanelWidget::createActions() {
     actOpen_->setShortcutContext(sc);
     connect(actOpen_, &QAction::triggered, this, &PanelWidget::onOpen);
 
-    actOpenWith_ = new QAction(QIcon::fromTheme(QStringLiteral("document-open")), tr("Open &With..."), this);
+    actOpenWith_ = new QAction(QIcon::fromTheme(QStringLiteral("applications-other")), tr("Open &With..."), this);
     actOpenWith_->setShortcutContext(sc);
     connect(actOpenWith_, &QAction::triggered, this, &PanelWidget::onOpenWith);
 
@@ -430,20 +437,20 @@ void PanelWidget::createActions() {
     actPaste_->setShortcutContext(sc);
     connect(actPaste_, &QAction::triggered, this, &PanelWidget::onPaste);
 
-    actCutToOpp_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-cut")), tr("Cut to &Opposite"), this);
+    actCutToOpp_ = new QAction(QIcon::fromTheme(QStringLiteral("document-send")), tr("Cut to &Opposite"), this);
     actCutToOpp_->setShortcutContext(sc);
     connect(actCutToOpp_, &QAction::triggered, this, &PanelWidget::onCutToOpposite);
 
-    actCopyToOpp_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-copy")), tr("Copy to O&pposite"), this);
+    actCopyToOpp_ = new QAction(QIcon::fromTheme(QStringLiteral("go-jump")), tr("Copy to O&pposite"), this);
     actCopyToOpp_->setShortcutContext(sc);
     connect(actCopyToOpp_, &QAction::triggered, this, &PanelWidget::onCopyToOpposite);
 
-    actCopyPath_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-copy")), tr("Copy &Path"), this);
+    actCopyPath_ = new QAction(QIcon::fromTheme(QStringLiteral("insert-link")), tr("Copy &Path"), this);
     actCopyPath_->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C));
     actCopyPath_->setShortcutContext(sc);
     connect(actCopyPath_, &QAction::triggered, this, &PanelWidget::onCopyPath);
 
-    actCopyName_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-copy")), tr("Copy File &Name"), this);
+    actCopyName_ = new QAction(QIcon::fromTheme(QStringLiteral("text-x-generic")), tr("Copy File &Name"), this);
     actCopyName_->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N));
     actCopyName_->setShortcutContext(sc);
     connect(actCopyName_, &QAction::triggered, this, &PanelWidget::onCopyFileName);
@@ -521,6 +528,7 @@ void PanelWidget::createActions() {
     addAction(actBack_);
     addAction(actForward_);
     addAction(actUp_);
+    addAction(actHome_);
     addAction(actNewFile_);
     addAction(actNewFolder_);
     addAction(actRefresh_);
@@ -546,11 +554,11 @@ void PanelWidget::createActions() {
 }
 
 QList<QAction*> PanelWidget::toolbarActions() const {
-    // 顺序：后退、前进、向上、刷新 | 新建文件、新建文件夹 | 打开、打开...
+    // 顺序：后退、前进、向上、家、刷新 | 新建文件、新建文件夹 | 打开、打开...
     // | 重命名、剪切、复制、粘贴、剪切到对面、复制到对面、复制路径、复制文件名
     // | 移到回收站、彻底删除、属性
     return {
-        actBack_, actForward_, actUp_, actRefresh_, nullptr,
+        actBack_, actForward_, actUp_, actHome_, actRefresh_, nullptr,
         actNewFile_, actNewFolder_, nullptr,
         actOpen_, actOpenWith_, nullptr,
         actRename_, actCut_, actCopy_, actPaste_, actCutToOpp_, actCopyToOpp_,
