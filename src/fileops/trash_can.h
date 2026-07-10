@@ -1,6 +1,7 @@
 #ifndef FM_FILEOPS_TRASH_CAN_H
 #define FM_FILEOPS_TRASH_CAN_H
 
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QString>
 #include <QUrl>
@@ -10,7 +11,9 @@ namespace fm {
 // FreeDesktop.org Trash 规范实现
 // - ~/.local/share/Trash/{files,info}
 // - 外部分区根目录 .Trash-1000/{files,info}
+// Q_DECLARE_TR_FUNCTIONS 使非 QObject 类拥有独立翻译上下文
 class TrashCan {
+    Q_DECLARE_TR_FUNCTIONS(fm::TrashCan)
 public:
     // 将文件移到回收站
     // 成功返回 true，失败返回 false 并填充 errorMsg

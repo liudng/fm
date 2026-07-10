@@ -2,6 +2,7 @@
 
 #include "../core/config_manager.h"
 
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QFileInfo>
 #include <QGroupBox>
@@ -39,7 +40,7 @@ QString dtFormat() {
 }
 
 QString formatDateTime(const QDateTime &dt) {
-    if (!dt.isValid()) return QObject::tr("(unknown)");
+    if (!dt.isValid()) return QCoreApplication::translate("fm::PropertiesDialog", "(unknown)");
     const QString fmt = dtFormat();
     return fmt.isEmpty() ? dt.toString(Qt::ISODate) : dt.toString(fmt);
 }

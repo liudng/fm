@@ -24,15 +24,15 @@ QString encodeUrl(const QString &path) {
 bool TrashCan::ensureTrashDir(const QString &trashDir, QString *errorMsg) {
     QDir dir(trashDir);
     if (!dir.exists() && !dir.mkpath(trashDir)) {
-        if (errorMsg) *errorMsg = QObject::tr("Cannot create trash directory: %1").arg(trashDir);
+        if (errorMsg) *errorMsg = TrashCan::tr("Cannot create trash directory: %1").arg(trashDir);
         return false;
     }
     if (!dir.mkpath(QStringLiteral("files"))) {
-        if (errorMsg) *errorMsg = QObject::tr("Cannot create trash/files: %1").arg(trashDir);
+        if (errorMsg) *errorMsg = TrashCan::tr("Cannot create trash/files: %1").arg(trashDir);
         return false;
     }
     if (!dir.mkpath(QStringLiteral("info"))) {
-        if (errorMsg) *errorMsg = QObject::tr("Cannot create trash/info: %1").arg(trashDir);
+        if (errorMsg) *errorMsg = TrashCan::tr("Cannot create trash/info: %1").arg(trashDir);
         return false;
     }
     return true;
@@ -103,13 +103,13 @@ bool TrashCan::writeTrashInfo(const QString &infoPath, const QString &originalPa
 
 bool TrashCan::moveToTrash(const QUrl &fileUrl, QString *errorMsg) {
     if (!fileUrl.isLocalFile()) {
-        if (errorMsg) *errorMsg = QObject::tr("Only local files are supported");
+        if (errorMsg) *errorMsg = TrashCan::tr("Only local files are supported");
         return false;
     }
     const QString filePath = fileUrl.toLocalFile();
     const QFileInfo fi(filePath);
     if (!fi.exists()) {
-        if (errorMsg) *errorMsg = QObject::tr("File does not exist: %1").arg(filePath);
+        if (errorMsg) *errorMsg = TrashCan::tr("File does not exist: %1").arg(filePath);
         return false;
     }
 
@@ -125,7 +125,7 @@ bool TrashCan::moveToTrash(const QUrl &fileUrl, QString *errorMsg) {
     // 写 .trashinfo（先写 info 再移文件）
     const QString infoPath = infoDir + QDir::separator() + trashName + QStringLiteral(".trashinfo");
     if (!writeTrashInfo(infoPath, fi.absoluteFilePath(), QDateTime::currentDateTime())) {
-        if (errorMsg) *errorMsg = QObject::tr("Cannot write trash info: %1").arg(infoPath);
+        if (errorMsg) *errorMsg = TrashCan::tr("Cannot write trash info: %1").arg(infoPath);
         return false;
     }
 
@@ -135,14 +135,14 @@ bool TrashCan::moveToTrash(const QUrl &fileUrl, QString *errorMsg) {
     if (!file.rename(targetPath)) {
         // rename 失败可能是跨设备，尝试复制+删除
         if (!QFile::copy(fi.absoluteFilePath(), targetPath)) {
-            if (errorMsg) *errorMsg = QObject::tr("Cannot move to trash: %1").arg(filePath);
+            if (errorMsg) *errorMsg = TrashCan::tr("Cannot move to trash: %1").arg(filePath);
             // 删除已写的 info
             QFile::remove(infoPath);
             return false;
         }
         // 复制成功后删除源
         if (!QFile::remove(fi.absoluteFilePath())) {
-            if (errorMsg) *errorMsg = QObject::tr("Cannot remove source after copy: %1").arg(filePath);
+            if (errorMsg) *errorMsg = TrashCan::tr("Cannot remove source after copy: %1").arg(filePath);
             return false;
         }
     }

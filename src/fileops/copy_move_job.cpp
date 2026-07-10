@@ -81,7 +81,7 @@ int copyRecursively(const QString &src, const QString &dst, QString *error,
         const QString name = srcInfo.fileName();
         const int ret = copyFileChunked(src, dst, processedBytes, totalBytes, job, name);
         if (ret != 0) {
-            if (ret == -1 && error) *error = QObject::tr("Cannot copy: %1 -> %2").arg(src, dst);
+            if (ret == -1 && error) *error = QCoreApplication::translate("fm::CopyMoveJob", "Cannot copy: %1 -> %2").arg(src, dst);
             return ret;
         }
         return 0;

@@ -78,7 +78,7 @@ bool FileJob::removeRecursively(const QString &path, QString *error) {
     QFileInfo fi(path);
     if (fi.isFile()) {
         if (!QFile::remove(path)) {
-            if (error) *error = QObject::tr("Cannot remove: %1").arg(path);
+            if (error) *error = FileJob::tr("Cannot remove: %1").arg(path);
             return false;
         }
         return true;
@@ -90,7 +90,7 @@ bool FileJob::removeRecursively(const QString &path, QString *error) {
         if (!removeRecursively(dir.filePath(e), error)) return false;
     }
     if (!dir.rmdir(path)) {
-        if (error) *error = QObject::tr("Cannot rmdir: %1").arg(path);
+        if (error) *error = FileJob::tr("Cannot rmdir: %1").arg(path);
         return false;
     }
     return true;

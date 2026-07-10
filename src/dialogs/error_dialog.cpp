@@ -9,7 +9,7 @@ void ErrorDialog::show(QWidget *parent, const QString &title, const QString &mes
 }
 
 void ErrorDialog::show(QWidget *parent, const QString &message) {
-    QMessageBox::critical(parent, QObject::tr("Error"), message);
+    QMessageBox::critical(parent, ErrorDialog::tr("Error"), message);
 }
 
 } // namespace fm

@@ -105,10 +105,10 @@ target_link_libraries(fm PRIVATE
 )
 
 # 翻译文件 (.ts → .qm → 嵌入资源)
+# 源码以英文为源语言（tr() 默认值），仅维护中文翻译
 qt_add_translations(fm
     TS_FILES
         translations/fm_zh.ts
-        translations/fm_en.ts
     RESOURCE_PREFIX "/i18n"
 )
 
