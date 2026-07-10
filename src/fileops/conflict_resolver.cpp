@@ -2,6 +2,8 @@
 
 #include "../dialogs/conflict_dialog.h"
 
+#include <QThread>
+
 namespace fm {
 
 ConflictResolver::ConflictResolver(QObject *parent)
@@ -20,24 +22,31 @@ ConflictResolution ConflictResolver::resolve(const QUrl &source, const QString &
         return batchResolution_;
     }
 
-    ConflictResolution r = ConflictResolution::Cancel;
     const QString sourceName = source.fileName();
 
-    // 在主线程同步执行对话框
-    QMetaObject::invokeMethod(this, [&, this]() {
+    // 实际弹对话框的逻辑（必须在主线程执行）
+    auto showDialog = [this, &sourceName, &destPath, allowBatch]() {
         ConflictDialog dlg(sourceName, destPath, allowBatch, nullptr);
         dlg.exec();
-        r = dlg.resolution();
+        const ConflictResolution r = dlg.resolution();
         if (r == ConflictResolution::OverwriteAll ||
             r == ConflictResolution::SkipAll ||
             r == ConflictResolution::RenameAll) {
             batchResolution_ = r;
             hasBatchResolution_ = true;
         }
-    }, Qt::BlockingQueuedConnection);
+        return r;
+    };
 
-    // RenameAll 在批量场景下，后续仍需弹对话框输入新名
-    // 但首次的 r 直接是 RenameAll，调用方需在批量场景特殊处理
+    // 主线程直接调用；工作线程用 BlockingQueuedConnection 阻塞等待
+    if (this->thread() == QThread::currentThread()) {
+        return showDialog();
+    }
+    // 工作线程：阻塞等待主线程执行对话框
+    ConflictResolution r = ConflictResolution::Cancel;
+    QMetaObject::invokeMethod(this, [&r, &showDialog]() {
+        r = showDialog();
+    }, Qt::BlockingQueuedConnection);
     return r;
 }
 

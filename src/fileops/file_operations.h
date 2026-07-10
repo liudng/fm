@@ -1,19 +1,15 @@
 #ifndef FM_FILEOPS_FILE_OPERATIONS_H
 #define FM_FILEOPS_FILE_OPERATIONS_H
 
-#include <QPointer>
 #include <QObject>
 #include <QUrl>
 
 namespace fm {
 
-class ProgressDialog;
-enum class ConflictResolution;
-
 // 文件操作门面（单例）
-// - 复制/移动/删除/回收站：异步（QtConcurrent）
+// - 复制/移动/删除/回收站：委托给 Job 类异步执行（FileJob 子类）
 // - 重命名/新建：同步（快速）
-// - 冲突处理：在主线程弹对话框
+// - 冲突处理：CopyMoveJob 在主线程预扫描阶段弹对话框
 class FileOperations : public QObject {
     Q_OBJECT
 public:
@@ -50,25 +46,6 @@ signals:
 
 private:
     FileOperations(QObject *parent = nullptr);
-
-    // 异步作业的辅助
-    void runCopyMove(const QList<QUrl> &sources, const QString &destDir, bool isMove);
-    void runTrash(const QList<QUrl> &sources);
-    void runDelete(const QList<QUrl> &sources);
-
-    // 冲突解决（主线程，阻塞工作线程）
-    ConflictResolution resolveConflict(const QString &sourceName,
-                                        const QString &destPath,
-                                        bool allowBatch);
-
-    // 生成不冲突的新名
-    static QString uniqueName(const QString &dir, const QString &name);
-
-    // 批量冲突记忆
-    ConflictResolution batchResolution_;
-    bool hasBatchResolution_ = false;
-
-    QPointer<ProgressDialog> progressDialog_;
 };
 
 } // namespace fm

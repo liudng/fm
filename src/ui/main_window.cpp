@@ -1,11 +1,13 @@
 #include "main_window.h"
 
+#include "favorites_menu_controller.h"
+#include "volume_menu_controller.h"
+
 #include "../core/column_manager.h"
 #include "../core/config_manager.h"
 #include "../core/favorite_manager.h"
 #include "../core/session_state.h"
 #include "../core/shortcut_manager.h"
-#include "../core/volume_manager.h"
 #include "../dialogs/about_dialog.h"
 #include "../dialogs/settings_dialog.h"
 #include "../dialogs/settings_pages.h"
@@ -17,10 +19,7 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QCloseEvent>
-#include <QEvent>
-#include <QFutureWatcher>
 #include <QInputDialog>
-#include <QMouseEvent>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -29,7 +28,6 @@
 #include <QStyleFactory>
 #include <QTimer>
 #include <QToolBar>
-#include <QtConcurrent>
 
 namespace fm {
 
@@ -83,10 +81,6 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
-    // 监听收藏管理器信号
-    connect(FavoriteManager::instance(), &FavoriteManager::favoritesChanged,
-            this, [this]() { /* 菜单显示时刷新 */ });
-
     // 应用初始配置（面板可见性、隐藏文件）
     applyPanelConfig();
     applyFileBrowserConfig();
@@ -104,14 +98,26 @@ void MainWindow::buildMenuBar() {
 }
 
 void MainWindow::buildFileMenu(QMenu *menu) {
-    fileMenu_ = menu;
-    // 卷项在 aboutToShow 时动态插入到 volSeparator_ 之前；
-    // 外部设备项动态插入到 volSeparator_ 与 extSeparator_ 之间
-    volSeparator_ = menu->addSeparator();
-    extSeparator_ = menu->addSeparator();
-    connect(menu, &QMenu::aboutToShow, this, &MainWindow::refreshFileMenuVolumes);
-    // 安装事件过滤器，支持右键挂载/卸载/弹出
-    menu->installEventFilter(this);
+    // 卷段与外部设备段由 VolumeMenuController 托管：
+    // - aboutToShow 时同步枚举已挂载卷 + 异步枚举外部设备
+    // - 右键挂载/卸载/弹出
+    // - 左键点击已挂载卷项通过 navigateRequested 信号导航
+    volumeMenuController_ = new VolumeMenuController(menu, this);
+    volumeMenuController_->setup();
+    connect(volumeMenuController_, &VolumeMenuController::navigateRequested,
+            this, [this](const QString &mountPoint) {
+        // 在活动面板的活动选项卡中打开挂载点（不新建选项卡）
+        auto *p = panelContainer_->activePanel();
+        if (p) p->openPath(mountPoint);
+    });
+    connect(volumeMenuController_, &VolumeMenuController::statusMessageRequested,
+            this, [this](const QString &msg, int timeout) {
+        statusBar()->showMessage(msg, timeout);
+    });
+    connect(volumeMenuController_, &VolumeMenuController::operationFailed,
+            this, [this](const QString &errorMsg) {
+        QMessageBox::warning(this, tr("Volume Operation Failed"), errorMsg);
+    });
 
     auto *exitAction = menu->addAction(tr("&Quit"));
     connect(exitAction, &QAction::triggered, this, &MainWindow::onExit);
@@ -119,123 +125,17 @@ void MainWindow::buildFileMenu(QMenu *menu) {
     ShortcutManager::instance()->applyToAction(exitAction, QStringLiteral("file.quit"));
 }
 
-void MainWindow::refreshFileMenuVolumes() {
-    if (!fileMenu_ || !volSeparator_ || !extSeparator_) return;
-
-    // 移除旧卷项
-    for (QAction *a : volActions_) {
-        fileMenu_->removeAction(a);
-        a->deleteLater();
-    }
-    volActions_.clear();
-
-    // 移除旧外部设备项（含可能存在的"加载中"占位）
-    for (QAction *a : extActions_) {
-        fileMenu_->removeAction(a);
-        a->deleteLater();
-    }
-    extActions_.clear();
-
-    // === 卷段（已挂载卷，QStorageInfo 本地查询，快）===
-    const QList<VolumeInfo> volumes = VolumeManager::instance()->listVolumes();
-    if (volumes.isEmpty()) {
-        auto *placeholder = fileMenu_->addAction(tr("(No volumes)"));
-        placeholder->setEnabled(false);
-        fileMenu_->insertAction(volSeparator_, placeholder);
-        volActions_.append(placeholder);
-    } else {
-        for (const VolumeInfo &v : volumes) {
-            QString text = v.label.isEmpty() ? v.mountPoint : v.label;
-            if (!v.mountPoint.isEmpty() && text != v.mountPoint) {
-                text += QStringLiteral("  (%1)").arg(v.mountPoint);
-            }
-            auto *act = new QAction(QIcon::fromTheme(QStringLiteral("drive-harddisk")), text, fileMenu_);
-            // data 存储挂载点（左键导航用）；deviceFile/isMounted 供右键用
-            act->setData(v.mountPoint);
-            act->setProperty("deviceFile", v.deviceFile);
-            act->setProperty("isMounted", true);  // 卷项均为已挂载
-            connect(act, &QAction::triggered, this, [this, mp = v.mountPoint]() {
-                // 在活动面板的活动选项卡中打开挂载点（不新建选项卡）
-                auto *p = panelContainer_->activePanel();
-                if (p) p->openPath(mp);
-            });
-            fileMenu_->insertAction(volSeparator_, act);
-            volActions_.append(act);
-        }
-    }
-
-    // === 外部设备段（含未挂载，UDisks2 D-Bus 查询，慢）===
-    // 先显示"加载中"占位，避免阻塞菜单弹出；后台异步枚举完成后替换
-    auto *loadingAct = new QAction(tr("Loading devices..."), fileMenu_);
-    loadingAct->setEnabled(false);
-    fileMenu_->insertAction(extSeparator_, loadingAct);
-    extActions_.append(loadingAct);
-
-    // 异步枚举外部设备（D-Bus 调用放到工作线程，避免阻塞 UI 线程）
-    // 多次 aboutToShow 并发时，fillExternalDevices 每次先清空再填充，最终一致
-    auto *watcher = new QFutureWatcher<QList<VolumeInfo>>(this);
-    connect(watcher, &QFutureWatcher<QList<VolumeInfo>>::finished, this, [this, watcher]() {
-        fillExternalDevices(watcher->result());
-        watcher->deleteLater();
-    });
-    watcher->setFuture(QtConcurrent::run([]() {
-        return VolumeManager::instance()->listExternalDevices();
-    }));
-}
-
-void MainWindow::fillExternalDevices(const QList<VolumeInfo> &devices) {
-    if (!fileMenu_ || !extSeparator_) return;
-
-    // 清空当前外部设备项（移除"加载中"占位或上一次异步结果）
-    for (QAction *a : extActions_) {
-        fileMenu_->removeAction(a);
-        a->deleteLater();
-    }
-    extActions_.clear();
-
-    if (devices.isEmpty()) {
-        auto *placeholder = fileMenu_->addAction(tr("(No external devices)"));
-        placeholder->setEnabled(false);
-        fileMenu_->insertAction(extSeparator_, placeholder);
-        extActions_.append(placeholder);
-    } else {
-        for (const VolumeInfo &d : devices) {
-            // 设备名称：设备文件名必显示；有卷标/型号时前置
-            QString text = d.deviceFile;
-            if (!d.label.isEmpty()) {
-                text = QStringLiteral("%1 (%2)").arg(d.label, d.deviceFile);
-            }
-            // 已挂载追加挂载点
-            if (d.isMounted && !d.mountPoint.isEmpty()) {
-                text += QStringLiteral("  (%1)").arg(d.mountPoint);
-            }
-            auto *act = new QAction(QIcon::fromTheme(QStringLiteral("drive-removable-media")), text, fileMenu_);
-            act->setProperty("deviceFile", d.deviceFile);
-            act->setProperty("isMounted", d.isMounted);
-            act->setProperty("mountPoint", d.mountPoint);
-            // 左键仅选中不操作（不连接 triggered）
-            fileMenu_->insertAction(extSeparator_, act);
-            extActions_.append(act);
-        }
-    }
-}
-
 void MainWindow::buildFavoritesMenu(QMenu *menu) {
-    favoritesMenu_ = menu;
-
-    auto *addAction = menu->addAction(tr("&Add to Favorites..."), this, &MainWindow::onAddFavorite);
-    addAction->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-new")));
-
-    menu->addSeparator();
-
-    // 占位项，refreshFavoritesMenu 会替换
-    auto *placeholder = menu->addAction(tr("(No favorites)"));
-    placeholder->setEnabled(false);
-
-    // 菜单显示前刷新
-    connect(menu, &QMenu::aboutToShow, this, &MainWindow::refreshFavoritesMenu);
-    // 安装事件过滤器，支持右键删除收藏项
-    menu->installEventFilter(this);
+    // 收藏菜单由 FavoritesMenuController 托管：
+    // - 构建"添加到收藏..."项 + 分隔符 + 动态收藏列表
+    // - aboutToShow 时从 FavoriteManager 刷新
+    // - 右键删除收藏项
+    favoritesMenuController_ = new FavoritesMenuController(menu, this);
+    favoritesMenuController_->setup();
+    connect(favoritesMenuController_, &FavoritesMenuController::addFavoriteRequested,
+            this, &MainWindow::onAddFavorite);
+    connect(favoritesMenuController_, &FavoritesMenuController::favoriteTriggered,
+            this, &MainWindow::onFavoriteTriggered);
 }
 
 void MainWindow::buildSettingsMenu(QMenu *menu) {
@@ -324,42 +224,6 @@ void MainWindow::buildHelpMenu(QMenu *menu) {
     auto *aboutAction = menu->addAction(tr("&About"), this, &MainWindow::onAbout);
     aboutAction->setIcon(QIcon::fromTheme(QStringLiteral("help-about")));
     ShortcutManager::instance()->applyToAction(aboutAction, QStringLiteral("help.about"));
-}
-
-void MainWindow::refreshFavoritesMenu() {
-    if (!favoritesMenu_) return;
-    // 清空菜单（保留前两项 + 分隔符）
-    const auto actions = favoritesMenu_->actions();
-    // 找到分隔符位置
-    int sepIndex = -1;
-    for (int i = 0; i < actions.size(); ++i) {
-        if (actions.at(i)->isSeparator()) {
-            sepIndex = i;
-            break;
-        }
-    }
-    // 删除分隔符之后的所有项
-    if (sepIndex >= 0) {
-        for (int i = actions.size() - 1; i > sepIndex; --i) {
-            favoritesMenu_->removeAction(actions.at(i));
-        }
-    }
-
-    // 使用 FavoriteManager 获取收藏列表
-    const QStringList names = FavoriteManager::instance()->favoriteNames();
-    if (names.isEmpty()) {
-        auto *placeholder = favoritesMenu_->addAction(tr("(No favorites)"));
-        placeholder->setEnabled(false);
-        return;
-    }
-
-    for (const QString &name : names) {
-        auto *action = favoritesMenu_->addAction(name);
-        action->setData(name);  // 供右键删除时识别
-        connect(action, &QAction::triggered, this, [this, name]() {
-            onFavoriteTriggered(name);
-        });
-    }
 }
 
 void MainWindow::refreshPanelActions() {
@@ -463,93 +327,6 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     event->accept();
 }
 
-bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
-    // 收藏菜单右键：弹出删除菜单
-    if (obj == favoritesMenu_ && event->type() == QEvent::MouseButtonPress) {
-        auto *me = static_cast<QMouseEvent*>(event);
-        if (me->button() == Qt::RightButton) {
-            auto *menu = static_cast<QMenu*>(obj);
-            QAction *act = menu->actionAt(me->pos());
-            if (act) {
-                const QString name = act->data().toString();
-                if (!name.isEmpty()) {
-                    QMenu ctx(menu);
-                    auto *removeAct = ctx.addAction(tr("Remove Favorite"));
-                    removeAct->setIcon(QIcon::fromTheme(QStringLiteral("edit-delete")));
-                    const QAction *chosen = ctx.exec(me->globalPosition().toPoint());
-                    if (chosen == removeAct) {
-                        if (FavoriteManager::instance()->removeFavorite(name)) {
-                            refreshFavoritesMenu();
-                        }
-                    }
-                    return true;  // 事件已处理
-                }
-            }
-        }
-    }
-    // 文件菜单卷项/外部设备项右键：挂载/卸载/弹出
-    if (obj == fileMenu_ && event->type() == QEvent::MouseButtonPress) {
-        auto *me = static_cast<QMouseEvent*>(event);
-        if (me->button() == Qt::RightButton) {
-            auto *menu = static_cast<QMenu*>(obj);
-            QAction *act = menu->actionAt(me->pos());
-            if (act && (volActions_.contains(act) || extActions_.contains(act))) {
-                const QString deviceFile = act->property("deviceFile").toString();
-                if (!deviceFile.isEmpty()) {
-                    const bool isExternal = extActions_.contains(act);
-                    const bool isMounted = act->property("isMounted").toBool();
-                    QMenu ctx(menu);
-                    QAction *mountAct = nullptr, *unmountAct = nullptr, *ejectAct = nullptr;
-                    if (isExternal && !isMounted) {
-                        // 未挂载外部设备：仅显示挂载
-                        mountAct = ctx.addAction(tr("Mount"));
-                        mountAct->setIcon(QIcon::fromTheme(QStringLiteral("media-mount")));
-                    } else {
-                        // 卷项（已挂载）或已挂载设备项：卸载/弹出
-                        unmountAct = ctx.addAction(tr("Safely Unmount"));
-                        unmountAct->setIcon(QIcon::fromTheme(QStringLiteral("media-eject")));
-                        ejectAct = ctx.addAction(tr("Eject"));
-                        ejectAct->setIcon(QIcon::fromTheme(QStringLiteral("media-eject")));
-                    }
-                    const QAction *chosen = ctx.exec(me->globalPosition().toPoint());
-                    // 确定操作类型：0=mount, 1=unmount, 2=eject, -1=取消
-                    int op = -1;
-                    if (chosen == mountAct) op = 0;
-                    else if (chosen == unmountAct) op = 1;
-                    else if (chosen == ejectAct) op = 2;
-                    if (op < 0) return true;  // 用户取消，仍消费事件
-
-                    // 异步执行卷操作：Eject/Unmount 可能涉及同步缓冲，耗时数秒，
-                    // 放到工作线程避免阻塞 UI。完成后回主线程刷新菜单。
-                    statusBar()->showMessage(tr("Performing volume operation..."), 3000);
-                    auto *watcher = new QFutureWatcher<bool>(this);
-                    QString *errMsg = new QString;
-                    connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, errMsg]() {
-                        const bool ok = watcher->result();
-                        if (!ok && !errMsg->isEmpty()) {
-                            QMessageBox::warning(this, tr("Volume Operation Failed"), *errMsg);
-                        }
-                        // 操作成功后刷新整个文件菜单（挂载/卸载后卷段与设备段都会更新）
-                        if (ok) refreshFileMenuVolumes();
-                        delete errMsg;
-                        watcher->deleteLater();
-                    });
-                    watcher->setFuture(QtConcurrent::run([deviceFile, op, errMsg]() -> bool {
-                        if (op == 0) {
-                            return !VolumeManager::instance()->mount(deviceFile, errMsg).isEmpty();
-                        } else if (op == 1) {
-                            return VolumeManager::instance()->unmount(deviceFile, errMsg);
-                        }
-                        return VolumeManager::instance()->eject(deviceFile, errMsg);
-                    }));
-                    return true;  // 事件已处理
-                }
-            }
-        }
-    }
-    return QMainWindow::eventFilter(obj, event);
-}
-
 void MainWindow::addPathsToPanels(const QStringList &paths) {
     if (paths.isEmpty()) return;
     // path1 → 面板1，path2 → 面板2
@@ -560,7 +337,7 @@ void MainWindow::addPathsToPanels(const QStringList &paths) {
     panelContainer_->setActivePanel(PanelId::Panel1);
 }
 
-// === 收藏菜单 ===
+// === 收藏菜单（布局采集与恢复）===
 
 void MainWindow::onAddFavorite() {
     bool ok = false;

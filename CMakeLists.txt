@@ -69,6 +69,10 @@ qt_add_executable(fm
     src/filelist/file_list_view.cpp
     src/fileops/conflict_resolver.h
     src/fileops/conflict_resolver.cpp
+    src/fileops/copy_move_job.h
+    src/fileops/copy_move_job.cpp
+    src/fileops/file_job.h
+    src/fileops/file_job.cpp
     src/fileops/file_operations.h
     src/fileops/file_operations.cpp
     src/fileops/progress_dialog.h
@@ -82,8 +86,12 @@ qt_add_executable(fm
     src/panel/panel_widget.cpp
     src/panel/panel_container.h
     src/panel/panel_container.cpp
+    src/ui/favorites_menu_controller.h
+    src/ui/favorites_menu_controller.cpp
     src/ui/main_window.h
     src/ui/main_window.cpp
+    src/ui/volume_menu_controller.h
+    src/ui/volume_menu_controller.cpp
     resources.qrc
 )
 

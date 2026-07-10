@@ -2,7 +2,6 @@
 #define FM_UI_MAIN_WINDOW_H
 
 #include <QMainWindow>
-#include <QPointer>
 
 class QAction;
 class QActionGroup;
@@ -13,7 +12,8 @@ namespace fm {
 
 class PanelContainer;
 class PanelWidget;
-struct VolumeInfo;  // 前向声明（用于 fillExternalDevices 参数）
+class VolumeMenuController;
+class FavoritesMenuController;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -28,12 +28,11 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
-    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private slots:
     void onExit();
 
-    // 收藏菜单
+    // 收藏菜单（布局采集与恢复，由 FavoritesMenuController 信号触发）
     void onAddFavorite();
     void onFavoriteTriggered(const QString &name);
 
@@ -57,9 +56,6 @@ private:
     void buildFavoritesMenu(QMenu *menu);
     void buildSettingsMenu(QMenu *menu);
     void buildHelpMenu(QMenu *menu);
-    void refreshFavoritesMenu();
-    void refreshFileMenuVolumes();
-    void fillExternalDevices(const QList<VolumeInfo> &devices);  // 异步枚举完成后填充外部设备段
     void refreshPanelActions();
     void updateToolbar();
     void restoreSession();
@@ -69,19 +65,17 @@ private:
     PanelContainer *panelContainer_ = nullptr;
     QToolBar *toolbar_ = nullptr;
 
+    // 菜单控制器（托管卷段与收藏菜单的构建/刷新/右键交互）
+    VolumeMenuController *volumeMenuController_ = nullptr;
+    FavoritesMenuController *favoritesMenuController_ = nullptr;
+
     // 设置菜单中需要动态更新文字的项
     QAction *toggleOrientationAction_ = nullptr;
     QAction *togglePanel1Action_ = nullptr;
     QAction *togglePanel2Action_ = nullptr;
     QAction *toggleHiddenAction_ = nullptr;
-    QMenu *favoritesMenu_ = nullptr;
     QMenu *languageMenu_ = nullptr;
     QMenu *themeMenu_ = nullptr;
-    QMenu *fileMenu_ = nullptr;
-    QAction *volSeparator_ = nullptr;     // 卷项与外部设备项之间的分隔符
-    QAction *extSeparator_ = nullptr;     // 外部设备项与 Quit 之间的分隔符
-    QList<QAction*> volActions_;          // 动态卷项（aboutToShow 时刷新）
-    QList<QAction*> extActions_;          // 动态外部设备项（aboutToShow 时刷新）
     QActionGroup *languageGroup_ = nullptr;
     QActionGroup *themeGroup_ = nullptr;
 };
