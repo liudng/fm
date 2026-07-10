@@ -18,15 +18,18 @@
 #include <QApplication>
 #include <QCloseEvent>
 #include <QEvent>
+#include <QFutureWatcher>
 #include <QInputDialog>
 #include <QMouseEvent>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QStandardPaths>
+#include <QStatusBar>
 #include <QStyleFactory>
 #include <QTimer>
 #include <QToolBar>
+#include <QtConcurrent>
 
 namespace fm {
 
@@ -126,14 +129,14 @@ void MainWindow::refreshFileMenuVolumes() {
     }
     volActions_.clear();
 
-    // 移除旧外部设备项
+    // 移除旧外部设备项（含可能存在的"加载中"占位）
     for (QAction *a : extActions_) {
         fileMenu_->removeAction(a);
         a->deleteLater();
     }
     extActions_.clear();
 
-    // === 卷段（已挂载卷，QStorageInfo）===
+    // === 卷段（已挂载卷，QStorageInfo 本地查询，快）===
     const QList<VolumeInfo> volumes = VolumeManager::instance()->listVolumes();
     if (volumes.isEmpty()) {
         auto *placeholder = fileMenu_->addAction(tr("(No volumes)"));
@@ -161,8 +164,35 @@ void MainWindow::refreshFileMenuVolumes() {
         }
     }
 
-    // === 外部设备段（含未挂载，UDisks2）===
-    const QList<VolumeInfo> devices = VolumeManager::instance()->listExternalDevices();
+    // === 外部设备段（含未挂载，UDisks2 D-Bus 查询，慢）===
+    // 先显示"加载中"占位，避免阻塞菜单弹出；后台异步枚举完成后替换
+    auto *loadingAct = new QAction(tr("Loading devices..."), fileMenu_);
+    loadingAct->setEnabled(false);
+    fileMenu_->insertAction(extSeparator_, loadingAct);
+    extActions_.append(loadingAct);
+
+    // 异步枚举外部设备（D-Bus 调用放到工作线程，避免阻塞 UI 线程）
+    // 多次 aboutToShow 并发时，fillExternalDevices 每次先清空再填充，最终一致
+    auto *watcher = new QFutureWatcher<QList<VolumeInfo>>(this);
+    connect(watcher, &QFutureWatcher<QList<VolumeInfo>>::finished, this, [this, watcher]() {
+        fillExternalDevices(watcher->result());
+        watcher->deleteLater();
+    });
+    watcher->setFuture(QtConcurrent::run([]() {
+        return VolumeManager::instance()->listExternalDevices();
+    }));
+}
+
+void MainWindow::fillExternalDevices(const QList<VolumeInfo> &devices) {
+    if (!fileMenu_ || !extSeparator_) return;
+
+    // 清空当前外部设备项（移除"加载中"占位或上一次异步结果）
+    for (QAction *a : extActions_) {
+        fileMenu_->removeAction(a);
+        a->deleteLater();
+    }
+    extActions_.clear();
+
     if (devices.isEmpty()) {
         auto *placeholder = fileMenu_->addAction(tr("(No external devices)"));
         placeholder->setEnabled(false);
@@ -482,23 +512,36 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
                         ejectAct->setIcon(QIcon::fromTheme(QStringLiteral("media-eject")));
                     }
                     const QAction *chosen = ctx.exec(me->globalPosition().toPoint());
-                    QString errMsg;
-                    bool ok = false;
-                    if (chosen == mountAct) {
-                        QString mp = VolumeManager::instance()->mount(deviceFile, &errMsg);
-                        ok = !mp.isEmpty();
-                    } else if (chosen == unmountAct) {
-                        ok = VolumeManager::instance()->unmount(deviceFile, &errMsg);
-                    } else if (chosen == ejectAct) {
-                        ok = VolumeManager::instance()->eject(deviceFile, &errMsg);
-                    } else {
-                        return true;  // 取消，仍消费事件
-                    }
-                    if (!ok && !errMsg.isEmpty()) {
-                        QMessageBox::warning(this, tr("Volume Operation Failed"), errMsg);
-                    }
-                    // 操作成功后刷新整个文件菜单（挂载/卸载后卷段与设备段都会更新）
-                    if (ok) refreshFileMenuVolumes();
+                    // 确定操作类型：0=mount, 1=unmount, 2=eject, -1=取消
+                    int op = -1;
+                    if (chosen == mountAct) op = 0;
+                    else if (chosen == unmountAct) op = 1;
+                    else if (chosen == ejectAct) op = 2;
+                    if (op < 0) return true;  // 用户取消，仍消费事件
+
+                    // 异步执行卷操作：Eject/Unmount 可能涉及同步缓冲，耗时数秒，
+                    // 放到工作线程避免阻塞 UI。完成后回主线程刷新菜单。
+                    statusBar()->showMessage(tr("Performing volume operation..."), 3000);
+                    auto *watcher = new QFutureWatcher<bool>(this);
+                    QString *errMsg = new QString;
+                    connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, errMsg]() {
+                        const bool ok = watcher->result();
+                        if (!ok && !errMsg->isEmpty()) {
+                            QMessageBox::warning(this, tr("Volume Operation Failed"), *errMsg);
+                        }
+                        // 操作成功后刷新整个文件菜单（挂载/卸载后卷段与设备段都会更新）
+                        if (ok) refreshFileMenuVolumes();
+                        delete errMsg;
+                        watcher->deleteLater();
+                    });
+                    watcher->setFuture(QtConcurrent::run([deviceFile, op, errMsg]() -> bool {
+                        if (op == 0) {
+                            return !VolumeManager::instance()->mount(deviceFile, errMsg).isEmpty();
+                        } else if (op == 1) {
+                            return VolumeManager::instance()->unmount(deviceFile, errMsg);
+                        }
+                        return VolumeManager::instance()->eject(deviceFile, errMsg);
+                    }));
                     return true;  // 事件已处理
                 }
             }

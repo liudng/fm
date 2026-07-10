@@ -13,6 +13,7 @@ namespace fm {
 
 class PanelContainer;
 class PanelWidget;
+struct VolumeInfo;  // 前向声明（用于 fillExternalDevices 参数）
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -58,6 +59,7 @@ private:
     void buildHelpMenu(QMenu *menu);
     void refreshFavoritesMenu();
     void refreshFileMenuVolumes();
+    void fillExternalDevices(const QList<VolumeInfo> &devices);  // 异步枚举完成后填充外部设备段
     void refreshPanelActions();
     void updateToolbar();
     void restoreSession();
