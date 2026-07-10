@@ -142,20 +142,95 @@ install(FILES fm.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 install(FILES fm.png DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps)
 
 # ---- 单元测试 ----
-option(FM_BUILD_TESTS "Build unit tests" ON)
+# 仅使用系统已安装的 GTest，不再通过 FetchContent 下载
+option(FM_BUILD_TESTS "Build unit tests (requires system-installed GTest)" ON)
 if(FM_BUILD_TESTS)
     enable_testing()
-    # 优先使用系统已安装的 GTest，否则通过 FetchContent 下载
-    find_package(GTest QUIET)
-    if(NOT GTest_FOUND)
-        include(FetchContent)
-        FetchContent_Declare(
-            googletest
-            URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.tar.gz
-            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-        )
-        set(gtest_force_shared_rt ON CACHE BOOL "" FORCE)
-        FetchContent_MakeAvailable(googletest)
-    endif()
+    find_package(GTest REQUIRED)
     add_subdirectory(tests)
 endif()
+
+# ---- 质量检查自定义 target（方便单独运行） ----
+# 使用方式：
+#   cmake --build build --target check-format   # 格式检查
+#   cmake --build build --target clang-tidy      # 静态分析
+#   cmake --build build --target check-tests     # 运行测试
+#   cmake --build build --target check-asan      # ASan/LSan 内存安全
+#   cmake --build build --target check-all       # 以上全部
+#
+# 注意：这些 target 不会在普通 build 时自动触发，需显式指定 --target。
+
+# 收集待检查的源文件（src/ 与 tests/ 下的 .cpp/.h）
+file(GLOB_RECURSE FM_CHECK_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.h"
+)
+# clang-tidy 只处理 .cpp 实现（跳过头文件与 tests 的 test_main.cpp）
+file(GLOB_RECURSE FM_TIDY_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+)
+
+# --- 1. 格式检查 (clang-format --dry-run --Werror) ---
+find_program(CLANG_FORMAT_BIN NAMES clang-format clang-format-19 clang-format-18)
+if(CLANG_FORMAT_BIN)
+    add_custom_target(check-format
+        COMMAND "${CLANG_FORMAT_BIN}" --dry-run --Werror ${FM_CHECK_SOURCES}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Running clang-format check (dry-run, Werror)"
+        VERBATIM
+    )
+else()
+    message(STATUS "clang-format not found; 'check-format' target unavailable")
+endif()
+
+# --- 2. 静态分析 (clang-tidy, 依赖 compile_commands.json) ---
+find_program(CLANG_TIDY_BIN NAMES clang-tidy clang-tidy-19 clang-tidy-18)
+if(CLANG_TIDY_BIN)
+    add_custom_target(clang-tidy
+        COMMAND "${CLANG_TIDY_BIN}" -p "${CMAKE_BINARY_DIR}" ${FM_TIDY_SOURCES}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Running clang-tidy static analysis"
+        VERBATIM
+    )
+else()
+    message(STATUS "clang-tidy not found; 'clang-tidy' target unavailable")
+endif()
+
+# --- 3. 运行单元测试 (ctest) ---
+if(FM_BUILD_TESTS)
+    add_custom_target(check-tests
+        COMMAND "${CMAKE_CTEST_COMMAND}" --output-on-failure
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+        COMMENT "Running unit tests via ctest"
+        DEPENDS test_config_manager test_favorite_manager test_shortcut_manager
+        VERBATIM
+    )
+endif()
+
+# --- 4. ASan/LSan 内存安全验证 ---
+# 在独立的 build/asan 子目录中重新配置构建（启用 -DFM_ENABLE_ASAN=ON），
+# 避免污染主 build 目录。运行前需确保 build/ 已 configure 过。
+add_custom_target(check-asan
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/asan"
+    COMMAND "${CMAKE_COMMAND}" -S "${CMAKE_CURRENT_SOURCE_DIR}" -B "${CMAKE_BINARY_DIR}/asan"
+            -DCMAKE_BUILD_TYPE=Debug -DFM_ENABLE_ASAN=ON
+    COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}/asan" --parallel
+    COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}/asan" --output-on-failure
+    COMMENT "Building & testing with AddressSanitizer + LeakSanitizer"
+    VERBATIM
+)
+
+# --- 5. 一键全部检查（便利 target） ---
+add_custom_target(check-all)
+if(CLANG_FORMAT_BIN)
+    add_dependencies(check-all check-format)
+endif()
+if(CLANG_TIDY_BIN)
+    add_dependencies(check-all clang-tidy)
+endif()
+if(FM_BUILD_TESTS)
+    add_dependencies(check-all check-tests)
+endif()
+add_dependencies(check-all check-asan)

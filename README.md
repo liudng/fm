@@ -39,6 +39,14 @@ sudo apt install build-essential cmake qt6-l10n-tools
 sudo apt install qt6-base-dev qt6-base-dev-tools
 ```
 
+### Testing & Quality Tools (optional)
+
+Required only for running unit tests and quality checks (see [Testing & Quality Checks](#testing--quality-checks)):
+
+```bash
+sudo apt install libgtest-dev clang-format clang-tidy
+```
+
 ## Build
 
 ```bash
@@ -48,6 +56,80 @@ cmake --build build
 ```
 
 The built binary is located at `build/fm`.
+
+## Testing & Quality Checks
+
+The project provides separate CMake targets for each quality check. These targets are **not** run during a normal build — invoke them explicitly with `cmake --build build --target <name>`.
+
+### Configure
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
+```
+
+> `CMAKE_EXPORT_COMPILE_COMMANDS` is enabled by default, which is required by `clang-tidy`. Tests are enabled by default (`FM_BUILD_TESTS=ON`); disable with `-DFM_BUILD_TESTS=OFF`.
+
+### Build
+
+```bash
+cmake --build build
+```
+
+### Run unit tests
+
+```bash
+cmake --build build --target check-tests
+# or directly:
+ctest --test-dir build --output-on-failure
+```
+
+### Code format check
+
+Verifies that all `src/` and `tests/` source files conform to the `.clang-format` style (Qt6 style):
+
+```bash
+cmake --build build --target check-format
+```
+
+To auto-fix formatting:
+
+```bash
+find src tests \( -name '*.cpp' -o -name '*.h' \) -exec clang-format -i {} +
+```
+
+### Static analysis (clang-tidy)
+
+Runs `clang-tidy` on `src/*.cpp` using `compile_commands.json`:
+
+```bash
+cmake --build build --target clang-tidy
+```
+
+### Memory safety (ASan + LSan)
+
+Builds and tests the project with AddressSanitizer + LeakSanitizer in an isolated `build/asan` directory (does not pollute the main build):
+
+```bash
+cmake --build build --target check-asan
+```
+
+### Run all checks
+
+Convenience target that runs format check → clang-tidy → tests → ASan:
+
+```bash
+cmake --build build --target check-all
+```
+
+### Summary of targets
+
+| Target | Action |
+|---|---|
+| `check-format` | clang-format dry-run with `--Werror` |
+| `clang-tidy` | Static analysis on `src/*.cpp` |
+| `check-tests` | Build and run GTest unit tests via ctest |
+| `check-asan` | ASan/LSan build + test in `build/asan` |
+| `check-all` | Run all the above |
 
 ## Installation
 

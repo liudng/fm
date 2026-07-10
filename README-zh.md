@@ -39,6 +39,14 @@ sudo apt install build-essential cmake qt6-l10n-tools
 sudo apt install qt6-base-dev qt6-base-dev-tools
 ```
 
+### 测试与质量工具（可选）
+
+仅在运行单元测试和质量检查时需要（参见 [测试与质量检查](#测试与质量检查)）：
+
+```bash
+sudo apt install libgtest-dev clang-format clang-tidy
+```
+
 ## 构建
 
 ```bash
@@ -48,6 +56,80 @@ cmake --build build
 ```
 
 构建产物位于 `build/fm`。
+
+## 测试与质量检查
+
+项目为每项质量检查都提供了独立的 CMake 自定义 target。这些 target 在普通构建时**不会**自动运行，需显式通过 `cmake --build build --target <名称>` 调用。
+
+### 配置
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
+```
+
+> 默认已启用 `CMAKE_EXPORT_COMPILE_COMMANDS`（`clang-tidy` 必需）。测试默认启用（`FM_BUILD_TESTS=ON`），如需关闭：`-DFM_BUILD_TESTS=OFF`。
+
+### 构建
+
+```bash
+cmake --build build
+```
+
+### 运行单元测试
+
+```bash
+cmake --build build --target check-tests
+# 或直接调用：
+ctest --test-dir build --output-on-failure
+```
+
+### 代码格式检查
+
+校验 `src/` 与 `tests/` 下所有源文件是否符合 `.clang-format` 规范（Qt6 风格）：
+
+```bash
+cmake --build build --target check-format
+```
+
+自动修复格式：
+
+```bash
+find src tests \( -name '*.cpp' -o -name '*.h' \) -exec clang-format -i {} +
+```
+
+### 静态分析（clang-tidy）
+
+使用 `compile_commands.json` 对 `src/*.cpp` 运行 `clang-tidy`：
+
+```bash
+cmake --build build --target clang-tidy
+```
+
+### 内存安全验证（ASan + LSan）
+
+在独立的 `build/asan` 子目录中以 AddressSanitizer + LeakSanitizer 构建并测试（不污染主构建目录）：
+
+```bash
+cmake --build build --target check-asan
+```
+
+### 一键全部检查
+
+便利 target，依次运行：格式检查 → clang-tidy → 测试 → ASan：
+
+```bash
+cmake --build build --target check-all
+```
+
+### target 一览
+
+| Target | 作用 |
+|---|---|
+| `check-format` | clang-format 干运行（带 `--Werror`） |
+| `clang-tidy` | 对 `src/*.cpp` 进行静态分析 |
+| `check-tests` | 构建并通过 ctest 运行 GTest 单元测试 |
+| `check-asan` | 在 `build/asan` 中进行 ASan/LSan 构建 + 测试 |
+| `check-all` | 运行以上全部 |
 
 ## 安装
 
