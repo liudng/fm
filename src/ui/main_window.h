@@ -15,7 +15,8 @@ class PanelWidget;
 class VolumeMenuController;
 class FavoritesMenuController;
 
-class MainWindow : public QMainWindow {
+class MainWindow : public QMainWindow
+{
     Q_OBJECT
 public:
     MainWindow(QWidget *parent = nullptr);
@@ -59,8 +60,8 @@ private:
     void refreshPanelActions();
     void updateToolbar();
     void restoreSession();
-    void applyPanelConfig();          // 从 [Panels] 应用面板配置
-    void applyFileBrowserConfig();    // 从 [File_Browser] 应用浏览器配置
+    void applyPanelConfig();       // 从 [Panels] 应用面板配置
+    void applyFileBrowserConfig(); // 从 [File_Browser] 应用浏览器配置
 
     PanelContainer *panelContainer_ = nullptr;
     QToolBar *toolbar_ = nullptr;

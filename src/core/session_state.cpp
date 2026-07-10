@@ -7,7 +7,8 @@
 
 namespace fm {
 
-QString SessionState::serialize(const LayoutState &state) {
+QString SessionState::serialize(const LayoutState &state)
+{
     // 简易行格式：key=value
     QString out;
     QTextStream ts(&out);
@@ -42,9 +43,10 @@ QString SessionState::serialize(const LayoutState &state) {
     return out;
 }
 
-static QMap<QString, QString> parseKv(const QString &data) {
+static QMap<QString, QString> parseKv(const QString &data)
+{
     QMap<QString, QString> map;
-    QTextStream ts(const_cast<QString*>(&data), QIODevice::ReadOnly);
+    QTextStream ts(const_cast<QString *>(&data), QIODevice::ReadOnly);
     QString line;
     while (ts.readLineInto(&line)) {
         const int eq = line.indexOf('=');
@@ -54,7 +56,8 @@ static QMap<QString, QString> parseKv(const QString &data) {
     return map;
 }
 
-static QList<int> parseIntList(const QString &s) {
+static QList<int> parseIntList(const QString &s)
+{
     QList<int> result;
     for (const QString &part : s.split(',', Qt::SkipEmptyParts)) {
         bool ok = false;
@@ -64,7 +67,8 @@ static QList<int> parseIntList(const QString &s) {
     return result;
 }
 
-bool SessionState::deserialize(const QString &data, LayoutState &outState) {
+bool SessionState::deserialize(const QString &data, LayoutState &outState)
+{
     const auto kv = parseKv(data);
     if (kv.isEmpty()) return false;
 
@@ -82,7 +86,8 @@ bool SessionState::deserialize(const QString &data, LayoutState &outState) {
         for (int t = 0; t < tabCount; ++t) {
             TabState tab;
             tab.path = kv.value(QStringLiteral("panel%1_tab%2_path").arg(p).arg(t));
-            tab.sortColumn = kv.value(QStringLiteral("panel%1_tab%2_sortCol").arg(p).arg(t), "1").toInt();
+            tab.sortColumn =
+                kv.value(QStringLiteral("panel%1_tab%2_sortCol").arg(p).arg(t), "1").toInt();
             tab.sortOrder = static_cast<Qt::SortOrder>(
                 kv.value(QStringLiteral("panel%1_tab%2_sortOrder").arg(p).arg(t), "0").toInt());
             if (!tab.path.isEmpty()) panel.tabs.append(tab);
@@ -91,7 +96,8 @@ bool SessionState::deserialize(const QString &data, LayoutState &outState) {
     return true;
 }
 
-LayoutState SessionState::defaultLayout() {
+LayoutState SessionState::defaultLayout()
+{
     LayoutState state;
     state.orientation = Qt::Horizontal;
     state.panelVisible[0] = true;
@@ -100,7 +106,7 @@ LayoutState SessionState::defaultLayout() {
     const QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     TabState tab;
     tab.path = home;
-    tab.sortColumn = 1;  // Name
+    tab.sortColumn = 1; // Name
     tab.sortOrder = Qt::AscendingOrder;
     state.panels[0].tabs.append(tab);
     state.panels[1].tabs.append(tab);

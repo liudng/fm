@@ -12,7 +12,8 @@ class SingleInstance;
 // 应用程序入口
 // - 单实例检测
 // - 配置加载、翻译、主窗口初始化
-class FmApplication : public QApplication {
+class FmApplication : public QApplication
+{
     Q_OBJECT
 public:
     FmApplication(int &argc, char **argv);

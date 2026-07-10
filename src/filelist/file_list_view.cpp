@@ -10,8 +10,8 @@
 
 namespace fm {
 
-FileListView::FileListView(QWidget *parent)
-    : QTreeView(parent) {
+FileListView::FileListView(QWidget *parent) : QTreeView(parent)
+{
     // 选择行为
     setSelectionMode(QAbstractItemView::ExtendedSelection);
     setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -28,7 +28,8 @@ FileListView::FileListView(QWidget *parent)
 }
 
 void FileListView::setColumnConfig(const QList<int> &visibleColumns,
-                                   const QMap<int, int> &columnWidths) {
+                                   const QMap<int, int> &columnWidths)
+{
     // 隐藏所有列，然后显示指定列
     auto *model = this->model();
     if (!model) return;
@@ -55,7 +56,8 @@ void FileListView::setColumnConfig(const QList<int> &visibleColumns,
     }
 }
 
-void FileListView::mouseDoubleClickEvent(QMouseEvent *event) {
+void FileListView::mouseDoubleClickEvent(QMouseEvent *event)
+{
     if (event->button() != Qt::LeftButton) {
         QTreeView::mouseDoubleClickEvent(event);
         return;
@@ -67,10 +69,10 @@ void FileListView::mouseDoubleClickEvent(QMouseEvent *event) {
     }
 
     // 检查是否 ".." 行
-    auto *proxy = qobject_cast<FileListSortProxy*>(model());
+    auto *proxy = qobject_cast<FileListSortProxy *>(model());
     if (proxy) {
         const QModelIndex srcIndex = proxy->mapToSource(proxyIndex);
-        auto *fileModel = qobject_cast<FileListModel*>(proxy->sourceModel());
+        auto *fileModel = qobject_cast<FileListModel *>(proxy->sourceModel());
         if (fileModel && fileModel->isParentRow(srcIndex)) {
             emit parentDirRequested();
             return;
@@ -80,11 +82,13 @@ void FileListView::mouseDoubleClickEvent(QMouseEvent *event) {
     emit openRequested(proxyIndex);
 }
 
-void FileListView::contextMenuEvent(QContextMenuEvent *event) {
+void FileListView::contextMenuEvent(QContextMenuEvent *event)
+{
     emit contextMenuRequested(event->globalPos());
 }
 
-void FileListView::keyPressEvent(QKeyEvent *event) {
+void FileListView::keyPressEvent(QKeyEvent *event)
+{
     const Qt::KeyboardModifiers mods = event->modifiers();
     const int key = event->key();
 

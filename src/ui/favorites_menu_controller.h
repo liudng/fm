@@ -14,7 +14,8 @@ namespace fm {
 // - 右键收藏项弹出删除菜单
 // - 左键点击收藏项通过 favoriteTriggered 信号通知宿主恢复布局
 // - 点击"添加到收藏..."通过 addFavoriteRequested 信号通知宿主采集当前布局并保存
-class FavoritesMenuController : public QObject {
+class FavoritesMenuController : public QObject
+{
     Q_OBJECT
 public:
     explicit FavoritesMenuController(QMenu *favoritesMenu, QObject *parent = nullptr);

@@ -6,17 +6,17 @@
 
 namespace fm {
 
-ConflictResolver::ConflictResolver(QObject *parent)
-    : QObject(parent) {
-}
+ConflictResolver::ConflictResolver(QObject *parent) : QObject(parent) {}
 
-void ConflictResolver::resetBatchMode() {
+void ConflictResolver::resetBatchMode()
+{
     batchResolution_ = ConflictResolution::Cancel;
     hasBatchResolution_ = false;
 }
 
 ConflictResolution ConflictResolver::resolve(const QUrl &source, const QString &destPath,
-                                                 bool allowBatch) {
+                                             bool allowBatch)
+{
     // 若已有批量记忆且非 Rename（Rename 需要每次输入新名）
     if (hasBatchResolution_ && batchResolution_ != ConflictResolution::RenameAll) {
         return batchResolution_;
@@ -29,8 +29,7 @@ ConflictResolution ConflictResolver::resolve(const QUrl &source, const QString &
         ConflictDialog dlg(sourceName, destPath, allowBatch, nullptr);
         dlg.exec();
         const ConflictResolution r = dlg.resolution();
-        if (r == ConflictResolution::OverwriteAll ||
-            r == ConflictResolution::SkipAll ||
+        if (r == ConflictResolution::OverwriteAll || r == ConflictResolution::SkipAll ||
             r == ConflictResolution::RenameAll) {
             batchResolution_ = r;
             hasBatchResolution_ = true;
@@ -44,9 +43,8 @@ ConflictResolution ConflictResolver::resolve(const QUrl &source, const QString &
     }
     // 工作线程：阻塞等待主线程执行对话框
     ConflictResolution r = ConflictResolution::Cancel;
-    QMetaObject::invokeMethod(this, [&r, &showDialog]() {
-        r = showDialog();
-    }, Qt::BlockingQueuedConnection);
+    QMetaObject::invokeMethod(
+        this, [&r, &showDialog]() { r = showDialog(); }, Qt::BlockingQueuedConnection);
     return r;
 }
 

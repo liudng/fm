@@ -8,29 +8,33 @@
 namespace fm {
 
 // 单个选项卡的状态
-struct TabState {
+struct TabState
+{
     QString path;
-    int sortColumn = 1;  // 默认按"文件全名"列排序
+    int sortColumn = 1; // 默认按"文件全名"列排序
     Qt::SortOrder sortOrder = Qt::AscendingOrder;
 };
 
 // 单个面板的状态
-struct PanelState {
+struct PanelState
+{
     QList<TabState> tabs;
     int activeTabIndex = 0;
 };
 
 // 整体布局状态
-struct LayoutState {
-    Qt::Orientation orientation = Qt::Horizontal;  // 横向=左右，纵向=上下
+struct LayoutState
+{
+    Qt::Orientation orientation = Qt::Horizontal; // 横向=左右，纵向=上下
     PanelState panels[2];
-    QList<int> horizontalSizes;   // 横向布局时的 splitter 比例（像素值）
-    QList<int> verticalSizes;     // 纵向布局时的 splitter 比例（像素值）
+    QList<int> horizontalSizes; // 横向布局时的 splitter 比例（像素值）
+    QList<int> verticalSizes;   // 纵向布局时的 splitter 比例（像素值）
     bool panelVisible[2] = {true, true};
 };
 
 // 会话状态序列化辅助
-class SessionState {
+class SessionState
+{
 public:
     // 序列化/反序列化用于 [Session] section
     static QString serialize(const LayoutState &state);

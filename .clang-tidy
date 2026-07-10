@@ -1,0 +1,57 @@
+---
+# clang-tidy 静态分析配置
+# 参考: https://clang.llvm.org/extra/clang-tidy/checks/list.html
+#
+# 启用规则集:
+#   bugprone-*          — 常见 bug 模式检测
+#   clang-analyzer-*   — 静态分析器
+#   modernize-*         — C++ 现代化改进
+#   performance-*       — 性能优化
+#   readability-*       — 可读性改进
+#
+# 排除规则（与 Qt 模式冲突或噪声过大）:
+#   -bugprone-easily-swappable-parameters     — Qt API 大量使用相似类型参数
+#   -bugprone-branch-clone                     — Qt 信号分支可能相似但语义不同
+#   -cppcoreguidelines-* (仅保留子集)          — Qt 不完全遵循 C++ Core Guidelines
+#   -modernize-use-trailing-return-type       — 非 Qt 惯例
+#   -modernize-use-nodiscard                   — Qt 不使用 [[nodiscard]]
+#   -readability-identifier-naming             — Qt 使用 camelCase, 需自定义规则
+#   -readability-magic-numbers                 — Qt 大量使用魔术数字（枚举值等）
+#   -readability-implicit-bool-conversion      — Qt 惯用 if (ptr) 隐式转换
+#   -readability-else-after-return             — Qt 代码大量使用 early return
+#   -performance-unnecessary-value-param       — Qt 隐式共享类型按值传递是安全的
+
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  cppcoreguidelines-slicing,
+  cppcoreguidelines-pro-type-cstyle-cast,
+  cppcoreguidelines-pro-type-member-init,
+  modernize-*,
+  performance-*,
+  readability-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-branch-clone,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  -modernize-use-default-member-init,
+  -readability-identifier-naming,
+  -readability-magic-numbers,
+  -readability-implicit-bool-conversion,
+  -readability-else-after-return,
+  -readability-function-cognitive-complexity,
+  -readability-suspicious-call-site,
+  -performance-unnecessary-value-param,
+  -performance-no-automatic-move,
+
+# 仅检查项目头文件，不检查系统/Qt 头文件
+HeaderFilterRegex: 'src/.*\.h$'
+
+CheckOptions:
+  # 允许 Qt 隐式共享类型按值传递（不会被实际拷贝）
+  - key:   performance-unnecessary-value-param.AllowedTypes
+    value: 'QString;QStringList;QVariant;QUrl;QList;QVector;QMap;QHash;QPair;QColor;QFont;QPixmap;QIcon;QKeySequence;QSize;QRect;QPoint;QDateTime'
+  # 现代化: 使用 nullptr 替代 0/NULL
+  - key:   modernize-use-nullptr.NullMacros
+    value: 'NULL;Q_NULLPTR;Q_DECL_NULL'

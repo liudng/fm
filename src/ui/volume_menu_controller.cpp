@@ -11,10 +11,11 @@
 namespace fm {
 
 VolumeMenuController::VolumeMenuController(QMenu *fileMenu, QObject *parent)
-    : QObject(parent), fileMenu_(fileMenu) {
-}
+    : QObject(parent), fileMenu_(fileMenu)
+{}
 
-void VolumeMenuController::setup() {
+void VolumeMenuController::setup()
+{
     // 卷项在 aboutToShow 时动态插入到 volSeparator_ 之前；
     // 外部设备项动态插入到 volSeparator_ 与 extSeparator_ 之间
     volSeparator_ = fileMenu_->addSeparator();
@@ -24,7 +25,8 @@ void VolumeMenuController::setup() {
     fileMenu_->installEventFilter(this);
 }
 
-void VolumeMenuController::refresh() {
+void VolumeMenuController::refresh()
+{
     if (!fileMenu_ || !volSeparator_ || !extSeparator_) return;
 
     // 移除旧卷项
@@ -54,14 +56,14 @@ void VolumeMenuController::refresh() {
             if (!v.mountPoint.isEmpty() && text != v.mountPoint) {
                 text += QStringLiteral("  (%1)").arg(v.mountPoint);
             }
-            auto *act = new QAction(QIcon::fromTheme(QStringLiteral("drive-harddisk")), text, fileMenu_);
+            auto *act =
+                new QAction(QIcon::fromTheme(QStringLiteral("drive-harddisk")), text, fileMenu_);
             // data 存储挂载点（左键导航用）；deviceFile/isMounted 供右键用
             act->setData(v.mountPoint);
             act->setProperty("deviceFile", v.deviceFile);
-            act->setProperty("isMounted", true);  // 卷项均为已挂载
-            connect(act, &QAction::triggered, this, [this, mp = v.mountPoint]() {
-                emit navigateRequested(mp);
-            });
+            act->setProperty("isMounted", true); // 卷项均为已挂载
+            connect(act, &QAction::triggered, this,
+                    [this, mp = v.mountPoint]() { emit navigateRequested(mp); });
             fileMenu_->insertAction(volSeparator_, act);
             volActions_.append(act);
         }
@@ -81,12 +83,12 @@ void VolumeMenuController::refresh() {
         fillExternalDevices(watcher->result());
         watcher->deleteLater();
     });
-    watcher->setFuture(QtConcurrent::run([]() {
-        return VolumeManager::instance()->listExternalDevices();
-    }));
+    watcher->setFuture(
+        QtConcurrent::run([]() { return VolumeManager::instance()->listExternalDevices(); }));
 }
 
-void VolumeMenuController::fillExternalDevices(const QList<VolumeInfo> &devices) {
+void VolumeMenuController::fillExternalDevices(const QList<VolumeInfo> &devices)
+{
     if (!fileMenu_ || !extSeparator_) return;
 
     // 清空当前外部设备项（移除"加载中"占位或上一次异步结果）
@@ -112,7 +114,8 @@ void VolumeMenuController::fillExternalDevices(const QList<VolumeInfo> &devices)
             if (d.isMounted && !d.mountPoint.isEmpty()) {
                 text += QStringLiteral("  (%1)").arg(d.mountPoint);
             }
-            auto *act = new QAction(QIcon::fromTheme(QStringLiteral("drive-removable-media")), text, fileMenu_);
+            auto *act = new QAction(QIcon::fromTheme(QStringLiteral("drive-removable-media")), text,
+                                    fileMenu_);
             act->setProperty("deviceFile", d.deviceFile);
             act->setProperty("isMounted", d.isMounted);
             act->setProperty("mountPoint", d.mountPoint);
@@ -123,23 +126,25 @@ void VolumeMenuController::fillExternalDevices(const QList<VolumeInfo> &devices)
     }
 }
 
-bool VolumeMenuController::eventFilter(QObject *obj, QEvent *event) {
+bool VolumeMenuController::eventFilter(QObject *obj, QEvent *event)
+{
     // 文件菜单卷项/外部设备项右键：挂载/卸载/弹出
     if (obj == fileMenu_ && event->type() == QEvent::MouseButtonPress) {
-        auto *me = static_cast<QMouseEvent*>(event);
+        auto *me = static_cast<QMouseEvent *>(event);
         if (me->button() == Qt::RightButton) {
-            auto *menu = static_cast<QMenu*>(obj);
+            auto *menu = static_cast<QMenu *>(obj);
             QAction *act = menu->actionAt(me->pos());
             if (act && (volActions_.contains(act) || extActions_.contains(act))) {
                 showContextMenu(act, me->globalPosition().toPoint());
-                return true;  // 事件已处理
+                return true; // 事件已处理
             }
         }
     }
     return QObject::eventFilter(obj, event);
 }
 
-void VolumeMenuController::showContextMenu(QAction *act, const QPoint &globalPos) {
+void VolumeMenuController::showContextMenu(QAction *act, const QPoint &globalPos)
+{
     const QString deviceFile = act->property("deviceFile").toString();
     if (deviceFile.isEmpty()) return;
 
@@ -161,10 +166,13 @@ void VolumeMenuController::showContextMenu(QAction *act, const QPoint &globalPos
     const QAction *chosen = ctx.exec(globalPos);
     // 确定操作类型：0=mount, 1=unmount, 2=eject, -1=取消
     int op = -1;
-    if (chosen == mountAct) op = 0;
-    else if (chosen == unmountAct) op = 1;
-    else if (chosen == ejectAct) op = 2;
-    if (op < 0) return;  // 用户取消
+    if (chosen == mountAct)
+        op = 0;
+    else if (chosen == unmountAct)
+        op = 1;
+    else if (chosen == ejectAct)
+        op = 2;
+    if (op < 0) return; // 用户取消
 
     // 异步执行卷操作：Eject/Unmount 可能涉及同步缓冲，耗时数秒，
     // 放到工作线程避免阻塞 UI。完成后回主线程刷新菜单。
@@ -183,7 +191,7 @@ void VolumeMenuController::showContextMenu(QAction *act, const QPoint &globalPos
     });
     watcher->setFuture(QtConcurrent::run([deviceFile, op, errMsg]() -> bool {
         if (op == 0) {
-            return !VolumeManager::instance()->mount(deviceFile, errMsg).isEmpty();
+            return VolumeManager::instance()->mount(deviceFile, errMsg);
         } else if (op == 1) {
             return VolumeManager::instance()->unmount(deviceFile, errMsg);
         }

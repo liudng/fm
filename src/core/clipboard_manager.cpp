@@ -1,8 +1,8 @@
 #include "clipboard_manager.h"
 
-#include <QApplication>
 #include <QClipboard>
 #include <QDataStream>
+#include <QGuiApplication>
 #include <QMimeData>
 
 namespace fm {
@@ -10,33 +10,37 @@ namespace fm {
 namespace {
 // 自定义 MIME 用于保存剪切模式标记
 const char *kFmCutMime = "application/x-fm-cut";
-}
+} // namespace
 
-ClipboardManager *ClipboardManager::instance() {
+ClipboardManager *ClipboardManager::instance()
+{
     static ClipboardManager inst;
     return &inst;
 }
 
-ClipboardManager::ClipboardManager(QObject *parent)
-    : QObject(parent) {
+ClipboardManager::ClipboardManager(QObject *parent) : QObject(parent)
+{
     // 监听系统剪贴板变化
-    connect(QApplication::clipboard(), &QClipboard::changed,
-            this, &ClipboardManager::clipboardChanged);
+    connect(QGuiApplication::clipboard(), &QClipboard::changed, this,
+            &ClipboardManager::clipboardChanged);
 }
 
-void ClipboardManager::setFiles(const QList<QUrl> &urls, Mode mode) {
+void ClipboardManager::setFiles(const QList<QUrl> &urls, Mode mode)
+{
     urls_ = urls;
     mode_ = mode;
     syncToSystemClipboard();
     emit clipboardChanged();
 }
 
-bool ClipboardManager::isCut(const QUrl &url) const {
+bool ClipboardManager::isCut(const QUrl &url) const
+{
     if (mode_ != Mode::Cut) return false;
     return urls_.contains(url);
 }
 
-void ClipboardManager::clearCutMarks() {
+void ClipboardManager::clearCutMarks()
+{
     if (mode_ == Mode::Cut) {
         mode_ = Mode::Copy;
         // 不清除系统剪贴板内容（保留为复制源）
@@ -46,8 +50,9 @@ void ClipboardManager::clearCutMarks() {
     }
 }
 
-void ClipboardManager::syncToSystemClipboard() {
-    auto *clipboard = QApplication::clipboard();
+void ClipboardManager::syncToSystemClipboard()
+{
+    auto *clipboard = QGuiApplication::clipboard();
     auto *mime = new QMimeData;
 
     // URI 列表

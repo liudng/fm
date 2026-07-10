@@ -10,7 +10,8 @@ class QPushButton;
 namespace fm {
 
 // 同名冲突处理方式
-enum class ConflictResolution {
+enum class ConflictResolution
+{
     Overwrite,
     Skip,
     Rename,
@@ -22,11 +23,12 @@ enum class ConflictResolution {
 
 // 冲突选择对话框
 // 显示源文件名与目标路径，提供 6 种处理方式 + 取消
-class ConflictDialog : public QDialog {
+class ConflictDialog : public QDialog
+{
     Q_OBJECT
 public:
-    ConflictDialog(const QString &sourceName, const QString &destPath,
-                   bool allowBatch, QWidget *parent = nullptr);
+    ConflictDialog(const QString &sourceName, const QString &destPath, bool allowBatch,
+                   QWidget *parent = nullptr);
 
     ConflictResolution resolution() const { return resolution_; }
 

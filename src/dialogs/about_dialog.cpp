@@ -8,8 +8,8 @@
 
 namespace fm {
 
-AboutDialog::AboutDialog(QWidget *parent)
-    : QDialog(parent) {
+AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent)
+{
     setWindowTitle(tr("About fm"));
     setModal(true);
 
@@ -29,8 +29,7 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<p><b>Author:</b> liudng</p>"
         "<p>Copyright © 2026 liudng</p>"
         "<p>Licensed under GPL-3.0-or-later</p>"
-        "<p><a href=\"https://github.com/liudng/fm-qt\">https://github.com/liudng/fm-qt</a></p>"
-    ));
+        "<p><a href=\"https://github.com/liudng/fm-qt\">https://github.com/liudng/fm-qt</a></p>"));
     label->setAlignment(Qt::AlignCenter);
     label->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::LinksAccessibleByMouse);
     label->setOpenExternalLinks(true);

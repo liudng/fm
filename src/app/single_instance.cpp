@@ -11,17 +11,17 @@ namespace {
 constexpr auto kSocketName = "fm-qt-single-instance";
 }
 
-SingleInstance::SingleInstance(QObject *parent)
-    : QObject(parent) {
-}
+SingleInstance::SingleInstance(QObject *parent) : QObject(parent) {}
 
-SingleInstance::~SingleInstance() {
+SingleInstance::~SingleInstance()
+{
     if (locked_ && server_) {
         server_->close();
     }
 }
 
-bool SingleInstance::tryLock() {
+bool SingleInstance::tryLock()
+{
     // 尝试连接已存在的实例
     QLocalSocket socket;
     socket.connectToServer(kSocketName);
@@ -50,7 +50,8 @@ bool SingleInstance::tryLock() {
     return true;
 }
 
-void SingleInstance::sendPaths(const QStringList &paths) {
+void SingleInstance::sendPaths(const QStringList &paths)
+{
     QLocalSocket socket;
     socket.connectToServer(kSocketName);
     if (!socket.waitForConnected(1000)) return;
@@ -63,7 +64,8 @@ void SingleInstance::sendPaths(const QStringList &paths) {
     socket.disconnectFromServer();
 }
 
-void SingleInstance::onNewConnection() {
+void SingleInstance::onNewConnection()
+{
     QLocalSocket *socket = server_->nextPendingConnection();
     if (!socket) return;
 
@@ -71,8 +73,7 @@ void SingleInstance::onNewConnection() {
     const QByteArray data = socket->readAll();
     socket->deleteLater();
 
-    const QStringList paths = QString::fromUtf8(data).split(QLatin1Char('\n'),
-                                                              Qt::SkipEmptyParts);
+    const QStringList paths = QString::fromUtf8(data).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
     if (!paths.isEmpty()) {
         emit pathsReceived(paths);
     }

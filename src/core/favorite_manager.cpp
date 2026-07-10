@@ -7,25 +7,27 @@
 
 namespace fm {
 
-FavoriteManager *FavoriteManager::instance() {
+FavoriteManager *FavoriteManager::instance()
+{
     static FavoriteManager inst;
     return &inst;
 }
 
-FavoriteManager::FavoriteManager(QObject *parent)
-    : QObject(parent) {
-}
+FavoriteManager::FavoriteManager(QObject *parent) : QObject(parent) {}
 
-QString FavoriteManager::encodeName(const QString &name) const {
+QString FavoriteManager::encodeName(const QString &name) const
+{
     // percent-encoding：对 / = 等特殊字符编码
     return QString::fromUtf8(QUrl::toPercentEncoding(name, QByteArrayLiteral("")));
 }
 
-QString FavoriteManager::decodeName(const QString &encoded) const {
+QString FavoriteManager::decodeName(const QString &encoded) const
+{
     return QUrl::fromPercentEncoding(encoded.toUtf8());
 }
 
-QStringList FavoriteManager::favoriteNames() const {
+QStringList FavoriteManager::favoriteNames() const
+{
     auto *cfg = ConfigManager::instance();
     const QStringList encoded =
         cfg->value(QStringLiteral("Favorites"), QStringLiteral("groups")).toStringList();
@@ -37,7 +39,8 @@ QStringList FavoriteManager::favoriteNames() const {
     return result;
 }
 
-bool FavoriteManager::addFavorite(const QString &name, const LayoutState &state) {
+bool FavoriteManager::addFavorite(const QString &name, const LayoutState &state)
+{
     if (name.isEmpty()) return false;
     const QString encoded = encodeName(name);
 
@@ -49,12 +52,13 @@ bool FavoriteManager::addFavorite(const QString &name, const LayoutState &state)
     groups.append(encoded);
     cfg->setValue(QStringLiteral("Favorites"), QStringLiteral("groups"), groups);
     cfg->setValue(QStringLiteral("Favorites/") + encoded, QStringLiteral("data"),
-                   SessionState::serialize(state));
+                  SessionState::serialize(state));
     emit favoritesChanged();
     return true;
 }
 
-bool FavoriteManager::removeFavorite(const QString &name) {
+bool FavoriteManager::removeFavorite(const QString &name)
+{
     const QString encoded = encodeName(name);
     auto *cfg = ConfigManager::instance();
     QStringList groups =
@@ -67,7 +71,8 @@ bool FavoriteManager::removeFavorite(const QString &name) {
     return true;
 }
 
-bool FavoriteManager::loadFavorite(const QString &name, LayoutState &outState) const {
+bool FavoriteManager::loadFavorite(const QString &name, LayoutState &outState) const
+{
     const QString encoded = encodeName(name);
     auto *cfg = ConfigManager::instance();
     const QString data =

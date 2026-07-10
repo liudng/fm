@@ -12,7 +12,8 @@ namespace fm {
 // - ~/.local/share/Trash/{files,info}
 // - 外部分区根目录 .Trash-1000/{files,info}
 // Q_DECLARE_TR_FUNCTIONS 使非 QObject 类拥有独立翻译上下文
-class TrashCan {
+class TrashCan
+{
     Q_DECLARE_TR_FUNCTIONS(fm::TrashCan)
 public:
     // 将文件移到回收站
@@ -30,12 +31,10 @@ private:
     static bool ensureTrashDir(const QString &trashDir, QString *errorMsg);
 
     // 生成不冲突的目标文件名
-    static QString uniqueTrashName(const QString &trashFilesDir,
-                                    const QString &originalName);
+    static QString uniqueTrashName(const QString &trashFilesDir, const QString &originalName);
 
     // 写 .trashinfo 文件
-    static bool writeTrashInfo(const QString &infoPath,
-                               const QString &originalPath,
+    static bool writeTrashInfo(const QString &infoPath, const QString &originalPath,
                                const QDateTime &deletionTime);
 };
 

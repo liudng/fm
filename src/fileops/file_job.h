@@ -17,7 +17,8 @@ namespace fm {
 // - 管理 QFutureWatcher 生命周期、取消标志、进度对话框
 // - 子类实现 prepare()（主线程预处理）和 execute()（工作线程执行）
 // - 完成后自动 deleteLater()
-class FileJob : public QObject {
+class FileJob : public QObject
+{
     Q_OBJECT
 public:
     explicit FileJob(QObject *parent = nullptr);
@@ -64,7 +65,8 @@ private:
 };
 
 // 彻底删除作业（递归删除）
-class DeleteJob : public FileJob {
+class DeleteJob : public FileJob
+{
     Q_OBJECT
 public:
     DeleteJob(const QList<QUrl> &sources, QObject *parent = nullptr);
@@ -78,7 +80,8 @@ private:
 };
 
 // 移到回收站作业
-class TrashJob : public FileJob {
+class TrashJob : public FileJob
+{
     Q_OBJECT
 public:
     TrashJob(const QList<QUrl> &sources, QObject *parent = nullptr);

@@ -7,7 +7,8 @@
 
 namespace fm {
 
-class PropertiesDialog : public QDialog {
+class PropertiesDialog : public QDialog
+{
     Q_OBJECT
 public:
     explicit PropertiesDialog(const FileItem &item, QWidget *parent = nullptr);

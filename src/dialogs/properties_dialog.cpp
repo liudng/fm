@@ -18,35 +18,40 @@
 namespace fm {
 
 namespace {
-QString permsToString(QFile::Permissions p) {
+QString permsToString(QFile::Permissions p)
+{
     QString s = QStringLiteral("----------");
-    if (p & QFile::ReadOwner)  s[0] = 'r';
+    if (p & QFile::ReadOwner) s[0] = 'r';
     if (p & QFile::WriteOwner) s[1] = 'w';
-    if (p & QFile::ExeOwner)   s[2] = 'x';
-    if (p & QFile::ReadGroup)  s[3] = 'r';
+    if (p & QFile::ExeOwner) s[2] = 'x';
+    if (p & QFile::ReadGroup) s[3] = 'r';
     if (p & QFile::WriteGroup) s[4] = 'w';
-    if (p & QFile::ExeGroup)   s[5] = 'x';
-    if (p & QFile::ReadOther)  s[6] = 'r';
+    if (p & QFile::ExeGroup) s[5] = 'x';
+    if (p & QFile::ReadOther) s[6] = 'r';
     if (p & QFile::WriteOther) s[7] = 'w';
-    if (p & QFile::ExeOther)   s[8] = 'x';
+    if (p & QFile::ExeOther) s[8] = 'x';
     return s;
 }
 
 // 读取配置的日期时间格式
-QString dtFormat() {
-    return ConfigManager::instance()->value(
-        QStringLiteral("File_Browser"), QStringLiteral("dateTimeFormat"),
-        QStringLiteral("yyyy-MM-dd HH:mm")).toString();
+QString dtFormat()
+{
+    return ConfigManager::instance()
+        ->value(QStringLiteral("File_Browser"), QStringLiteral("dateTimeFormat"),
+                QStringLiteral("yyyy-MM-dd HH:mm"))
+        .toString();
 }
 
-QString formatDateTime(const QDateTime &dt) {
+QString formatDateTime(const QDateTime &dt)
+{
     if (!dt.isValid()) return QCoreApplication::translate("fm::PropertiesDialog", "(unknown)");
     const QString fmt = dtFormat();
     return fmt.isEmpty() ? dt.toString(Qt::ISODate) : dt.toString(fmt);
 }
 
 // 获取 ACL（getfacl），去掉注释行
-QString getAcl(const QString &path) {
+QString getAcl(const QString &path)
+{
     QProcess p;
     p.start(QStringLiteral("getfacl"), {QStringLiteral("-cp"), path});
     if (!p.waitForFinished(3000)) return {};
@@ -63,7 +68,8 @@ QString getAcl(const QString &path) {
 }
 
 // 获取 ext2/ext3/ext4/btrfs/xfs 标志位（lsattr）
-QString getExtFlags(const QString &path) {
+QString getExtFlags(const QString &path)
+{
     QProcess p;
     p.start(QStringLiteral("lsattr"), {QStringLiteral("-d"), path});
     if (!p.waitForFinished(3000)) return {};
@@ -74,7 +80,8 @@ QString getExtFlags(const QString &path) {
     return sp > 0 ? out.left(sp) : out;
 }
 
-QWidget *makeRow(const QString &label, const QString &value) {
+QWidget *makeRow(const QString &label, const QString &value)
+{
     auto *w = new QWidget;
     auto *l = new QHBoxLayout(w);
     l->setContentsMargins(0, 0, 0, 0);
@@ -89,10 +96,10 @@ QWidget *makeRow(const QString &label, const QString &value) {
 }
 } // namespace
 
-PropertiesDialog::PropertiesDialog(const FileItem &item, QWidget *parent)
-    : QDialog(parent) {
+PropertiesDialog::PropertiesDialog(const FileItem &item, QWidget *parent) : QDialog(parent)
+{
     setWindowTitle(tr("Properties"));
-    setMinimumWidth(750);  // 较原 500 增加约 1/2
+    setMinimumWidth(750); // 较原 500 增加约 1/2
     setModal(true);
 
     auto *layout = new QVBoxLayout(this);
@@ -100,7 +107,8 @@ PropertiesDialog::PropertiesDialog(const FileItem &item, QWidget *parent)
     // 文件图标 + 名称（顶部）
     auto *headerLayout = new QHBoxLayout();
     auto *iconLabel = new QLabel(this);
-    const QString iconName = item.isDir ? QStringLiteral("folder") : QStringLiteral("text-x-generic");
+    const QString iconName =
+        item.isDir ? QStringLiteral("folder") : QStringLiteral("text-x-generic");
     iconLabel->setPixmap(QIcon::fromTheme(iconName).pixmap(48, 48));
     headerLayout->addWidget(iconLabel);
     auto *nameLabel = new QLabel(QStringLiteral("<b>%1</b>").arg(item.name), this);
@@ -115,10 +123,11 @@ PropertiesDialog::PropertiesDialog(const FileItem &item, QWidget *parent)
     basicLayout->addWidget(makeRow(tr("Path"), item.absolutePath));
     basicLayout->addWidget(makeRow(tr("Type"), item.mimeTypeComment));
     basicLayout->addWidget(makeRow(tr("MIME"), item.mimeTypeName));
-    basicLayout->addWidget(makeRow(tr("Size"),
-        item.isDir ? tr("(folder)") : QLocale().formattedDataSize(item.size)));
-    basicLayout->addWidget(makeRow(tr("Disk Usage"),
-        item.isDir ? tr("(folder)") : QLocale().formattedDataSize(item.diskUsage)));
+    basicLayout->addWidget(
+        makeRow(tr("Size"), item.isDir ? tr("(folder)") : QLocale().formattedDataSize(item.size)));
+    basicLayout->addWidget(
+        makeRow(tr("Disk Usage"),
+                item.isDir ? tr("(folder)") : QLocale().formattedDataSize(item.diskUsage)));
     basicLayout->addWidget(makeRow(tr("Created"), formatDateTime(item.created)));
     basicLayout->addWidget(makeRow(tr("Modified"), formatDateTime(item.modified)));
     basicLayout->addWidget(makeRow(tr("Accessed"), formatDateTime(item.accessed)));
@@ -134,8 +143,7 @@ PropertiesDialog::PropertiesDialog(const FileItem &item, QWidget *parent)
     permLayout->addWidget(makeRow(tr("Permissions"), permsToString(item.permissions)));
     // ACL 访问控制列表
     const QString acl = getAcl(item.absolutePath);
-    permLayout->addWidget(makeRow(tr("ACL"),
-        acl.isEmpty() ? tr("(none or unavailable)") : acl));
+    permLayout->addWidget(makeRow(tr("ACL"), acl.isEmpty() ? tr("(none or unavailable)") : acl));
     permLayout->addWidget(makeRow(tr("Status Changed"), formatDateTime(item.statusChanged)));
     layout->addWidget(permBox);
 
@@ -145,8 +153,8 @@ PropertiesDialog::PropertiesDialog(const FileItem &item, QWidget *parent)
     sysLayout->addWidget(makeRow(tr("Inode"), QString::number(item.inode)));
     // ext2/ext3/ext4/btrfs/xfs 标志位
     const QString flags = getExtFlags(item.absolutePath);
-    sysLayout->addWidget(makeRow(tr("Filesystem Flags"),
-        flags.isEmpty() ? tr("(unavailable)") : flags));
+    sysLayout->addWidget(
+        makeRow(tr("Filesystem Flags"), flags.isEmpty() ? tr("(unavailable)") : flags));
     if (item.isSymLink) {
         sysLayout->addWidget(makeRow(tr("Symlink Target"), item.symLinkTarget));
     }

@@ -10,7 +10,8 @@ namespace fm {
 // - tooltip：完整路径
 // - 支持同一面板内拖拽调整顺序
 // - "+" 新建按钮、"×" 关闭按钮
-class FileTabBar : public QTabBar {
+class FileTabBar : public QTabBar
+{
     Q_OBJECT
 public:
     explicit FileTabBar(QWidget *parent = nullptr);

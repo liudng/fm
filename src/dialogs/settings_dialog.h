@@ -17,7 +17,8 @@ class ISettingsPage;
 // - 左侧 1/5 宽度 sidebar 显示分组（界面、面板、文件浏览、快捷键）
 // - 右侧显示对应分组内容
 // - 底部按钮：取消/应用/确定
-class SettingsDialog : public QDialog {
+class SettingsDialog : public QDialog
+{
     Q_OBJECT
 public:
     explicit SettingsDialog(QWidget *parent = nullptr);
@@ -35,7 +36,7 @@ private slots:
     void onCancel();
 
 private:
-    QList<ISettingsPage*> pages_;
+    QList<ISettingsPage *> pages_;
     QListWidget *sidebar_ = nullptr;
     QStackedWidget *contentStack_ = nullptr;
     QPushButton *applyBtn_ = nullptr;

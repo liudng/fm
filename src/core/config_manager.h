@@ -10,7 +10,8 @@ namespace fm {
 // 配置文件管理（单例）
 // 路径：~/.config/fm/config.ini
 // 提供损坏检测与备份重建
-class ConfigManager : public QObject {
+class ConfigManager : public QObject
+{
     Q_OBJECT
 public:
     static ConfigManager *instance();
@@ -18,8 +19,7 @@ public:
     // 通用读写
     QVariant value(const QString &section, const QString &key,
                    const QVariant &defaultValue = {}) const;
-    void setValue(const QString &section, const QString &key,
-                  const QVariant &value);
+    void setValue(const QString &section, const QString &key, const QVariant &value);
     bool contains(const QString &section, const QString &key) const;
 
     // 配置文件路径

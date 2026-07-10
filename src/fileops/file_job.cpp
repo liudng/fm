@@ -16,12 +16,13 @@ namespace fm {
 // ============================================================
 
 FileJob::FileJob(QObject *parent)
-    : QObject(parent), cancelFlag_(std::make_shared<std::atomic<bool>>(false)) {
-}
+    : QObject(parent), cancelFlag_(std::make_shared<std::atomic<bool>>(false))
+{}
 
 FileJob::~FileJob() = default;
 
-void FileJob::start() {
+void FileJob::start()
+{
     // 主线程预处理（冲突解决、创建进度对话框等）
     if (!prepare()) {
         deleteLater();
@@ -53,28 +54,32 @@ void FileJob::start() {
         deleteLater();
     });
 
-    watcher->setFuture(QtConcurrent::run([this]() -> bool {
-        return execute(&error_);
-    }));
+    watcher->setFuture(QtConcurrent::run([this]() -> bool { return execute(&error_); }));
 }
 
-void FileJob::cancel() {
+void FileJob::cancel()
+{
     cancelFlag_->store(true);
 }
 
-void FileJob::reportProgress(int percent, const QString &currentFile) {
+void FileJob::reportProgress(int percent, const QString &currentFile)
+{
     if (!progressDialog_) return;
     // 使用 QPointer 防止进度对话框在异步投递期间被销毁导致悬空访问
     QPointer<ProgressDialog> pd = progressDialog_;
-    QMetaObject::invokeMethod(pd.data(), [pd, percent, currentFile]() {
-        if (pd) {
-            pd->setProgress(percent);
-            pd->setCurrentFile(currentFile);
-        }
-    }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(
+        pd.data(),
+        [pd, percent, currentFile]() {
+            if (pd) {
+                pd->setProgress(percent);
+                pd->setCurrentFile(currentFile);
+            }
+        },
+        Qt::QueuedConnection);
 }
 
-bool FileJob::removeRecursively(const QString &path, QString *error) {
+bool FileJob::removeRecursively(const QString &path, QString *error)
+{
     QFileInfo fi(path);
     if (fi.isFile()) {
         if (!QFile::remove(path)) {
@@ -84,8 +89,8 @@ bool FileJob::removeRecursively(const QString &path, QString *error) {
         return true;
     }
     QDir dir(path);
-    const QStringList entries = dir.entryList(QDir::Files | QDir::Dirs |
-                                                QDir::NoDotAndDotDot | QDir::Hidden);
+    const QStringList entries =
+        dir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden);
     for (const QString &e : entries) {
         if (!removeRecursively(dir.filePath(e), error)) return false;
     }
@@ -101,10 +106,11 @@ bool FileJob::removeRecursively(const QString &path, QString *error) {
 // ============================================================
 
 DeleteJob::DeleteJob(const QList<QUrl> &sources, QObject *parent)
-    : FileJob(parent), sources_(sources) {
-}
+    : FileJob(parent), sources_(sources)
+{}
 
-bool DeleteJob::execute(QString *error) {
+bool DeleteJob::execute(QString *error)
+{
     for (const QUrl &u : sources_) {
         if (isCanceled()) break;
         if (!removeRecursively(u.toLocalFile(), error)) return false;
@@ -112,7 +118,8 @@ bool DeleteJob::execute(QString *error) {
     return true;
 }
 
-QStringList DeleteJob::affectedDirectories() const {
+QStringList DeleteJob::affectedDirectories() const
+{
     QStringList dirs;
     for (const QUrl &u : sources_) {
         dirs.append(QFileInfo(u.toLocalFile()).absolutePath());
@@ -124,15 +131,16 @@ QStringList DeleteJob::affectedDirectories() const {
 // TrashJob
 // ============================================================
 
-TrashJob::TrashJob(const QList<QUrl> &sources, QObject *parent)
-    : FileJob(parent), sources_(sources) {
-}
+TrashJob::TrashJob(const QList<QUrl> &sources, QObject *parent) : FileJob(parent), sources_(sources)
+{}
 
-bool TrashJob::execute(QString *error) {
+bool TrashJob::execute(QString *error)
+{
     return TrashCan::moveToTrash(sources_, error);
 }
 
-QStringList TrashJob::affectedDirectories() const {
+QStringList TrashJob::affectedDirectories() const
+{
     QStringList dirs;
     for (const QUrl &u : sources_) {
         dirs.append(QFileInfo(u.toLocalFile()).absolutePath());

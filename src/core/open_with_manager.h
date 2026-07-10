@@ -10,7 +10,8 @@ namespace fm {
 // - 持久化 [OpenWith] section 的 MIME 类型 → 应用映射
 // - 格式：<MIME类型>=<应用.desktop 文件路径>
 // - 自动用 xdg-mime 查询默认应用
-class OpenWithManager : public QObject {
+class OpenWithManager : public QObject
+{
     Q_OBJECT
 public:
     static OpenWithManager *instance();

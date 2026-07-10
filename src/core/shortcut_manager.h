@@ -13,12 +13,13 @@ class QAction;
 namespace fm {
 
 // 快捷键项
-struct ShortcutItem {
-    QString id;            // 如 "file.refresh"
-    QString defaultKey;    // 默认快捷键（字符串形式，如 "Ctrl+R"）
-    QString currentKey;    // 当前用户配置
-    bool conflicted = false;       // 是否冲突
-    QString displayText;   // 在设置对话框中显示的标题
+struct ShortcutItem
+{
+    QString id;              // 如 "file.refresh"
+    QString defaultKey;      // 默认快捷键（字符串形式，如 "Ctrl+R"）
+    QString currentKey;      // 当前用户配置
+    bool conflicted = false; // 是否冲突
+    QString displayText;     // 在设置对话框中显示的标题
 };
 
 // 快捷键管理（单例）
@@ -26,7 +27,8 @@ struct ShortcutItem {
 // - 应用到 QAction
 // - 检测冲突（仅第一个生效）
 // - 持久化到 [Shortcuts] section
-class ShortcutManager : public QObject {
+class ShortcutManager : public QObject
+{
     Q_OBJECT
 public:
     static ShortcutManager *instance();
@@ -63,7 +65,7 @@ private:
     // 重新对所有已绑定 QAction 应用当前快捷键（设置变更后调用）
     void reapplyShortcuts();
 
-    QMap<QString, ShortcutItem> items_;     // id -> item
+    QMap<QString, ShortcutItem> items_;               // id -> item
     QMap<QString, QPointer<QAction>> actionBindings_; // id -> QAction（弱引用）
 };
 

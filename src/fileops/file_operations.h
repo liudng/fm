@@ -10,7 +10,8 @@ namespace fm {
 // - 复制/移动/删除/回收站：委托给 Job 类异步执行（FileJob 子类）
 // - 重命名/新建：同步（快速）
 // - 冲突处理：CopyMoveJob 在主线程预扫描阶段弹对话框
-class FileOperations : public QObject {
+class FileOperations : public QObject
+{
     Q_OBJECT
 public:
     static FileOperations *instance();

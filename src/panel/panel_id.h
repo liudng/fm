@@ -5,7 +5,8 @@
 
 namespace fm {
 
-enum class PanelId {
+enum class PanelId
+{
     Panel1 = 0,
     Panel2 = 1
 };

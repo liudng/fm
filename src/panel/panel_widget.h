@@ -20,7 +20,8 @@ struct TabState;
 struct FileItem;
 
 // 单个面板：选项卡栏 + 文件列表视图栈
-class PanelWidget : public QWidget {
+class PanelWidget : public QWidget
+{
     Q_OBJECT
 public:
     PanelWidget(PanelId id, QWidget *parent = nullptr);
@@ -28,7 +29,7 @@ public:
     PanelId id() const { return id_; }
 
     // 选项卡管理
-    int addTab(const QString &path, int index = -1);     // 返回新选项卡索引
+    int addTab(const QString &path, int index = -1); // 返回新选项卡索引
     void closeTab(int index);
     void closeOtherTabs(int index);
     int cloneTab(int index);
@@ -58,7 +59,7 @@ public:
     void showContextMenu(const QPoint &globalPos, bool hasSelection);
 
     // 持久化 QAction（用于工具栏与右键菜单共享）
-    QList<QAction*> toolbarActions() const;
+    QList<QAction *> toolbarActions() const;
     void updateActionStates();
 
     // 活动面板状态（用于活动选项卡粗体显示）
@@ -69,16 +70,16 @@ signals:
     void tabCountChanged();
     void pathChanged(const QString &path);
     void parentDirRequested();
-    void openRequested(const QString &path);     // 进入子文件夹
+    void openRequested(const QString &path); // 进入子文件夹
     void contextMenuRequested(const QPoint &globalPos, bool hasSelection);
-    void selectionChanged();   // 选中项变化时发射
+    void selectionChanged(); // 选中项变化时发射
 
 public slots:
     void navigateBack();
     void navigateForward();
     void navigateUp();
     void refresh();
-    void openPath(const QString &path);  // 在活动选项卡中打开路径
+    void openPath(const QString &path); // 在活动选项卡中打开路径
 
 public slots:
     // 右键菜单/工具栏动作槽
@@ -104,25 +105,26 @@ private slots:
     void onParentDirRequested();
 
 private:
-    struct TabData {
+    struct TabData
+    {
         FileListView *view = nullptr;
         FileListModel *model = nullptr;
         FileListSortProxy *proxy = nullptr;
-        QList<QString> history;     // 导航历史
-        int historyIndex = -1;      // 当前历史位置
+        QList<QString> history; // 导航历史
+        int historyIndex = -1;  // 当前历史位置
     };
 
     void createActions();
     void applyColumnConfig(FileListView *view);
     void navigateTo(const QString &path, bool addHistory);
-    void clearAllTabs();  // 清空所有选项卡（包括最后一个，不受 closeTab 限制）
-    PanelContainer *findContainer() const;  // 向上遍历父链查找 PanelContainer
+    void clearAllTabs();                   // 清空所有选项卡（包括最后一个，不受 closeTab 限制）
+    PanelContainer *findContainer() const; // 向上遍历父链查找 PanelContainer
     QString oppositePanelPath() const;
     bool oppositePanelVisible() const;
     QString currentDir() const;
 
     PanelId id_;
-    bool isActivePanel_ = false;  // 是否为活动面板
+    bool isActivePanel_ = false; // 是否为活动面板
     FileTabBar *tabBar_ = nullptr;
     QStackedWidget *stack_ = nullptr;
     QList<TabData> tabs_;

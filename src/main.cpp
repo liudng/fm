@@ -5,7 +5,8 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     fm::FmApplication app(argc, argv);
 
     // 命令行参数
@@ -14,8 +15,8 @@ int main(int argc, char **argv) {
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addPositionalArgument(QStringLiteral("paths"),
-        QStringLiteral("Optional paths to open in panel1 [panel2]"),
-        QStringLiteral("[path1] [path2]"));
+                                 QStringLiteral("Optional paths to open in panel1 [panel2]"),
+                                 QStringLiteral("[path1] [path2]"));
     parser.process(app);
 
     if (!app.initialize()) {

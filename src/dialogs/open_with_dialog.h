@@ -15,7 +15,8 @@ namespace fm {
 // - 显示应用名称+图标
 // - 支持"其他..."自定义命令
 // - 支持"记住此选择"复选框
-class OpenWithDialog : public QDialog {
+class OpenWithDialog : public QDialog
+{
     Q_OBJECT
 public:
     OpenWithDialog(const QString &mimeType, const QString &fileName, QWidget *parent = nullptr);

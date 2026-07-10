@@ -6,10 +6,10 @@
 
 namespace fm {
 
-FileListSortProxy::FileListSortProxy(QObject *parent)
-    : QSortFilterProxyModel(parent) {}
+FileListSortProxy::FileListSortProxy(QObject *parent) : QSortFilterProxyModel(parent) {}
 
-void FileListSortProxy::sort(int column, Qt::SortOrder order) {
+void FileListSortProxy::sort(int column, Qt::SortOrder order)
+{
     // 仅在主键变更时更新"上次主键"为次键
     // 注意：sort 会被反复调用，仅在列变化时才推进
     if (column != lastSortColumn_) {
@@ -21,15 +21,17 @@ void FileListSortProxy::sort(int column, Qt::SortOrder order) {
     QSortFilterProxyModel::sort(column, order);
 }
 
-QModelIndex FileListSortProxy::parentRowIndex() const {
+QModelIndex FileListSortProxy::parentRowIndex() const
+{
     if (!sourceModel()) return {};
-    auto *model = qobject_cast<FileListModel*>(sourceModel());
+    auto *model = qobject_cast<FileListModel *>(sourceModel());
     if (!model) return {};
     return mapFromSource(model->index(0, 0));
 }
 
-bool FileListSortProxy::lessThan(const QModelIndex &left, const QModelIndex &right) const {
-    auto *model = qobject_cast<FileListModel*>(sourceModel());
+bool FileListSortProxy::lessThan(const QModelIndex &left, const QModelIndex &right) const
+{
+    auto *model = qobject_cast<FileListModel *>(sourceModel());
     if (model) {
         // ".." 行始终排最前，无论升降序
         // 注意：Qt 在降序排序时，会对调 lessThan 的两个参数调用
@@ -38,7 +40,7 @@ bool FileListSortProxy::lessThan(const QModelIndex &left, const QModelIndex &rig
         const bool leftParent = model->isParentRow(left);
         const bool rightParent = model->isParentRow(right);
         if (leftParent && rightParent) return false;
-        if (leftParent)  return lastSortOrder_ == Qt::AscendingOrder;
+        if (leftParent) return lastSortOrder_ == Qt::AscendingOrder;
         if (rightParent) return lastSortOrder_ == Qt::DescendingOrder;
 
         // 文件大小列：按真实字节数比较，而非格式化字符串

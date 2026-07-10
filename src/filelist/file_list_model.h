@@ -12,10 +12,12 @@ namespace fm {
 // 文件列表模型
 // - 第 0 行固定为 ".."（根目录下隐藏）
 // - 行数据来自目录枚举
-class FileListModel : public QAbstractItemModel {
+class FileListModel : public QAbstractItemModel
+{
     Q_OBJECT
 public:
-    enum Column {
+    enum Column
+    {
         ColIcon = 0,
         ColName,
         ColSize,
@@ -35,9 +37,10 @@ public:
     };
     Q_ENUM(Column)
 
-    enum Role {
-        FileItemRole = Qt::UserRole + 1,   // 返回完整 FileItem
-        IsParentRowRole,                    // 是否 ".." 行
+    enum Role
+    {
+        FileItemRole = Qt::UserRole + 1, // 返回完整 FileItem
+        IsParentRowRole,                 // 是否 ".." 行
     };
 
     explicit FileListModel(QObject *parent = nullptr);
@@ -59,8 +62,7 @@ public:
     bool isParentRow(const QModelIndex &index) const;
 
     // QAbstractItemModel 接口
-    QModelIndex index(int row, int column,
-                      const QModelIndex &parent = {}) const override;
+    QModelIndex index(int row, int column, const QModelIndex &parent = {}) const override;
     QModelIndex parent(const QModelIndex &child) const override;
     int rowCount(const QModelIndex &parent = {}) const override;
     int columnCount(const QModelIndex &parent = {}) const override;
@@ -76,15 +78,15 @@ signals:
 private:
     // 行号 0 永远为 ".."（若 hasParent_ 为真）
     bool hasParentRow() const;
-    int parentRowOffset() const;     // 0 或 1
+    int parentRowOffset() const; // 0 或 1
     void loadDirectory();
 
     QString path_;
     QList<FileItem> items_;
     bool showHidden_ = false;
-    bool hasParent_ = false;          // 是否存在 ".." 行
+    bool hasParent_ = false; // 是否存在 ".." 行
     QString lastError_;
-    QString dateTimeFormat_;          // 日期时间显示格式（空=ISO 默认）
+    QString dateTimeFormat_; // 日期时间显示格式（空=ISO 默认）
 };
 
 } // namespace fm

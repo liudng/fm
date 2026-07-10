@@ -27,13 +27,15 @@ constexpr auto kFsWithIface = "org.freedesktop.UDisks2.Filesystem";
 constexpr auto kDriveIface = "org.freedesktop.UDisks2.Drive";
 
 // 从 dbus 属性 map 中读取
-QVariant getProperty(const QVariantMap &props, const QString &key) {
+QVariant getProperty(const QVariantMap &props, const QString &key)
+{
     return props.value(key);
 }
 
 } // namespace
 
-VolumeManager *VolumeManager::instance() {
+VolumeManager *VolumeManager::instance()
+{
     // 用 QPointer 持有单例，并由 qApp 作为 QObject 父对象托管：
     // - 确保 VolumeManager 随 QApplication 析构而析构，信号断开顺序正确
     // - QPointer 防止程序退出阶段访问已销毁对象
@@ -44,8 +46,8 @@ VolumeManager *VolumeManager::instance() {
     return inst;
 }
 
-VolumeManager::VolumeManager(QObject *parent)
-    : QObject(parent) {
+VolumeManager::VolumeManager(QObject *parent) : QObject(parent)
+{
     // 注册 D-Bus 自定义类型，避免读取 MountPoints (aay) 等属性时出现
     // "type QDBusRawType<0x616179>* must be registered with Qt D-Bus" 警告
     qDBusRegisterMetaType<QList<QByteArray>>();
@@ -53,25 +55,27 @@ VolumeManager::VolumeManager(QObject *parent)
 
 // 将设备文件路径（/dev/sdb1）转换为 UDisks2 D-Bus 对象路径
 // (/org/freedesktop/UDisks2/block_devices/sdb1)
-QString toUDisks2ObjectPath(const QString &device) {
+QString toUDisks2ObjectPath(const QString &device)
+{
     if (device.startsWith(QStringLiteral("/org/freedesktop/UDisks2/"))) {
-        return device;  // 已是 D-Bus 路径
+        return device; // 已是 D-Bus 路径
     }
     if (device.startsWith(QStringLiteral("/dev/"))) {
-        return QStringLiteral("/org/freedesktop/UDisks2/block_devices/")
-               + device.mid(5);
+        return QStringLiteral("/org/freedesktop/UDisks2/block_devices/") + device.mid(5);
     }
     return device;
 }
 
-QStringList VolumeManager::enumerateBlockDevices() {
+QStringList VolumeManager::enumerateBlockDevices()
+{
     QStringList result;
     QDBusInterface iface(kUDisks2Service, kManagerPath, kManagerIface,
-                           QDBusConnection::systemBus());
+                         QDBusConnection::systemBus());
     if (!iface.isValid()) return result;
 
     // GetBlockDevices 签名为 (IN a{sv} options)，必须传一个空 dict 参数
-    QDBusReply<QList<QDBusObjectPath>> reply = iface.call(QStringLiteral("GetBlockDevices"), QVariantMap{});
+    QDBusReply<QList<QDBusObjectPath>> reply =
+        iface.call(QStringLiteral("GetBlockDevices"), QVariantMap{});
     if (!reply.isValid()) return result;
 
     for (const QDBusObjectPath &p : reply.value()) {
@@ -80,13 +84,14 @@ QStringList VolumeManager::enumerateBlockDevices() {
     return result;
 }
 
-VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath) {
+VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath)
+{
     VolumeInfo info;
     info.devicePath = blockPath;
 
     // Block 接口
     QDBusInterface blockIface(kUDisks2Service, blockPath, kBlockIface,
-                                QDBusConnection::systemBus());
+                              QDBusConnection::systemBus());
     if (!blockIface.isValid()) return info;
 
     // Device 属性为 ay（字节数组，带尾部 null），用 constData() 在首个 null 截断，
@@ -109,11 +114,10 @@ VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath) {
     // 避免 QDBusInterface::property() 对 aay 类型产生 QDBusRawType 警告
     // （property() 内部走 QDBusRawType 路径，即便注册了 metatype 仍会告警）
     QDBusInterface propsIface(kUDisks2Service, blockPath,
-                                 QStringLiteral("org.freedesktop.DBus.Properties"),
-                                 QDBusConnection::systemBus());
-    QDBusReply<QDBusVariant> mpReply = propsIface.call(QStringLiteral("Get"),
-                                                        kFsWithIface,
-                                                        QStringLiteral("MountPoints"));
+                              QStringLiteral("org.freedesktop.DBus.Properties"),
+                              QDBusConnection::systemBus());
+    QDBusReply<QDBusVariant> mpReply =
+        propsIface.call(QStringLiteral("Get"), kFsWithIface, QStringLiteral("MountPoints"));
     if (mpReply.isValid()) {
         const QVariant v = mpReply.value().variant();
         if (v.canConvert<QDBusArgument>()) {
@@ -141,7 +145,7 @@ VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath) {
     const QString drivePath = blockIface.property("Drive").value<QDBusObjectPath>().path();
     if (!drivePath.isEmpty() && drivePath != "/") {
         QDBusInterface driveIface(kUDisks2Service, drivePath, kDriveIface,
-                                    QDBusConnection::systemBus());
+                                  QDBusConnection::systemBus());
         if (driveIface.isValid()) {
             const bool removable = driveIface.property("Removable").toBool();
             info.isRemovable = removable;
@@ -155,19 +159,20 @@ VolumeInfo VolumeManager::getBlockDeviceProperties(const QString &blockPath) {
 
     // 选择图标
     info.icon = QIcon::fromTheme(info.isRemovable ? QStringLiteral("drive-removable-media")
-                                                    : QStringLiteral("drive-harddisk"));
+                                                  : QStringLiteral("drive-harddisk"));
 
     return info;
 }
 
-QList<VolumeInfo> VolumeManager::listVolumes() {
+QList<VolumeInfo> VolumeManager::listVolumes()
+{
     QList<VolumeInfo> result;
     for (const QStorageInfo &si : QStorageInfo::mountedVolumes()) {
         if (!si.isReady()) continue;
         const QString mp = si.rootPath();
         if (mp == QStringLiteral("/")) continue;
         const QString dev = QString::fromUtf8(si.device());
-        if (!dev.startsWith(QStringLiteral("/dev/"))) continue;  // 跳过伪文件系统
+        if (!dev.startsWith(QStringLiteral("/dev/"))) continue; // 跳过伪文件系统
 
         VolumeInfo info;
         info.deviceFile = dev;
@@ -181,7 +186,8 @@ QList<VolumeInfo> VolumeManager::listVolumes() {
     return result;
 }
 
-QList<VolumeInfo> VolumeManager::listExternalDevices() {
+QList<VolumeInfo> VolumeManager::listExternalDevices()
+{
     QList<VolumeInfo> result;
     const QStringList blockPaths = enumerateBlockDevices();
     for (const QString &bp : blockPaths) {
@@ -195,28 +201,29 @@ QList<VolumeInfo> VolumeManager::listExternalDevices() {
     return result;
 }
 
-QString VolumeManager::mount(const QString &devicePath, QString *errorMsg) {
+bool VolumeManager::mount(const QString &devicePath, QString *errorMsg, QString *mountPoint)
+{
     const QString objPath = toUDisks2ObjectPath(devicePath);
-    QDBusInterface fsIface(kUDisks2Service, objPath, kFsWithIface,
-                            QDBusConnection::systemBus());
+    QDBusInterface fsIface(kUDisks2Service, objPath, kFsWithIface, QDBusConnection::systemBus());
     if (!fsIface.isValid()) {
         if (errorMsg) *errorMsg = tr("Invalid device path: %1").arg(devicePath);
-        return {};
+        return false;
     }
     // Mount(args) 返回挂载点字符串
     QDBusReply<QString> reply = fsIface.call(QStringLiteral("Mount"), QVariantMap{});
     if (!reply.isValid()) {
         if (errorMsg) *errorMsg = reply.error().message();
-        return {};
+        return false;
     }
+    if (mountPoint) *mountPoint = reply.value();
     emit volumesChanged();
-    return reply.value();
+    return true;
 }
 
-bool VolumeManager::unmount(const QString &devicePath, QString *errorMsg) {
+bool VolumeManager::unmount(const QString &devicePath, QString *errorMsg)
+{
     const QString objPath = toUDisks2ObjectPath(devicePath);
-    QDBusInterface fsIface(kUDisks2Service, objPath, kFsWithIface,
-                            QDBusConnection::systemBus());
+    QDBusInterface fsIface(kUDisks2Service, objPath, kFsWithIface, QDBusConnection::systemBus());
     if (!fsIface.isValid()) {
         if (errorMsg) *errorMsg = tr("Invalid device path: %1").arg(devicePath);
         return false;
@@ -230,11 +237,11 @@ bool VolumeManager::unmount(const QString &devicePath, QString *errorMsg) {
     return true;
 }
 
-bool VolumeManager::eject(const QString &devicePath, QString *errorMsg) {
+bool VolumeManager::eject(const QString &devicePath, QString *errorMsg)
+{
     const QString objPath = toUDisks2ObjectPath(devicePath);
     // Eject 需要通过 Drive 接口
-    QDBusInterface blockIface(kUDisks2Service, objPath, kBlockIface,
-                                QDBusConnection::systemBus());
+    QDBusInterface blockIface(kUDisks2Service, objPath, kBlockIface, QDBusConnection::systemBus());
     const QString drivePath = blockIface.property("Drive").value<QDBusObjectPath>().path();
     if (drivePath.isEmpty() || drivePath == "/") {
         if (errorMsg) *errorMsg = tr("No drive for device: %1").arg(devicePath);
@@ -242,7 +249,7 @@ bool VolumeManager::eject(const QString &devicePath, QString *errorMsg) {
     }
 
     QDBusInterface driveIface(kUDisks2Service, drivePath, kDriveIface,
-                                QDBusConnection::systemBus());
+                              QDBusConnection::systemBus());
     QDBusReply<void> reply = driveIface.call(QStringLiteral("Eject"), QVariantMap{});
     if (!reply.isValid()) {
         if (errorMsg) *errorMsg = reply.error().message();

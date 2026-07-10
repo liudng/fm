@@ -5,7 +5,7 @@
 
 #include "../core/clipboard_manager.h"
 #include "../core/open_with_manager.h"
-#include "../dialogs/conflict_dialog.h"  // ConflictResolution (for qRegisterMetaType)
+#include "../dialogs/conflict_dialog.h" // ConflictResolution (for qRegisterMetaType)
 #include "../dialogs/error_dialog.h"
 
 #include <QDesktopServices>
@@ -19,17 +19,19 @@
 
 namespace fm {
 
-FileOperations *FileOperations::instance() {
+FileOperations *FileOperations::instance()
+{
     static FileOperations inst;
     return &inst;
 }
 
-FileOperations::FileOperations(QObject *parent)
-    : QObject(parent) {
+FileOperations::FileOperations(QObject *parent) : QObject(parent)
+{
     qRegisterMetaType<ConflictResolution>("fm::ConflictResolution");
 }
 
-void FileOperations::copy(const QList<QUrl> &sources, const QString &destDir) {
+void FileOperations::copy(const QList<QUrl> &sources, const QString &destDir)
+{
     auto *job = new CopyMoveJob(sources, destDir, false, this);
     connect(job, &FileJob::directoryChanged, this, &FileOperations::directoryChanged);
     connect(job, &FileJob::completed, this, &FileOperations::operationCompleted);
@@ -37,7 +39,8 @@ void FileOperations::copy(const QList<QUrl> &sources, const QString &destDir) {
     job->start();
 }
 
-void FileOperations::move(const QList<QUrl> &sources, const QString &destDir) {
+void FileOperations::move(const QList<QUrl> &sources, const QString &destDir)
+{
     auto *job = new CopyMoveJob(sources, destDir, true, this);
     connect(job, &FileJob::directoryChanged, this, &FileOperations::directoryChanged);
     connect(job, &FileJob::completed, this, &FileOperations::operationCompleted);
@@ -45,7 +48,8 @@ void FileOperations::move(const QList<QUrl> &sources, const QString &destDir) {
     job->start();
 }
 
-void FileOperations::trash(const QList<QUrl> &sources) {
+void FileOperations::trash(const QList<QUrl> &sources)
+{
     auto *job = new TrashJob(sources, this);
     connect(job, &FileJob::directoryChanged, this, &FileOperations::directoryChanged);
     connect(job, &FileJob::completed, this, &FileOperations::operationCompleted);
@@ -53,7 +57,8 @@ void FileOperations::trash(const QList<QUrl> &sources) {
     job->start();
 }
 
-void FileOperations::deletePermanently(const QList<QUrl> &sources) {
+void FileOperations::deletePermanently(const QList<QUrl> &sources)
+{
     auto *job = new DeleteJob(sources, this);
     connect(job, &FileJob::directoryChanged, this, &FileOperations::directoryChanged);
     connect(job, &FileJob::completed, this, &FileOperations::operationCompleted);
@@ -61,7 +66,8 @@ void FileOperations::deletePermanently(const QList<QUrl> &sources) {
     job->start();
 }
 
-void FileOperations::pasteFromClipboard(const QString &destDir) {
+void FileOperations::pasteFromClipboard(const QString &destDir)
+{
     auto *clip = ClipboardManager::instance();
     if (!clip->hasFiles()) {
         ErrorDialog::show(nullptr, tr("Clipboard is empty."));
@@ -77,7 +83,8 @@ void FileOperations::pasteFromClipboard(const QString &destDir) {
     }
 }
 
-void FileOperations::rename(const QUrl &target, const QString &newName) {
+void FileOperations::rename(const QUrl &target, const QString &newName)
+{
     const QString src = target.toLocalFile();
     const QFileInfo fi(src);
     const QString dst = fi.absolutePath() + QDir::separator() + newName;
@@ -94,7 +101,8 @@ void FileOperations::rename(const QUrl &target, const QString &newName) {
     emit operationCompleted();
 }
 
-void FileOperations::createFile(const QString &dir, const QString &name) {
+void FileOperations::createFile(const QString &dir, const QString &name)
+{
     const QString path = dir + QDir::separator() + name;
     QFile f(path);
     if (!f.open(QIODevice::WriteOnly)) {
@@ -106,7 +114,8 @@ void FileOperations::createFile(const QString &dir, const QString &name) {
     emit operationCompleted();
 }
 
-void FileOperations::createDir(const QString &dir, const QString &name) {
+void FileOperations::createDir(const QString &dir, const QString &name)
+{
     const QString path = dir + QDir::separator() + name;
     if (!QDir().mkdir(path)) {
         ErrorDialog::show(nullptr, tr("Cannot create folder: %1").arg(path));
@@ -116,7 +125,8 @@ void FileOperations::createDir(const QString &dir, const QString &name) {
     emit operationCompleted();
 }
 
-void FileOperations::openWithDefault(const QUrl &file) {
+void FileOperations::openWithDefault(const QUrl &file)
+{
     const QString path = file.toLocalFile();
     const QFileInfo fi(path);
     if (!fi.isFile()) {
@@ -143,7 +153,8 @@ void FileOperations::openWithDefault(const QUrl &file) {
     QDesktopServices::openUrl(file);
 }
 
-void FileOperations::openWithApplication(const QUrl &file, const QString &desktopFile) {
+void FileOperations::openWithApplication(const QUrl &file, const QString &desktopFile)
+{
     // 解析 .desktop 文件的 Exec 字段
     QFile f(desktopFile);
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -182,7 +193,8 @@ void FileOperations::openWithApplication(const QUrl &file, const QString &deskto
     QProcess::startDetached(QStringLiteral("/bin/sh"), {QStringLiteral("-c"), cmd});
 }
 
-void FileOperations::openWithCommand(const QUrl &file, const QString &command) {
+void FileOperations::openWithCommand(const QUrl &file, const QString &command)
+{
     const QString path = file.toLocalFile();
     QString cmd = command;
     cmd.replace(QStringLiteral("%f"), QStringLiteral("\"%1\"").arg(path));

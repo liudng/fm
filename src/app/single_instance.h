@@ -12,7 +12,8 @@ namespace fm {
 // - tryLock() 尝试绑定本地 socket
 // - 已运行实例：sendPaths() 把命令行路径发送给运行中的实例
 // - 运行实例：通过 pathsReceived 信号接收新调用
-class SingleInstance : public QObject {
+class SingleInstance : public QObject
+{
     Q_OBJECT
 public:
     explicit SingleInstance(QObject *parent = nullptr);

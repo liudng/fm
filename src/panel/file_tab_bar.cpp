@@ -11,10 +11,10 @@ namespace fm {
 namespace {
 constexpr int kMaxTitleChars = 16;
 constexpr int kNewTabButtonWidth = 28;
-}
+} // namespace
 
-FileTabBar::FileTabBar(QWidget *parent)
-    : QTabBar(parent) {
+FileTabBar::FileTabBar(QWidget *parent) : QTabBar(parent)
+{
     setMovable(true);
     setExpanding(false);
     setElideMode(Qt::ElideNone);
@@ -26,20 +26,23 @@ FileTabBar::FileTabBar(QWidget *parent)
             [this](int index) { emit closeTabRequested(index); });
 }
 
-QString FileTabBar::elideTitle(const QString &folderName) {
+QString FileTabBar::elideTitle(const QString &folderName)
+{
     if (folderName.length() <= kMaxTitleChars) return folderName;
     return folderName.left(kMaxTitleChars - 1) + QStringLiteral("…");
 }
 
-void FileTabBar::setTabPath(int index, const QString &path) {
+void FileTabBar::setTabPath(int index, const QString &path)
+{
     if (index < 0 || index >= count()) return;
     QString folderName = QDir(path).dirName();
-    if (folderName.isEmpty()) folderName = path;  // 根目录
+    if (folderName.isEmpty()) folderName = path; // 根目录
     setTabText(index, elideTitle(folderName));
     setTabToolTip(index, path);
 }
 
-QRect FileTabBar::newTabButtonRect() const {
+QRect FileTabBar::newTabButtonRect() const
+{
     // "+" 按钮位于最后一个选项卡右侧
     if (count() == 0) {
         return QRect(4, 0, kNewTabButtonWidth, height());
@@ -49,11 +52,13 @@ QRect FileTabBar::newTabButtonRect() const {
     return QRect(startX, 0, kNewTabButtonWidth, lastTabRect.height());
 }
 
-bool FileTabBar::isNewTabButton(const QPoint &pos) const {
+bool FileTabBar::isNewTabButton(const QPoint &pos) const
+{
     return newTabButtonRect().contains(pos);
 }
 
-void FileTabBar::mousePressEvent(QMouseEvent *event) {
+void FileTabBar::mousePressEvent(QMouseEvent *event)
+{
     if (event->button() == Qt::LeftButton) {
         // "+" 新建按钮
         if (isNewTabButton(event->pos())) {
@@ -67,7 +72,8 @@ void FileTabBar::mousePressEvent(QMouseEvent *event) {
     QTabBar::mousePressEvent(event);
 }
 
-void FileTabBar::contextMenuEvent(QContextMenuEvent *event) {
+void FileTabBar::contextMenuEvent(QContextMenuEvent *event)
+{
     const int index = tabAt(event->pos());
     if (index >= 0) {
         emit contextMenuRequested(index, event->globalPos());
@@ -77,11 +83,13 @@ void FileTabBar::contextMenuEvent(QContextMenuEvent *event) {
     }
 }
 
-void FileTabBar::mouseMoveEvent(QMouseEvent *event) {
+void FileTabBar::mouseMoveEvent(QMouseEvent *event)
+{
     QTabBar::mouseMoveEvent(event);
 }
 
-void FileTabBar::paintEvent(QPaintEvent *event) {
+void FileTabBar::paintEvent(QPaintEvent *event)
+{
     QTabBar::paintEvent(event);
 
     // 在最后一个选项卡右侧绘制 "+" 新建按钮图标

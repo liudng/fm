@@ -10,10 +10,15 @@ namespace fm {
 // - 复制/剪切文件路径以 URI 形式存入系统剪贴板（text/uri-list）
 // - 维护剪切标记，区分复制/剪切
 // - 标准剪贴板行为：再次剪切时旧剪切项恢复
-class ClipboardManager : public QObject {
+class ClipboardManager : public QObject
+{
     Q_OBJECT
 public:
-    enum class Mode { Copy, Cut };
+    enum class Mode
+    {
+        Copy,
+        Cut
+    };
 
     static ClipboardManager *instance();
 

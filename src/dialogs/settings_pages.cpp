@@ -31,8 +31,8 @@ namespace fm {
 
 // ============ UiSettingsPage ============
 
-UiSettingsPage::UiSettingsPage(QObject *parent)
-    : QObject(parent) {
+UiSettingsPage::UiSettingsPage(QObject *parent) : QObject(parent)
+{
     widget_ = new QWidget;
 
     auto *layout = new QVBoxLayout(widget_);
@@ -86,16 +86,20 @@ UiSettingsPage::UiSettingsPage(QObject *parent)
     layout->addStretch(1);
 }
 
-QString UiSettingsPage::title() const { return tr("Interface"); }
+QString UiSettingsPage::title() const
+{
+    return tr("Interface");
+}
 
-void UiSettingsPage::load() {
+void UiSettingsPage::load()
+{
     auto *cfg = ConfigManager::instance();
-    origLang_ = cfg->value(QStringLiteral("UI"), QStringLiteral("language"),
-                            QStringLiteral("en")).toString();
-    origTheme_ = cfg->value(QStringLiteral("UI"), QStringLiteral("theme"),
-                             QStringLiteral("Fusion")).toString();
-    origIconTheme_ = cfg->value(QStringLiteral("UI"), QStringLiteral("iconTheme"),
-                                  QString()).toString();
+    origLang_ = cfg->value(QStringLiteral("UI"), QStringLiteral("language"), QStringLiteral("en"))
+                    .toString();
+    origTheme_ = cfg->value(QStringLiteral("UI"), QStringLiteral("theme"), QStringLiteral("Fusion"))
+                     .toString();
+    origIconTheme_ =
+        cfg->value(QStringLiteral("UI"), QStringLiteral("iconTheme"), QString()).toString();
 
     // 选择当前值
     for (int i = 0; i < langCombo_->count(); ++i) {
@@ -118,7 +122,8 @@ void UiSettingsPage::load() {
     }
 }
 
-void UiSettingsPage::apply() {
+void UiSettingsPage::apply()
+{
     auto *cfg = ConfigManager::instance();
     const QString lang = langCombo_->currentData().toString();
     const QString theme = themeCombo_->currentData().toString();
@@ -133,8 +138,8 @@ void UiSettingsPage::apply() {
 
 // ============ PanelSettingsPage ============
 
-PanelSettingsPage::PanelSettingsPage(QObject *parent)
-    : QObject(parent) {
+PanelSettingsPage::PanelSettingsPage(QObject *parent) : QObject(parent)
+{
     widget_ = new QWidget;
 
     auto *layout = new QVBoxLayout(widget_);
@@ -173,15 +178,23 @@ PanelSettingsPage::PanelSettingsPage(QObject *parent)
             &PanelSettingsPage::onPanelVisibilityChanged);
 }
 
-QString PanelSettingsPage::title() const { return tr("Panels"); }
+QString PanelSettingsPage::title() const
+{
+    return tr("Panels");
+}
 
-void PanelSettingsPage::load() {
+void PanelSettingsPage::load()
+{
     auto *cfg = ConfigManager::instance();
     origOrientation_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("orientation"),
-                                    static_cast<int>(Qt::Horizontal)).toInt();
-    origPanel1Visible_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true).toBool();
-    origPanel2Visible_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), true).toBool();
-    origTabsClosable_ = cfg->value(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false).toBool();
+                                  static_cast<int>(Qt::Horizontal))
+                           .toInt();
+    origPanel1Visible_ =
+        cfg->value(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true).toBool();
+    origPanel2Visible_ =
+        cfg->value(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), true).toBool();
+    origTabsClosable_ =
+        cfg->value(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false).toBool();
 
     (origOrientation_ == Qt::Horizontal ? horizontalRadio_ : verticalRadio_)->setChecked(true);
     panel1VisibleCheck_->setChecked(origPanel1Visible_);
@@ -190,7 +203,8 @@ void PanelSettingsPage::load() {
     onPanelVisibilityChanged();
 }
 
-void PanelSettingsPage::apply() {
+void PanelSettingsPage::apply()
+{
     auto *cfg = ConfigManager::instance();
     const int orient = horizontalRadio_->isChecked() ? Qt::Horizontal : Qt::Vertical;
     const bool p1Visible = panel1VisibleCheck_->isChecked();
@@ -208,7 +222,8 @@ void PanelSettingsPage::apply() {
     origTabsClosable_ = tabsClosable;
 }
 
-void PanelSettingsPage::onPanelVisibilityChanged() {
+void PanelSettingsPage::onPanelVisibilityChanged()
+{
     // 至少保持一个面板显示：禁用最后一个的取消操作
     if (panel1VisibleCheck_->isChecked() && !panel2VisibleCheck_->isChecked()) {
         panel1VisibleCheck_->setEnabled(false);
@@ -222,8 +237,8 @@ void PanelSettingsPage::onPanelVisibilityChanged() {
 
 // ============ FileBrowserSettingsPage ============
 
-FileBrowserSettingsPage::FileBrowserSettingsPage(QObject *parent)
-    : QObject(parent) {
+FileBrowserSettingsPage::FileBrowserSettingsPage(QObject *parent) : QObject(parent)
+{
     widget_ = new QWidget;
 
     auto *layout = new QVBoxLayout(widget_);
@@ -240,35 +255,34 @@ FileBrowserSettingsPage::FileBrowserSettingsPage(QObject *parent)
     dtLayout->addWidget(dateTimeFormatEdit_);
 
     // 占位符说明
-    auto *hint = new QLabel(
-        tr("<b>Format placeholders</b> (Qt date/time format):<br>"
-           "<table cellpadding='2'>"
-           "<tr><td><b>yyyy</b></td><td>4-digit year (2026)</td>"
-               "<td><b>yy</b></td><td>2-digit year (26)</td></tr>"
-           "<tr><td><b>MM</b></td><td>Month, 2 digits (01-12)</td>"
-               "<td><b>M</b></td><td>Month, no leading zero (1-12)</td></tr>"
-           "<tr><td><b>MMM</b></td><td>Short month name (Jan)</td>"
-               "<td><b>MMMM</b></td><td>Long month name (January)</td></tr>"
-           "<tr><td><b>dd</b></td><td>Day, 2 digits (01-31)</td>"
-               "<td><b>d</b></td><td>Day, no leading zero (1-31)</td></tr>"
-           "<tr><td><b>ddd</b></td><td>Short day name (Mon)</td>"
-               "<td><b>dddd</b></td><td>Long day name (Monday)</td></tr>"
-           "<tr><td><b>HH</b></td><td>Hour 24h, 2 digits (00-23)</td>"
-               "<td><b>H</b></td><td>Hour 24h, no leading zero (0-23)</td></tr>"
-           "<tr><td><b>hh</b></td><td>Hour 12h, 2 digits (01-12)</td>"
-               "<td><b>h</b></td><td>Hour 12h, no leading zero (1-12)</td></tr>"
-           "<tr><td><b>mm</b></td><td>Minute, 2 digits (00-59)</td>"
-               "<td><b>m</b></td><td>Minute, no leading zero (0-59)</td></tr>"
-           "<tr><td><b>ss</b></td><td>Second, 2 digits (00-59)</td>"
-               "<td><b>s</b></td><td>Second, no leading zero (0-59)</td></tr>"
-           "<tr><td><b>ap</b></td><td>am/pm (lowercase)</td>"
-               "<td><b>AP</b></td><td>AM/PM (uppercase)</td></tr>"
-           "<tr><td><b>zzz</b></td><td>Milliseconds (000-999)</td>"
-               "<td><b>z</b></td><td>Milliseconds, no leading zero</td></tr>"
-           "</table>"
-           "<br>Leave empty to use the default <i>yyyy-MM-dd HH:mm</i>.<br>"
-           "Examples: <code>yyyy-MM-dd</code>, <code>yyyy/MM/dd HH:mm</code>, "
-           "<code>MMM d, yyyy h:mm AP</code>"));
+    auto *hint = new QLabel(tr("<b>Format placeholders</b> (Qt date/time format):<br>"
+                               "<table cellpadding='2'>"
+                               "<tr><td><b>yyyy</b></td><td>4-digit year (2026)</td>"
+                               "<td><b>yy</b></td><td>2-digit year (26)</td></tr>"
+                               "<tr><td><b>MM</b></td><td>Month, 2 digits (01-12)</td>"
+                               "<td><b>M</b></td><td>Month, no leading zero (1-12)</td></tr>"
+                               "<tr><td><b>MMM</b></td><td>Short month name (Jan)</td>"
+                               "<td><b>MMMM</b></td><td>Long month name (January)</td></tr>"
+                               "<tr><td><b>dd</b></td><td>Day, 2 digits (01-31)</td>"
+                               "<td><b>d</b></td><td>Day, no leading zero (1-31)</td></tr>"
+                               "<tr><td><b>ddd</b></td><td>Short day name (Mon)</td>"
+                               "<td><b>dddd</b></td><td>Long day name (Monday)</td></tr>"
+                               "<tr><td><b>HH</b></td><td>Hour 24h, 2 digits (00-23)</td>"
+                               "<td><b>H</b></td><td>Hour 24h, no leading zero (0-23)</td></tr>"
+                               "<tr><td><b>hh</b></td><td>Hour 12h, 2 digits (01-12)</td>"
+                               "<td><b>h</b></td><td>Hour 12h, no leading zero (1-12)</td></tr>"
+                               "<tr><td><b>mm</b></td><td>Minute, 2 digits (00-59)</td>"
+                               "<td><b>m</b></td><td>Minute, no leading zero (0-59)</td></tr>"
+                               "<tr><td><b>ss</b></td><td>Second, 2 digits (00-59)</td>"
+                               "<td><b>s</b></td><td>Second, no leading zero (0-59)</td></tr>"
+                               "<tr><td><b>ap</b></td><td>am/pm (lowercase)</td>"
+                               "<td><b>AP</b></td><td>AM/PM (uppercase)</td></tr>"
+                               "<tr><td><b>zzz</b></td><td>Milliseconds (000-999)</td>"
+                               "<td><b>z</b></td><td>Milliseconds, no leading zero</td></tr>"
+                               "</table>"
+                               "<br>Leave empty to use the default <i>yyyy-MM-dd HH:mm</i>.<br>"
+                               "Examples: <code>yyyy-MM-dd</code>, <code>yyyy/MM/dd HH:mm</code>, "
+                               "<code>MMM d, yyyy h:mm AP</code>"));
     hint->setTextFormat(Qt::RichText);
     hint->setWordWrap(true);
     dtLayout->addWidget(hint);
@@ -283,16 +297,22 @@ FileBrowserSettingsPage::FileBrowserSettingsPage(QObject *parent)
     layout->addWidget(colsBox, 1);
 }
 
-QString FileBrowserSettingsPage::title() const { return tr("File Browser"); }
+QString FileBrowserSettingsPage::title() const
+{
+    return tr("File Browser");
+}
 
-void FileBrowserSettingsPage::load() {
+void FileBrowserSettingsPage::load()
+{
     auto *cfg = ConfigManager::instance();
-    origShowHidden_ = cfg->value(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false).toBool();
+    origShowHidden_ =
+        cfg->value(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false).toBool();
     showHiddenCheck_->setChecked(origShowHidden_);
 
-    origDateTimeFormat_ = cfg->value(QStringLiteral("File_Browser"),
-                                        QStringLiteral("dateTimeFormat"),
-                                        QStringLiteral("yyyy-MM-dd HH:mm")).toString();
+    origDateTimeFormat_ =
+        cfg->value(QStringLiteral("File_Browser"), QStringLiteral("dateTimeFormat"),
+                   QStringLiteral("yyyy-MM-dd HH:mm"))
+            .toString();
     dateTimeFormatEdit_->setText(origDateTimeFormat_);
 
     // 列选择
@@ -308,7 +328,8 @@ void FileBrowserSettingsPage::load() {
     }
 }
 
-void FileBrowserSettingsPage::apply() {
+void FileBrowserSettingsPage::apply()
+{
     auto *cfg = ConfigManager::instance();
     const bool showHidden = showHiddenCheck_->isChecked();
     cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), showHidden);
@@ -341,8 +362,8 @@ void FileBrowserSettingsPage::apply() {
 
 // ============ ShortcutSettingsPage ============
 
-ShortcutSettingsPage::ShortcutSettingsPage(QObject *parent)
-    : QObject(parent) {
+ShortcutSettingsPage::ShortcutSettingsPage(QObject *parent) : QObject(parent)
+{
     widget_ = new QWidget;
 
     auto *layout = new QVBoxLayout(widget_);
@@ -357,13 +378,18 @@ ShortcutSettingsPage::ShortcutSettingsPage(QObject *parent)
     layout->addWidget(table_, 1);
 
     // 提示
-    auto *hint = new QLabel(tr("Double-click a shortcut cell to edit. Conflicting items shown in red."));
+    auto *hint =
+        new QLabel(tr("Double-click a shortcut cell to edit. Conflicting items shown in red."));
     layout->addWidget(hint);
 }
 
-QString ShortcutSettingsPage::title() const { return tr("Shortcuts"); }
+QString ShortcutSettingsPage::title() const
+{
+    return tr("Shortcuts");
+}
 
-void ShortcutSettingsPage::load() {
+void ShortcutSettingsPage::load()
+{
     const QList<ShortcutItem> items = ShortcutManager::instance()->allShortcuts();
 
     // 定义显示顺序（按相关性分组）
@@ -461,10 +487,12 @@ void ShortcutSettingsPage::load() {
 
     // 连接 cellChanged 以更新内存中的编辑
     connect(table_, &QTableWidget::cellChanged, this, &ShortcutSettingsPage::onCellChanged);
-    connect(table_, &QTableWidget::cellDoubleClicked, this, &ShortcutSettingsPage::onItemDoubleClicked);
+    connect(table_, &QTableWidget::cellDoubleClicked, this,
+            &ShortcutSettingsPage::onItemDoubleClicked);
 }
 
-void ShortcutSettingsPage::apply() {
+void ShortcutSettingsPage::apply()
+{
     auto *sm = ShortcutManager::instance();
     for (int i = 0; i < table_->rowCount(); ++i) {
         auto *nameItem = table_->item(i, 0);
@@ -478,14 +506,16 @@ void ShortcutSettingsPage::apply() {
     refreshConflictHighlight();
 }
 
-void ShortcutSettingsPage::onCellChanged(int row, int column) {
+void ShortcutSettingsPage::onCellChanged(int row, int column)
+{
     if (column != 1) return;
     auto *keyItem = table_->item(row, column);
     if (!keyItem) return;
     editedShortcuts_[row] = keyItem->text();
 }
 
-void ShortcutSettingsPage::onItemDoubleClicked(int row, int column) {
+void ShortcutSettingsPage::onItemDoubleClicked(int row, int column)
+{
     if (column != 1) return;
     // 弹出 QKeySequenceEdit 对话框获取新快捷键
     QDialog dlg(widget_);
@@ -509,7 +539,8 @@ void ShortcutSettingsPage::onItemDoubleClicked(int row, int column) {
     }
 }
 
-void ShortcutSettingsPage::refreshConflictHighlight() {
+void ShortcutSettingsPage::refreshConflictHighlight()
+{
     // 收集所有当前快捷键，标记冲突项
     QMap<QString, QList<int>> keyToRows;
     for (int i = 0; i < table_->rowCount(); ++i) {
@@ -545,8 +576,8 @@ void ShortcutSettingsPage::refreshConflictHighlight() {
 
 // ============ FileOperationsSettingsPage ============
 
-FileOperationsSettingsPage::FileOperationsSettingsPage(QObject *parent)
-    : QObject(parent) {
+FileOperationsSettingsPage::FileOperationsSettingsPage(QObject *parent) : QObject(parent)
+{
     widget_ = new QWidget;
 
     auto *layout = new QVBoxLayout(widget_);
@@ -563,15 +594,14 @@ FileOperationsSettingsPage::FileOperationsSettingsPage(QObject *parent)
     chunkLayout->addLayout(spinRow);
 
     // 推荐值说明
-    auto *hint = new QLabel(
-        QStringLiteral(
-           "<b>推荐值：</b><br>"
-           "&bull; <b>1 MB</b> — HDD（机械硬盘），进度更新细腻<br>"
-           "&bull; <b>4 MB</b> — SATA SSD，减少系统调用开销<br>"
-           "&bull; <b>8–16 MB</b> — NVMe SSD，最大化吞吐<br>"
-           "<br>"
-           "分块越大，系统调用次数越少，但单次拷贝的进度更新粒度越粗。"
-           "对于大文件复制，较大的分块能更好地利用顺序 IO 吞吐。"));
+    auto *hint =
+        new QLabel(QStringLiteral("<b>推荐值：</b><br>"
+                                  "&bull; <b>1 MB</b> — HDD（机械硬盘），进度更新细腻<br>"
+                                  "&bull; <b>4 MB</b> — SATA SSD，减少系统调用开销<br>"
+                                  "&bull; <b>8–16 MB</b> — NVMe SSD，最大化吞吐<br>"
+                                  "<br>"
+                                  "分块越大，系统调用次数越少，但单次拷贝的进度更新粒度越粗。"
+                                  "对于大文件复制，较大的分块能更好地利用顺序 IO 吞吐。"));
     hint->setTextFormat(Qt::RichText);
     hint->setWordWrap(true);
     chunkLayout->addWidget(hint);
@@ -580,16 +610,21 @@ FileOperationsSettingsPage::FileOperationsSettingsPage(QObject *parent)
     layout->addStretch(1);
 }
 
-QString FileOperationsSettingsPage::title() const { return tr("File Operations"); }
+QString FileOperationsSettingsPage::title() const
+{
+    return tr("File Operations");
+}
 
-void FileOperationsSettingsPage::load() {
+void FileOperationsSettingsPage::load()
+{
     auto *cfg = ConfigManager::instance();
-    origChunkSizeMB_ = cfg->value(QStringLiteral("File_Operations"),
-                                    QStringLiteral("chunkSizeMB"), 1).toInt();
+    origChunkSizeMB_ =
+        cfg->value(QStringLiteral("File_Operations"), QStringLiteral("chunkSizeMB"), 1).toInt();
     chunkSizeSpin_->setValue(origChunkSizeMB_);
 }
 
-void FileOperationsSettingsPage::apply() {
+void FileOperationsSettingsPage::apply()
+{
     auto *cfg = ConfigManager::instance();
     const int mb = chunkSizeSpin_->value();
     cfg->setValue(QStringLiteral("File_Operations"), QStringLiteral("chunkSizeMB"), mb);

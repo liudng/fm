@@ -11,8 +11,8 @@
 
 namespace fm {
 
-SettingsDialog::SettingsDialog(QWidget *parent)
-    : QDialog(parent) {
+SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent)
+{
     setWindowTitle(tr("Settings"));
     setMinimumSize(800, 500);
 
@@ -40,18 +40,20 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     connect(sidebar_, &QListWidget::currentRowChanged, this, &SettingsDialog::onPageChanged);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &SettingsDialog::onOk);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &SettingsDialog::onCancel);
-    connect(buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked,
-            this, &SettingsDialog::onApply);
+    connect(buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked, this,
+            &SettingsDialog::onApply);
 }
 
-void SettingsDialog::addPage(ISettingsPage *page) {
+void SettingsDialog::addPage(ISettingsPage *page)
+{
     pages_.append(page);
     sidebar_->addItem(page->title());
     contentStack_->addWidget(page->widget());
     page->load();
 }
 
-void SettingsDialog::showPage(const QString &pageId) {
+void SettingsDialog::showPage(const QString &pageId)
+{
     for (int i = 0; i < pages_.size(); ++i) {
         if (pages_.at(i)->id() == pageId) {
             sidebar_->setCurrentRow(i);
@@ -60,23 +62,27 @@ void SettingsDialog::showPage(const QString &pageId) {
     }
 }
 
-void SettingsDialog::onPageChanged(int index) {
+void SettingsDialog::onPageChanged(int index)
+{
     if (index < 0 || index >= contentStack_->count()) return;
     contentStack_->setCurrentIndex(index);
 }
 
-void SettingsDialog::onApply() {
+void SettingsDialog::onApply()
+{
     for (ISettingsPage *p : pages_) {
         p->apply();
     }
 }
 
-void SettingsDialog::onOk() {
+void SettingsDialog::onOk()
+{
     onApply();
     accept();
 }
 
-void SettingsDialog::onCancel() {
+void SettingsDialog::onCancel()
+{
     // 恢复到上次 apply 的状态
     for (ISettingsPage *p : pages_) {
         p->reset();

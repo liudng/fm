@@ -33,16 +33,18 @@
 
 namespace fm {
 
-PanelWidget::PanelWidget(PanelId id, QWidget *parent)
-    : QWidget(parent), id_(id) {
+PanelWidget::PanelWidget(PanelId id, QWidget *parent) : QWidget(parent), id_(id)
+{
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
     tabBar_ = new FileTabBar(this);
     // 选项卡关闭按钮是否显示由配置控制（默认不启用）
-    tabBar_->setTabsClosable(ConfigManager::instance()->value(
-        QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false).toBool());
+    tabBar_->setTabsClosable(
+        ConfigManager::instance()
+            ->value(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false)
+            .toBool());
     layout->addWidget(tabBar_);
 
     stack_ = new QStackedWidget(this);
@@ -55,7 +57,7 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
         if (from < 0 || from >= tabs_.size() || to < 0 || to >= tabs_.size()) return;
         tabs_.move(from, to);
         QWidget *w = stack_->widget(from);
-        if (w) stack_->insertWidget(to, w);  // 重新插入到目标位置
+        if (w) stack_->insertWidget(to, w); // 重新插入到目标位置
         // 确保当前显示的 widget 与选项卡栏一致
         stack_->setCurrentIndex(tabBar_->currentIndex());
     });
@@ -64,48 +66,53 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
         addTab(activeTabPath(), -1);
     });
     connect(tabBar_, &FileTabBar::closeTabRequested, this, &PanelWidget::closeTab);
-    connect(tabBar_, &FileTabBar::contextMenuRequested, this, [this](int index, const QPoint &globalPos) {
-        QMenu menu(this);
-        auto *closeAct = menu.addAction(tr("Close"));
-        closeAct->setEnabled(tabCount() > 1);  // 最后一个不可关闭
-        auto *closeOthersAct = menu.addAction(tr("Close Others"));
-        closeOthersAct->setEnabled(tabCount() > 1);
-        menu.addAction(tr("Clone"));
-        const QAction *chosen = menu.exec(globalPos);
-        if (chosen == closeAct) {
-            closeTab(index);
-        } else if (chosen == closeOthersAct) {
-            closeOtherTabs(index);
-        } else if (chosen) {
-            cloneTab(index);
-        }
-    });
+    connect(tabBar_, &FileTabBar::contextMenuRequested, this,
+            [this](int index, const QPoint &globalPos) {
+                QMenu menu(this);
+                auto *closeAct = menu.addAction(tr("Close"));
+                closeAct->setEnabled(tabCount() > 1); // 最后一个不可关闭
+                auto *closeOthersAct = menu.addAction(tr("Close Others"));
+                closeOthersAct->setEnabled(tabCount() > 1);
+                menu.addAction(tr("Clone"));
+                const QAction *chosen = menu.exec(globalPos);
+                if (chosen == closeAct) {
+                    closeTab(index);
+                } else if (chosen == closeOthersAct) {
+                    closeOtherTabs(index);
+                } else if (chosen) {
+                    cloneTab(index);
+                }
+            });
 
     // 文件操作完成后自动刷新受影响的目录
-    connect(FileOperations::instance(), &FileOperations::directoryChanged,
-            this, [this](const QString &dir) {
-        // 检查所有选项卡是否在该目录下
-        for (const auto &td : std::as_const(tabs_)) {
-            if (td.model && td.model->path() == dir) {
-                td.model->reload();
-            }
-        }
-    });
+    connect(FileOperations::instance(), &FileOperations::directoryChanged, this,
+            [this](const QString &dir) {
+                // 检查所有选项卡是否在该目录下
+                for (const auto &td : std::as_const(tabs_)) {
+                    if (td.model && td.model->path() == dir) {
+                        td.model->reload();
+                    }
+                }
+            });
 
     // 监听配置变更（隐藏文件、列设置、选项卡关闭按钮）
     auto *cfg = ConfigManager::instance();
     connect(cfg, &ConfigManager::configChanged, this, [this](const QString &section) {
         if (section == QStringLiteral("Panels")) {
-            const bool closable = ConfigManager::instance()->value(
-                QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false).toBool();
+            const bool closable =
+                ConfigManager::instance()
+                    ->value(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false)
+                    .toBool();
             tabBar_->setTabsClosable(closable);
         } else if (section == QStringLiteral("File_Browser")) {
             auto *c = ConfigManager::instance();
-            const bool showHidden = c->value(QStringLiteral("File_Browser"),
-                                                QStringLiteral("showHidden"), false).toBool();
-            const QString dtFmt = c->value(QStringLiteral("File_Browser"),
-                                              QStringLiteral("dateTimeFormat"),
-                                              QStringLiteral("yyyy-MM-dd HH:mm")).toString();
+            const bool showHidden =
+                c->value(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false)
+                    .toBool();
+            const QString dtFmt =
+                c->value(QStringLiteral("File_Browser"), QStringLiteral("dateTimeFormat"),
+                         QStringLiteral("yyyy-MM-dd HH:mm"))
+                    .toString();
             for (const auto &td : std::as_const(tabs_)) {
                 if (td.model) {
                     td.model->setShowHidden(showHidden);
@@ -123,12 +130,14 @@ PanelWidget::PanelWidget(PanelId id, QWidget *parent)
     createActions();
 }
 
-void PanelWidget::applyColumnConfig(FileListView *view) {
+void PanelWidget::applyColumnConfig(FileListView *view)
+{
     // 通过 ColumnManager 应用配置
     ColumnManager::instance()->applyToView(view);
 }
 
-int PanelWidget::addTab(const QString &path, int index) {
+int PanelWidget::addTab(const QString &path, int index)
+{
     if (path.isEmpty()) return -1;
 
     auto *view = new FileListView(this);
@@ -170,13 +179,14 @@ int PanelWidget::addTab(const QString &path, int index) {
 
     // 应用隐藏文件配置
     auto *cfg = ConfigManager::instance();
-    const bool showHidden = cfg->value(QStringLiteral("File_Browser"),
-                                          QStringLiteral("showHidden"), false).toBool();
+    const bool showHidden =
+        cfg->value(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false).toBool();
     model->setShowHidden(showHidden);
     // 应用日期时间格式
-    const QString dtFmt = cfg->value(QStringLiteral("File_Browser"),
-                                        QStringLiteral("dateTimeFormat"),
-                                        QStringLiteral("yyyy-MM-dd HH:mm")).toString();
+    const QString dtFmt =
+        cfg->value(QStringLiteral("File_Browser"), QStringLiteral("dateTimeFormat"),
+                   QStringLiteral("yyyy-MM-dd HH:mm"))
+            .toString();
     model->setDateTimeFormat(dtFmt);
 
     // 注册到 ColumnManager
@@ -185,26 +195,24 @@ int PanelWidget::addTab(const QString &path, int index) {
     // 连接信号
     connect(view, &FileListView::openRequested, this, &PanelWidget::onOpenRequested);
     connect(view, &FileListView::parentDirRequested, this, &PanelWidget::onParentDirRequested);
-    connect(view, &FileListView::contextMenuRequested, this,
-            [this, view](const QPoint &globalPos) {
-                // 在 ".." 行右键：视为"无选中"（见需求 5.3.1）
-                const QPoint viewportPos = view->mapFromGlobal(globalPos);
-                const QModelIndex proxyIndex = view->indexAt(viewportPos);
-                bool onParentRow = false;
-                auto *proxy = qobject_cast<FileListSortProxy*>(view->model());
-                if (proxy && proxyIndex.isValid()) {
-                    auto *fileModel = qobject_cast<FileListModel*>(proxy->sourceModel());
-                    if (fileModel && fileModel->isParentRow(proxy->mapToSource(proxyIndex))) {
-                        onParentRow = true;
-                    }
-                }
-                const bool hasSelection = !onParentRow &&
-                    !view->selectionModel()->selectedRows().isEmpty();
-                // 内部直接处理菜单
-                showContextMenu(globalPos, hasSelection);
-                // 同时通知外部（如主窗口工具栏更新）
-                emit contextMenuRequested(globalPos, hasSelection);
-            });
+    connect(view, &FileListView::contextMenuRequested, this, [this, view](const QPoint &globalPos) {
+        // 在 ".." 行右键：视为"无选中"（见需求 5.3.1）
+        const QPoint viewportPos = view->mapFromGlobal(globalPos);
+        const QModelIndex proxyIndex = view->indexAt(viewportPos);
+        bool onParentRow = false;
+        auto *proxy = qobject_cast<FileListSortProxy *>(view->model());
+        if (proxy && proxyIndex.isValid()) {
+            auto *fileModel = qobject_cast<FileListModel *>(proxy->sourceModel());
+            if (fileModel && fileModel->isParentRow(proxy->mapToSource(proxyIndex))) {
+                onParentRow = true;
+            }
+        }
+        const bool hasSelection = !onParentRow && !view->selectionModel()->selectedRows().isEmpty();
+        // 内部直接处理菜单
+        showContextMenu(globalPos, hasSelection);
+        // 同时通知外部（如主窗口工具栏更新）
+        emit contextMenuRequested(globalPos, hasSelection);
+    });
 
     // 键盘导航信号
     connect(view, &FileListView::openKeyPressed, this, &PanelWidget::onOpen);
@@ -212,7 +220,8 @@ int PanelWidget::addTab(const QString &path, int index) {
     connect(view, &FileListView::refreshRequested, this, &PanelWidget::refresh);
     connect(view, &FileListView::selectAllRequested, view, &QAbstractItemView::selectAll);
     connect(view, &FileListView::trashRequested, this, &PanelWidget::onTrash);
-    connect(view, &FileListView::deletePermanentlyRequested, this, &PanelWidget::onDeletePermanently);
+    connect(view, &FileListView::deletePermanentlyRequested, this,
+            &PanelWidget::onDeletePermanently);
     connect(view, &FileListView::copyRequested, this, &PanelWidget::onCopy);
     connect(view, &FileListView::cutRequested, this, &PanelWidget::onCut);
     connect(view, &FileListView::pasteRequested, this, &PanelWidget::onPaste);
@@ -241,8 +250,9 @@ int PanelWidget::addTab(const QString &path, int index) {
     return index;
 }
 
-void PanelWidget::closeTab(int index) {
-    if (tabs_.size() <= 1) return;  // 至少保留一个选项卡
+void PanelWidget::closeTab(int index)
+{
+    if (tabs_.size() <= 1) return; // 至少保留一个选项卡
     if (index < 0 || index >= tabs_.size()) return;
 
     // 先从 ColumnManager 注销
@@ -262,7 +272,8 @@ void PanelWidget::closeTab(int index) {
     emit tabCountChanged();
 }
 
-void PanelWidget::closeOtherTabs(int index) {
+void PanelWidget::closeOtherTabs(int index)
+{
     if (index < 0 || index >= tabs_.size()) return;
     // 从末尾向开头删除非 index 项
     for (int i = tabs_.size() - 1; i >= 0; --i) {
@@ -272,52 +283,69 @@ void PanelWidget::closeOtherTabs(int index) {
     setActiveTab(qMin(index, tabs_.size() - 1));
 }
 
-int PanelWidget::cloneTab(int index) {
+int PanelWidget::cloneTab(int index)
+{
     if (index < 0 || index >= tabs_.size()) return -1;
     const QString path = tabPath(index);
     return addTab(path, index + 1);
 }
 
-int PanelWidget::tabCount() const { return tabs_.size(); }
+int PanelWidget::tabCount() const
+{
+    return tabs_.size();
+}
 
-int PanelWidget::activeTabIndex() const { return tabBar_->currentIndex(); }
+int PanelWidget::activeTabIndex() const
+{
+    return tabBar_->currentIndex();
+}
 
-void PanelWidget::setActiveTab(int index) {
+void PanelWidget::setActiveTab(int index)
+{
     if (index >= 0 && index < tabs_.size()) {
         tabBar_->setCurrentIndex(index);
     }
 }
 
-QString PanelWidget::tabPath(int index) const {
+QString PanelWidget::tabPath(int index) const
+{
     if (index < 0 || index >= tabs_.size()) return {};
     return tabs_.at(index).model->path();
 }
 
-QString PanelWidget::activeTabPath() const {
+QString PanelWidget::activeTabPath() const
+{
     return tabPath(activeTabIndex());
 }
 
-FileListView *PanelWidget::listView() const {
+FileListView *PanelWidget::listView() const
+{
     int idx = activeTabIndex();
     if (idx < 0 || idx >= tabs_.size()) return nullptr;
     return tabs_.at(idx).view;
 }
 
-FileListModel *PanelWidget::model() const {
+FileListModel *PanelWidget::model() const
+{
     int idx = activeTabIndex();
     if (idx < 0 || idx >= tabs_.size()) return nullptr;
     return tabs_.at(idx).model;
 }
 
-FileListSortProxy *PanelWidget::proxyModel() const {
+FileListSortProxy *PanelWidget::proxyModel() const
+{
     int idx = activeTabIndex();
     if (idx < 0 || idx >= tabs_.size()) return nullptr;
     return tabs_.at(idx).proxy;
 }
 
-FileTabBar *PanelWidget::tabBar() const { return tabBar_; }
+FileTabBar *PanelWidget::tabBar() const
+{
+    return tabBar_;
+}
 
-void PanelWidget::onTabChanged(int index) {
+void PanelWidget::onTabChanged(int index)
+{
     if (index < 0 || index >= tabs_.size()) return;
     stack_->setCurrentIndex(index);
     updateActionStates();
@@ -326,7 +354,8 @@ void PanelWidget::onTabChanged(int index) {
     emit selectionChanged();
 }
 
-void PanelWidget::navigateTo(const QString &path, bool addHistory) {
+void PanelWidget::navigateTo(const QString &path, bool addHistory)
+{
     int idx = activeTabIndex();
     if (idx < 0 || idx >= tabs_.size()) return;
     auto &td = tabs_[idx];
@@ -341,7 +370,8 @@ void PanelWidget::navigateTo(const QString &path, bool addHistory) {
     updateActionStates();
 }
 
-void PanelWidget::onOpenRequested(const QModelIndex &proxyIndex) {
+void PanelWidget::onOpenRequested(const QModelIndex &proxyIndex)
+{
     auto *proxy = proxyModel();
     if (!proxy) return;
     const QModelIndex src = proxy->mapToSource(proxyIndex);
@@ -356,7 +386,8 @@ void PanelWidget::onOpenRequested(const QModelIndex &proxyIndex) {
     // 文件打开在后续阶段实现
 }
 
-void PanelWidget::onParentDirRequested() {
+void PanelWidget::onParentDirRequested()
+{
     int idx = activeTabIndex();
     if (idx < 0 || idx >= tabs_.size()) return;
     const QString current = tabs_.at(idx).model->path();
@@ -368,7 +399,8 @@ void PanelWidget::onParentDirRequested() {
     }
 }
 
-void PanelWidget::navigateBack() {
+void PanelWidget::navigateBack()
+{
     int idx = activeTabIndex();
     if (idx < 0 || idx >= tabs_.size()) return;
     auto &td = tabs_[idx];
@@ -378,7 +410,8 @@ void PanelWidget::navigateBack() {
     }
 }
 
-void PanelWidget::navigateForward() {
+void PanelWidget::navigateForward()
+{
     int idx = activeTabIndex();
     if (idx < 0 || idx >= tabs_.size()) return;
     auto &td = tabs_[idx];
@@ -388,21 +421,27 @@ void PanelWidget::navigateForward() {
     }
 }
 
-void PanelWidget::navigateUp() { onParentDirRequested(); }
+void PanelWidget::navigateUp()
+{
+    onParentDirRequested();
+}
 
-void PanelWidget::refresh() {
+void PanelWidget::refresh()
+{
     int idx = activeTabIndex();
     if (idx < 0 || idx >= tabs_.size()) return;
     tabs_.at(idx).model->reload();
 }
 
-void PanelWidget::openPath(const QString &path) {
+void PanelWidget::openPath(const QString &path)
+{
     navigateTo(path, true);
 }
 
 // === 持久化动作 ===
 
-void PanelWidget::createActions() {
+void PanelWidget::createActions()
+{
     const auto sc = Qt::WidgetWithChildrenShortcut;
 
     // 导航
@@ -429,16 +468,19 @@ void PanelWidget::createActions() {
     });
 
     // 新建
-    actNewFile_ = new QAction(QIcon::fromTheme(QStringLiteral("document-new")), tr("New &File"), this);
+    actNewFile_ =
+        new QAction(QIcon::fromTheme(QStringLiteral("document-new")), tr("New &File"), this);
     actNewFile_->setShortcutContext(sc);
     connect(actNewFile_, &QAction::triggered, this, &PanelWidget::onNewFile);
 
-    actNewFolder_ = new QAction(QIcon::fromTheme(QStringLiteral("folder-new")), tr("New &Folder"), this);
+    actNewFolder_ =
+        new QAction(QIcon::fromTheme(QStringLiteral("folder-new")), tr("New &Folder"), this);
     actNewFolder_->setShortcut(QKeySequence(Qt::Key_F7));
     actNewFolder_->setShortcutContext(sc);
     connect(actNewFolder_, &QAction::triggered, this, &PanelWidget::onNewFolder);
 
-    actRefresh_ = new QAction(QIcon::fromTheme(QStringLiteral("view-refresh")), tr("&Refresh"), this);
+    actRefresh_ =
+        new QAction(QIcon::fromTheme(QStringLiteral("view-refresh")), tr("&Refresh"), this);
     actRefresh_->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
     actRefresh_->setShortcutContext(sc);
     connect(actRefresh_, &QAction::triggered, this, &PanelWidget::refresh);
@@ -448,11 +490,13 @@ void PanelWidget::createActions() {
     actOpen_->setShortcutContext(sc);
     connect(actOpen_, &QAction::triggered, this, &PanelWidget::onOpen);
 
-    actOpenWith_ = new QAction(QIcon::fromTheme(QStringLiteral("applications-other")), tr("Open &With..."), this);
+    actOpenWith_ = new QAction(QIcon::fromTheme(QStringLiteral("applications-other")),
+                               tr("Open &With..."), this);
     actOpenWith_->setShortcutContext(sc);
     connect(actOpenWith_, &QAction::triggered, this, &PanelWidget::onOpenWith);
 
-    actRename_ = new QAction(QIcon::fromTheme(QStringLiteral("document-save-as")), tr("&Rename"), this);
+    actRename_ =
+        new QAction(QIcon::fromTheme(QStringLiteral("document-save-as")), tr("&Rename"), this);
     actRename_->setShortcut(QKeySequence(Qt::Key_F2));
     actRename_->setShortcutContext(sc);
     connect(actRename_, &QAction::triggered, this, &PanelWidget::onRename);
@@ -472,81 +516,82 @@ void PanelWidget::createActions() {
     actPaste_->setShortcutContext(sc);
     connect(actPaste_, &QAction::triggered, this, &PanelWidget::onPaste);
 
-    actCutToOpp_ = new QAction(QIcon::fromTheme(QStringLiteral("document-send")), tr("Cut to &Opposite"), this);
+    actCutToOpp_ = new QAction(QIcon::fromTheme(QStringLiteral("document-send")),
+                               tr("Cut to &Opposite"), this);
     actCutToOpp_->setShortcutContext(sc);
     connect(actCutToOpp_, &QAction::triggered, this, &PanelWidget::onCutToOpposite);
 
-    actCopyToOpp_ = new QAction(QIcon::fromTheme(QStringLiteral("go-jump")), tr("Copy to O&pposite"), this);
+    actCopyToOpp_ =
+        new QAction(QIcon::fromTheme(QStringLiteral("go-jump")), tr("Copy to O&pposite"), this);
     actCopyToOpp_->setShortcutContext(sc);
     connect(actCopyToOpp_, &QAction::triggered, this, &PanelWidget::onCopyToOpposite);
 
-    actCopyPath_ = new QAction(QIcon::fromTheme(QStringLiteral("insert-link")), tr("Copy &Path"), this);
+    actCopyPath_ =
+        new QAction(QIcon::fromTheme(QStringLiteral("insert-link")), tr("Copy &Path"), this);
     actCopyPath_->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C));
     actCopyPath_->setShortcutContext(sc);
     connect(actCopyPath_, &QAction::triggered, this, &PanelWidget::onCopyPath);
 
-    actCopyName_ = new QAction(QIcon::fromTheme(QStringLiteral("text-x-generic")), tr("Copy File &Name"), this);
+    actCopyName_ = new QAction(QIcon::fromTheme(QStringLiteral("text-x-generic")),
+                               tr("Copy File &Name"), this);
     actCopyName_->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N));
     actCopyName_->setShortcutContext(sc);
     connect(actCopyName_, &QAction::triggered, this, &PanelWidget::onCopyFileName);
 
-    actTrash_ = new QAction(QIcon::fromTheme(QStringLiteral("user-trash")), tr("Move to &Trash"), this);
+    actTrash_ =
+        new QAction(QIcon::fromTheme(QStringLiteral("user-trash")), tr("Move to &Trash"), this);
     actTrash_->setShortcut(QKeySequence(Qt::Key_Delete));
     actTrash_->setShortcutContext(sc);
     connect(actTrash_, &QAction::triggered, this, &PanelWidget::onTrash);
 
-    actDelete_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-delete")), tr("&Delete Permanently"), this);
+    actDelete_ = new QAction(QIcon::fromTheme(QStringLiteral("edit-delete")),
+                             tr("&Delete Permanently"), this);
     actDelete_->setShortcut(QKeySequence(Qt::SHIFT | Qt::Key_Delete));
     actDelete_->setShortcutContext(sc);
     connect(actDelete_, &QAction::triggered, this, &PanelWidget::onDeletePermanently);
 
-    actProperties_ = new QAction(QIcon::fromTheme(QStringLiteral("document-properties")), tr("P&roperties"), this);
+    actProperties_ = new QAction(QIcon::fromTheme(QStringLiteral("document-properties")),
+                                 tr("P&roperties"), this);
     actProperties_->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Return));
     actProperties_->setShortcutContext(sc);
     connect(actProperties_, &QAction::triggered, this, &PanelWidget::onProperties);
 
     // 通过 ShortcutManager 应用用户自定义快捷键（覆盖默认值）
     auto *sm = ShortcutManager::instance();
-    sm->applyToAction(actBack_,         QStringLiteral("filelist.back"));
-    sm->applyToAction(actForward_,      QStringLiteral("filelist.forward"));
-    sm->applyToAction(actUp_,           QStringLiteral("filelist.up"));
-    sm->applyToAction(actNewFile_,      QStringLiteral("file.new_file"));
-    sm->applyToAction(actNewFolder_,    QStringLiteral("file.new_folder"));
-    sm->applyToAction(actRefresh_,      QStringLiteral("filelist.refresh"));
-    sm->applyToAction(actOpen_,         QStringLiteral("filelist.open"));
-    sm->applyToAction(actOpenWith_,     QStringLiteral("filelist.open_with"));
-    sm->applyToAction(actRename_,       QStringLiteral("filelist.rename"));
-    sm->applyToAction(actCut_,          QStringLiteral("filelist.cut"));
-    sm->applyToAction(actCopy_,         QStringLiteral("filelist.copy"));
-    sm->applyToAction(actPaste_,        QStringLiteral("filelist.paste"));
-    sm->applyToAction(actCutToOpp_,     QStringLiteral("filelist.cut_to_opposite"));
-    sm->applyToAction(actCopyToOpp_,    QStringLiteral("filelist.copy_to_opposite"));
-    sm->applyToAction(actCopyPath_,     QStringLiteral("filelist.copy_path"));
-    sm->applyToAction(actCopyName_,     QStringLiteral("filelist.copy_name"));
-    sm->applyToAction(actTrash_,       QStringLiteral("filelist.trash"));
-    sm->applyToAction(actDelete_,      QStringLiteral("filelist.delete"));
-    sm->applyToAction(actProperties_,   QStringLiteral("filelist.properties"));
+    sm->applyToAction(actBack_, QStringLiteral("filelist.back"));
+    sm->applyToAction(actForward_, QStringLiteral("filelist.forward"));
+    sm->applyToAction(actUp_, QStringLiteral("filelist.up"));
+    sm->applyToAction(actNewFile_, QStringLiteral("file.new_file"));
+    sm->applyToAction(actNewFolder_, QStringLiteral("file.new_folder"));
+    sm->applyToAction(actRefresh_, QStringLiteral("filelist.refresh"));
+    sm->applyToAction(actOpen_, QStringLiteral("filelist.open"));
+    sm->applyToAction(actOpenWith_, QStringLiteral("filelist.open_with"));
+    sm->applyToAction(actRename_, QStringLiteral("filelist.rename"));
+    sm->applyToAction(actCut_, QStringLiteral("filelist.cut"));
+    sm->applyToAction(actCopy_, QStringLiteral("filelist.copy"));
+    sm->applyToAction(actPaste_, QStringLiteral("filelist.paste"));
+    sm->applyToAction(actCutToOpp_, QStringLiteral("filelist.cut_to_opposite"));
+    sm->applyToAction(actCopyToOpp_, QStringLiteral("filelist.copy_to_opposite"));
+    sm->applyToAction(actCopyPath_, QStringLiteral("filelist.copy_path"));
+    sm->applyToAction(actCopyName_, QStringLiteral("filelist.copy_name"));
+    sm->applyToAction(actTrash_, QStringLiteral("filelist.trash"));
+    sm->applyToAction(actDelete_, QStringLiteral("filelist.delete"));
+    sm->applyToAction(actProperties_, QStringLiteral("filelist.properties"));
 
     // 标签页操作快捷键（不显示在菜单/工具栏，仅用于快捷键触发）
     actNewTab_ = new QAction(tr("New Tab"), this);
     actNewTab_->setShortcutContext(sc);
-    connect(actNewTab_, &QAction::triggered, this, [this]() {
-        addTab(activeTabPath(), -1);
-    });
+    connect(actNewTab_, &QAction::triggered, this, [this]() { addTab(activeTabPath(), -1); });
     sm->applyToAction(actNewTab_, QStringLiteral("file.new_tab"));
 
     actCloseTab_ = new QAction(tr("Close Tab"), this);
     actCloseTab_->setShortcutContext(sc);
-    connect(actCloseTab_, &QAction::triggered, this, [this]() {
-        closeTab(activeTabIndex());
-    });
+    connect(actCloseTab_, &QAction::triggered, this, [this]() { closeTab(activeTabIndex()); });
     sm->applyToAction(actCloseTab_, QStringLiteral("file.close_tab"));
 
     actCloneTab_ = new QAction(tr("Clone Tab"), this);
     actCloneTab_->setShortcutContext(sc);
-    connect(actCloneTab_, &QAction::triggered, this, [this]() {
-        cloneTab(activeTabIndex());
-    });
+    connect(actCloneTab_, &QAction::triggered, this, [this]() { cloneTab(activeTabIndex()); });
     sm->applyToAction(actCloneTab_, QStringLiteral("file.clone_tab"));
 
     // 切换活动选项卡（循环）与聚焦标签栏
@@ -588,21 +633,19 @@ void PanelWidget::createActions() {
     updateActionStates();
 }
 
-QList<QAction*> PanelWidget::toolbarActions() const {
+QList<QAction *> PanelWidget::toolbarActions() const
+{
     // 顺序：后退、前进、向上、家、刷新 | 新建文件、新建文件夹 | 打开、打开...
     // | 重命名、剪切、复制、粘贴、剪切到对面、复制到对面、复制路径、复制文件名
     // | 移到回收站、彻底删除、属性
-    return {
-        actBack_, actForward_, actUp_, actHome_, actRefresh_, nullptr,
-        actNewFile_, actNewFolder_, nullptr,
-        actOpen_, actOpenWith_, nullptr,
-        actRename_, actCut_, actCopy_, actPaste_, actCutToOpp_, actCopyToOpp_,
-        actCopyPath_, actCopyName_, nullptr,
-        actTrash_, actDelete_, actProperties_
-    };
+    return {actBack_,     actForward_,   actUp_,   actHome_,  actRefresh_,  nullptr,
+            actNewFile_,  actNewFolder_, nullptr,  actOpen_,  actOpenWith_, nullptr,
+            actRename_,   actCut_,       actCopy_, actPaste_, actCutToOpp_, actCopyToOpp_,
+            actCopyPath_, actCopyName_,  nullptr,  actTrash_, actDelete_,   actProperties_};
 }
 
-void PanelWidget::updateActionStates() {
+void PanelWidget::updateActionStates()
+{
     const QList<FileItem> items = selectedItems();
     const bool hasSel = !items.isEmpty();
     const bool singleSel = items.size() == 1;
@@ -638,30 +681,33 @@ void PanelWidget::updateActionStates() {
     actProperties_->setEnabled(singleSel);
 }
 
-bool PanelWidget::hasSelection() const {
+bool PanelWidget::hasSelection() const
+{
     auto *view = listView();
     if (!view || !view->selectionModel()) return false;
     return !view->selectionModel()->selectedRows().isEmpty();
 }
 
-bool PanelWidget::hasSingleSelection() const {
+bool PanelWidget::hasSingleSelection() const
+{
     return selectedItems().size() == 1;
 }
 
-bool PanelWidget::oppositePanelVisible() const {
+bool PanelWidget::oppositePanelVisible() const
+{
     auto *container = findContainer();
     if (!container) return false;
     const PanelId opp = (id_ == PanelId::Panel1) ? PanelId::Panel2 : PanelId::Panel1;
     return container->isPanelVisible(opp);
 }
 
-void PanelWidget::setActivePanel(bool active) {
+void PanelWidget::setActivePanel(bool active)
+{
     if (isActivePanel_ == active) return;
     isActivePanel_ = active;
     if (tabBar_) {
-        tabBar_->setStyleSheet(active
-            ? QStringLiteral("QTabBar::tab:selected { font-weight: bold; }")
-            : QString());
+        tabBar_->setStyleSheet(
+            active ? QStringLiteral("QTabBar::tab:selected { font-weight: bold; }") : QString());
     }
     // 活动面板切换时，将键盘焦点移到当前视图，使方向键操作新活动面板
     if (active) {
@@ -669,7 +715,8 @@ void PanelWidget::setActivePanel(bool active) {
     }
 }
 
-QList<TabState> PanelWidget::tabStates() const {
+QList<TabState> PanelWidget::tabStates() const
+{
     QList<TabState> states;
     for (const auto &td : tabs_) {
         TabState s;
@@ -681,7 +728,8 @@ QList<TabState> PanelWidget::tabStates() const {
     return states;
 }
 
-void PanelWidget::clearAllTabs() {
+void PanelWidget::clearAllTabs()
+{
     // 阻塞 tabBar 信号，避免删除过程中 currentChanged 访问已删除的 view
     const QSignalBlocker blocker(tabBar_);
     while (!tabs_.isEmpty()) {
@@ -695,7 +743,8 @@ void PanelWidget::clearAllTabs() {
     emit tabCountChanged();
 }
 
-void PanelWidget::setTabStates(const QList<TabState> &states, int activeIndex) {
+void PanelWidget::setTabStates(const QList<TabState> &states, int activeIndex)
+{
     // 先清空所有选项卡（包括最后一个）
     clearAllTabs();
 
@@ -712,7 +761,8 @@ void PanelWidget::setTabStates(const QList<TabState> &states, int activeIndex) {
 }
 
 // 选中文件项
-QList<FileItem> PanelWidget::selectedItems() const {
+QList<FileItem> PanelWidget::selectedItems() const
+{
     QList<FileItem> items;
     auto *view = listView();
     auto *proxy = proxyModel();
@@ -728,17 +778,18 @@ QList<FileItem> PanelWidget::selectedItems() const {
     return items;
 }
 
-QList<QUrl> PanelWidget::selectedUrls() const {
+QList<QUrl> PanelWidget::selectedUrls() const
+{
     QList<QUrl> urls;
     for (const FileItem &item : selectedItems()) {
-        if (!item.absolutePath.isEmpty())
-            urls.append(QUrl::fromLocalFile(item.absolutePath));
+        if (!item.absolutePath.isEmpty()) urls.append(QUrl::fromLocalFile(item.absolutePath));
     }
     return urls;
 }
 
 // 当前目录
-QString PanelWidget::currentDir() const {
+QString PanelWidget::currentDir() const
+{
     auto *m = model();
     return m ? m->path() : QString();
 }
@@ -746,7 +797,8 @@ QString PanelWidget::currentDir() const {
 // 向上遍历父链查找 PanelContainer
 // PanelWidget 被 QSplitter::addWidget 重定向到 splitter，
 // 所以 parentWidget() 返回 QSplitter 而非 PanelContainer
-PanelContainer *PanelWidget::findContainer() const {
+PanelContainer *PanelWidget::findContainer() const
+{
     auto *p = parentWidget();
     while (p) {
         if (auto *c = qobject_cast<PanelContainer *>(p)) return c;
@@ -756,7 +808,8 @@ PanelContainer *PanelWidget::findContainer() const {
 }
 
 // 对面面板路径
-QString PanelWidget::oppositePanelPath() const {
+QString PanelWidget::oppositePanelPath() const
+{
     auto *container = findContainer();
     if (!container) return {};
     const PanelId opp = (id_ == PanelId::Panel1) ? PanelId::Panel2 : PanelId::Panel1;
@@ -765,7 +818,8 @@ QString PanelWidget::oppositePanelPath() const {
 }
 
 // 显示右键菜单
-void PanelWidget::showContextMenu(const QPoint &globalPos, bool hasSelection) {
+void PanelWidget::showContextMenu(const QPoint &globalPos, bool hasSelection)
+{
     auto *menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
@@ -810,7 +864,8 @@ void PanelWidget::showContextMenu(const QPoint &globalPos, bool hasSelection) {
 
 // === 右键菜单动作槽 ===
 
-void PanelWidget::onOpen() {
+void PanelWidget::onOpen()
+{
     auto *m = model();
     auto *view = listView();
     if (!m || !view) return;
@@ -825,7 +880,8 @@ void PanelWidget::onOpen() {
     }
 }
 
-void PanelWidget::onOpenWith() {
+void PanelWidget::onOpenWith()
+{
     const QList<FileItem> items = selectedItems();
     if (items.size() != 1 || items.first().isDir) return;
     const FileItem item = items.first();
@@ -847,31 +903,36 @@ void PanelWidget::onOpenWith() {
 
     // 区分 .desktop 应用与自定义命令
     if (app.endsWith(QStringLiteral(".desktop"))) {
-        FileOperations::instance()->openWithApplication(QUrl::fromLocalFile(item.absolutePath), app);
+        FileOperations::instance()->openWithApplication(QUrl::fromLocalFile(item.absolutePath),
+                                                        app);
     } else {
         FileOperations::instance()->openWithCommand(QUrl::fromLocalFile(item.absolutePath), app);
     }
 }
 
-void PanelWidget::onCopy() {
+void PanelWidget::onCopy()
+{
     const QList<QUrl> urls = selectedUrls();
     if (urls.isEmpty()) return;
     ClipboardManager::instance()->setFiles(urls, ClipboardManager::Mode::Copy);
 }
 
-void PanelWidget::onCut() {
+void PanelWidget::onCut()
+{
     const QList<QUrl> urls = selectedUrls();
     if (urls.isEmpty()) return;
     ClipboardManager::instance()->setFiles(urls, ClipboardManager::Mode::Cut);
 }
 
-void PanelWidget::onPaste() {
+void PanelWidget::onPaste()
+{
     const QString dir = currentDir();
     if (dir.isEmpty()) return;
     FileOperations::instance()->pasteFromClipboard(dir);
 }
 
-void PanelWidget::onCopyToOpposite() {
+void PanelWidget::onCopyToOpposite()
+{
     const QString dest = oppositePanelPath();
     if (dest.isEmpty()) return;
     const QList<QUrl> urls = selectedUrls();
@@ -879,7 +940,8 @@ void PanelWidget::onCopyToOpposite() {
     FileOperations::instance()->copy(urls, dest);
 }
 
-void PanelWidget::onCutToOpposite() {
+void PanelWidget::onCutToOpposite()
+{
     const QString dest = oppositePanelPath();
     if (dest.isEmpty()) return;
     const QList<QUrl> urls = selectedUrls();
@@ -887,33 +949,35 @@ void PanelWidget::onCutToOpposite() {
     FileOperations::instance()->move(urls, dest);
 }
 
-void PanelWidget::onTrash() {
+void PanelWidget::onTrash()
+{
     const QList<QUrl> urls = selectedUrls();
     if (urls.isEmpty()) return;
     FileOperations::instance()->trash(urls);
 }
 
-void PanelWidget::onDeletePermanently() {
+void PanelWidget::onDeletePermanently()
+{
     const QList<QUrl> urls = selectedUrls();
     if (urls.isEmpty()) return;
 
     // 确认对话框
     const int count = urls.size();
-    const QString msg = (count == 1)
-        ? tr("Are you sure you want to permanently delete \"%1\"?\n"
-             "This action cannot be undone.")
-              .arg(QFileInfo(urls.first().toLocalFile()).fileName())
-        : tr("Are you sure you want to permanently delete %1 items?\n"
-             "This action cannot be undone.")
-              .arg(count);
+    const QString msg = (count == 1) ? tr("Are you sure you want to permanently delete \"%1\"?\n"
+                                          "This action cannot be undone.")
+                                           .arg(QFileInfo(urls.first().toLocalFile()).fileName())
+                                     : tr("Are you sure you want to permanently delete %1 items?\n"
+                                          "This action cannot be undone.")
+                                           .arg(count);
     auto btn = QMessageBox::warning(this, tr("Delete Permanently"), msg,
-                                     QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+                                    QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
     if (btn != QMessageBox::Yes) return;
 
     FileOperations::instance()->deletePermanently(urls);
 }
 
-void PanelWidget::onRename() {
+void PanelWidget::onRename()
+{
     const QList<FileItem> items = selectedItems();
     if (items.size() != 1) return;
     const FileItem item = items.first();
@@ -939,14 +1003,16 @@ void PanelWidget::onRename() {
     FileOperations::instance()->rename(QUrl::fromLocalFile(item.absolutePath), newName);
 }
 
-void PanelWidget::onProperties() {
+void PanelWidget::onProperties()
+{
     const QList<FileItem> items = selectedItems();
     if (items.size() != 1) return;
     PropertiesDialog dlg(items.first(), this);
     dlg.exec();
 }
 
-void PanelWidget::onCopyPath() {
+void PanelWidget::onCopyPath()
+{
     const QList<FileItem> items = selectedItems();
     if (items.isEmpty()) return;
     QStringList paths;
@@ -955,7 +1021,8 @@ void PanelWidget::onCopyPath() {
     QApplication::clipboard()->setText(paths.join(QLatin1Char('\n')));
 }
 
-void PanelWidget::onCopyFileName() {
+void PanelWidget::onCopyFileName()
+{
     const QList<FileItem> items = selectedItems();
     if (items.isEmpty()) return;
     QStringList names;
@@ -964,7 +1031,8 @@ void PanelWidget::onCopyFileName() {
     QApplication::clipboard()->setText(names.join(QLatin1Char('\n')));
 }
 
-void PanelWidget::onNewFile() {
+void PanelWidget::onNewFile()
+{
     const QString dir = currentDir();
     if (dir.isEmpty()) return;
     const QString defaultName = tr("New File");
@@ -980,7 +1048,8 @@ void PanelWidget::onNewFile() {
     FileOperations::instance()->createFile(dir, name);
 }
 
-void PanelWidget::onNewFolder() {
+void PanelWidget::onNewFolder()
+{
     const QString dir = currentDir();
     if (dir.isEmpty()) return;
     const QString defaultName = tr("New Folder");

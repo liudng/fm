@@ -12,11 +12,12 @@ namespace fm {
 
 // 输入名称对话框（新建文件/文件夹/重命名/收藏新建）
 // 支持重名校验
-class InputNameDialog : public QDialog {
+class InputNameDialog : public QDialog
+{
     Q_OBJECT
 public:
-    InputNameDialog(const QString &title, const QString &label,
-                   const QString &defaultName, QWidget *parent = nullptr);
+    InputNameDialog(const QString &title, const QString &label, const QString &defaultName,
+                    QWidget *parent = nullptr);
 
     QString name() const;
 

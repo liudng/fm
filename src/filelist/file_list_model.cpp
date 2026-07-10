@@ -16,51 +16,56 @@ namespace fm {
 namespace {
 
 // 简单文件图标提供器
-QFileIconProvider &iconProvider() {
+QFileIconProvider &iconProvider()
+{
     static QFileIconProvider provider;
     return provider;
 }
 
-QMimeDatabase &mimeDb() {
+QMimeDatabase &mimeDb()
+{
     static QMimeDatabase db;
     return db;
 }
 
 // 权限转 rwx 字符串
-QString permissionsToString(QFile::Permissions perms) {
+QString permissionsToString(QFile::Permissions perms)
+{
     QString s = QStringLiteral("----------");
     auto set = [&perms, &s](int idx, QFile::Permission p) {
         if (perms & p) s[idx] = QChar::fromLatin1('r' + idx % 3);
     };
     // owner
-    if (perms & QFile::ReadOwner)  s[0] = 'r';
+    if (perms & QFile::ReadOwner) s[0] = 'r';
     if (perms & QFile::WriteOwner) s[1] = 'w';
-    if (perms & QFile::ExeOwner)   s[2] = 'x';
+    if (perms & QFile::ExeOwner) s[2] = 'x';
     // group
-    if (perms & QFile::ReadGroup)  s[3] = 'r';
+    if (perms & QFile::ReadGroup) s[3] = 'r';
     if (perms & QFile::WriteGroup) s[4] = 'w';
-    if (perms & QFile::ExeGroup)   s[5] = 'x';
+    if (perms & QFile::ExeGroup) s[5] = 'x';
     // others
-    if (perms & QFile::ReadOther)  s[6] = 'r';
+    if (perms & QFile::ReadOther) s[6] = 'r';
     if (perms & QFile::WriteOther) s[7] = 'w';
-    if (perms & QFile::ExeOther)   s[8] = 'x';
+    if (perms & QFile::ExeOther) s[8] = 'x';
     return s;
 }
 
 } // namespace
 
-FileListModel::FileListModel(QObject *parent)
-    : QAbstractItemModel(parent) {}
+FileListModel::FileListModel(QObject *parent) : QAbstractItemModel(parent) {}
 
-bool FileListModel::hasParentRow() const {
+bool FileListModel::hasParentRow() const
+{
     return hasParent_;
 }
 
-int FileListModel::parentRowOffset() const {
+int FileListModel::parentRowOffset() const
+{
     return hasParent_ ? 1 : 0;
 }
 
-void FileListModel::setPath(const QString &path) {
+void FileListModel::setPath(const QString &path)
+{
     if (path_ == path) {
         reload();
         return;
@@ -73,20 +78,23 @@ void FileListModel::setPath(const QString &path) {
     emit pathChanged(path_);
 }
 
-void FileListModel::reload() {
+void FileListModel::reload()
+{
     beginResetModel();
     items_.clear();
     loadDirectory();
     endResetModel();
 }
 
-void FileListModel::setShowHidden(bool show) {
+void FileListModel::setShowHidden(bool show)
+{
     if (showHidden_ == show) return;
     showHidden_ = show;
     reload();
 }
 
-void FileListModel::setDateTimeFormat(const QString &format) {
+void FileListModel::setDateTimeFormat(const QString &format)
+{
     if (dateTimeFormat_ == format) return;
     dateTimeFormat_ = format;
     // 通知所有日期列的数据已变化（含 Created/Modified/Accessed/StatusChanged）
@@ -96,7 +104,8 @@ void FileListModel::setDateTimeFormat(const QString &format) {
     }
 }
 
-void FileListModel::loadDirectory() {
+void FileListModel::loadDirectory()
+{
     items_.clear();
     lastError_.clear();
 
@@ -166,40 +175,47 @@ void FileListModel::loadDirectory() {
     }
 }
 
-FileItem FileListModel::itemAt(const QModelIndex &index) const {
+FileItem FileListModel::itemAt(const QModelIndex &index) const
+{
     if (!index.isValid()) return FileItem{};
     const int row = index.row();
     if (row < 0 || row >= rowCount({})) return FileItem{};
-    if (row == 0 && hasParentRow()) return FileItem{};  // ".." 行无 FileItem
+    if (row == 0 && hasParentRow()) return FileItem{}; // ".." 行无 FileItem
     return items_.at(row - parentRowOffset());
 }
 
-bool FileListModel::isParentRow(const QModelIndex &index) const {
+bool FileListModel::isParentRow(const QModelIndex &index) const
+{
     return index.isValid() && index.row() == 0 && hasParentRow();
 }
 
-QModelIndex FileListModel::index(int row, int column, const QModelIndex &parent) const {
+QModelIndex FileListModel::index(int row, int column, const QModelIndex &parent) const
+{
     if (parent.isValid() || row < 0 || row >= rowCount({}) || column < 0 || column >= ColCount)
         return {};
     return createIndex(row, column);
 }
 
-QModelIndex FileListModel::parent(const QModelIndex &child) const {
+QModelIndex FileListModel::parent(const QModelIndex &child) const
+{
     Q_UNUSED(child)
     return {};
 }
 
-int FileListModel::rowCount(const QModelIndex &parent) const {
+int FileListModel::rowCount(const QModelIndex &parent) const
+{
     if (parent.isValid()) return 0;
     return items_.size() + parentRowOffset();
 }
 
-int FileListModel::columnCount(const QModelIndex &parent) const {
+int FileListModel::columnCount(const QModelIndex &parent) const
+{
     Q_UNUSED(parent)
     return ColCount;
 }
 
-QVariant FileListModel::data(const QModelIndex &index, int role) const {
+QVariant FileListModel::data(const QModelIndex &index, int role) const
+{
     if (!index.isValid()) return {};
     const int row = index.row();
     const int col = index.column();
@@ -235,30 +251,30 @@ QVariant FileListModel::data(const QModelIndex &index, int role) const {
 
     if (role == Qt::DisplayRole || role == Qt::ToolTipRole) {
         switch (col) {
-            case ColIcon:        return {};
-            case ColName:        return item.name;
-            case ColSize:        return item.isDir ? QString() : QLocale().formattedDataSize(item.size);
-            case ColType:        return item.mimeTypeComment;
-            case ColMimeType:    return item.mimeTypeName;
-            case ColGroup:       return item.group;
-            case ColOwner:       return item.owner;
-            case ColOwnerUid:    return QString::number(item.ownerId);
-            case ColGroupGid:    return QString::number(item.groupId);
-            case ColCreated:     return dateTimeFormat_.isEmpty()
-                                    ? item.created.toString(Qt::ISODate)
-                                    : item.created.toString(dateTimeFormat_);
-            case ColModified:    return dateTimeFormat_.isEmpty()
-                                    ? item.modified.toString(Qt::ISODate)
-                                    : item.modified.toString(dateTimeFormat_);
-            case ColAccessed:    return dateTimeFormat_.isEmpty()
-                                    ? item.accessed.toString(Qt::ISODate)
-                                    : item.accessed.toString(dateTimeFormat_);
-            case ColDiskUsage:   return item.isDir ? QString()
-                                    : QLocale().formattedDataSize(item.diskUsage);
-            case ColStatusChanged: return dateTimeFormat_.isEmpty()
-                                    ? item.statusChanged.toString(Qt::ISODate)
-                                    : item.statusChanged.toString(dateTimeFormat_);
-            case ColPermissions: return permissionsToString(item.permissions);
+        case ColIcon: return {};
+        case ColName: return item.name;
+        case ColSize: return item.isDir ? QString() : QLocale().formattedDataSize(item.size);
+        case ColType: return item.mimeTypeComment;
+        case ColMimeType: return item.mimeTypeName;
+        case ColGroup: return item.group;
+        case ColOwner: return item.owner;
+        case ColOwnerUid: return QString::number(item.ownerId);
+        case ColGroupGid: return QString::number(item.groupId);
+        case ColCreated:
+            return dateTimeFormat_.isEmpty() ? item.created.toString(Qt::ISODate)
+                                             : item.created.toString(dateTimeFormat_);
+        case ColModified:
+            return dateTimeFormat_.isEmpty() ? item.modified.toString(Qt::ISODate)
+                                             : item.modified.toString(dateTimeFormat_);
+        case ColAccessed:
+            return dateTimeFormat_.isEmpty() ? item.accessed.toString(Qt::ISODate)
+                                             : item.accessed.toString(dateTimeFormat_);
+        case ColDiskUsage:
+            return item.isDir ? QString() : QLocale().formattedDataSize(item.diskUsage);
+        case ColStatusChanged:
+            return dateTimeFormat_.isEmpty() ? item.statusChanged.toString(Qt::ISODate)
+                                             : item.statusChanged.toString(dateTimeFormat_);
+        case ColPermissions: return permissionsToString(item.permissions);
         }
     }
 
@@ -270,29 +286,31 @@ QVariant FileListModel::data(const QModelIndex &index, int role) const {
     return {};
 }
 
-QVariant FileListModel::headerData(int section, Qt::Orientation orientation, int role) const {
+QVariant FileListModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole) return {};
     switch (section) {
-        case ColIcon:        return tr("Icon");
-        case ColName:        return tr("Name");
-        case ColSize:        return tr("Size");
-        case ColType:        return tr("Type");
-        case ColMimeType:    return tr("MIME");
-        case ColGroup:       return tr("Group");
-        case ColOwner:       return tr("Owner");
-        case ColOwnerUid:    return tr("UID");
-        case ColGroupGid:    return tr("GID");
-        case ColCreated:     return tr("Created");
-        case ColModified:    return tr("Modified");
-        case ColAccessed:    return tr("Accessed");
-        case ColDiskUsage:   return tr("Disk Usage");
-        case ColStatusChanged: return tr("Status Changed");
-        case ColPermissions: return tr("Permissions");
+    case ColIcon: return tr("Icon");
+    case ColName: return tr("Name");
+    case ColSize: return tr("Size");
+    case ColType: return tr("Type");
+    case ColMimeType: return tr("MIME");
+    case ColGroup: return tr("Group");
+    case ColOwner: return tr("Owner");
+    case ColOwnerUid: return tr("UID");
+    case ColGroupGid: return tr("GID");
+    case ColCreated: return tr("Created");
+    case ColModified: return tr("Modified");
+    case ColAccessed: return tr("Accessed");
+    case ColDiskUsage: return tr("Disk Usage");
+    case ColStatusChanged: return tr("Status Changed");
+    case ColPermissions: return tr("Permissions");
     }
     return {};
 }
 
-Qt::ItemFlags FileListModel::flags(const QModelIndex &index) const {
+Qt::ItemFlags FileListModel::flags(const QModelIndex &index) const
+{
     if (!index.isValid()) return Qt::NoItemFlags;
     if (isParentRow(index)) {
         // ".." 行不可选中（双击仍可触发 parentDirRequested）

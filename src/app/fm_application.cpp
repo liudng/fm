@@ -18,8 +18,8 @@
 
 namespace fm {
 
-FmApplication::FmApplication(int &argc, char **argv)
-    : QApplication(argc, argv) {
+FmApplication::FmApplication(int &argc, char **argv) : QApplication(argc, argv)
+{
     setApplicationName(QStringLiteral("fm"));
     setApplicationVersion(QStringLiteral("1.0.0"));
     setOrganizationName(QStringLiteral("fm"));
@@ -36,7 +36,8 @@ FmApplication::FmApplication(int &argc, char **argv)
     // 图标主题在 initialize() 中根据配置应用（构造函数时尚未加载配置）
 }
 
-bool FmApplication::initialize() {
+bool FmApplication::initialize()
+{
     // 0. 单实例检测
     singleInstance_ = new SingleInstance(this);
     if (!singleInstance_->tryLock()) {
@@ -68,28 +69,31 @@ bool FmApplication::initialize() {
     ColumnManager::instance()->loadFromConfig();
 
     // 3. 默认主题（风格 + 图标主题）
-    const QString theme = cfg->value(QStringLiteral("UI"),
-                                      QStringLiteral("theme"),
-                                      QStringLiteral("Fusion")).toString();
+    const QString theme =
+        cfg->value(QStringLiteral("UI"), QStringLiteral("theme"), QStringLiteral("Fusion"))
+            .toString();
     if (!theme.isEmpty()) {
         setStyle(theme);
     }
     applyIconTheme();
 
     // 4. 翻译
-    const QString lang = cfg->value(QStringLiteral("UI"),
-                                     QStringLiteral("language"),
-                                     QStringLiteral("en")).toString();
+    const QString lang =
+        cfg->value(QStringLiteral("UI"), QStringLiteral("language"), QStringLiteral("en"))
+            .toString();
     loadTranslation(lang);
 
     // 5. 监听配置变更（风格/图标主题实时应用）
     connect(cfg, &ConfigManager::configChanged, this, [this](const QString &section) {
         if (section == QStringLiteral("UI")) {
             auto *c = ConfigManager::instance();
-            const QString t = c->value(QStringLiteral("UI"), QStringLiteral("theme"),
-                                         QStringLiteral("Fusion")).toString();
-            if (t.isEmpty()) setStyle(QString());
-            else setStyle(QStyleFactory::create(t));
+            const QString t =
+                c->value(QStringLiteral("UI"), QStringLiteral("theme"), QStringLiteral("Fusion"))
+                    .toString();
+            if (t.isEmpty())
+                setStyle(QString());
+            else
+                setStyle(QStyleFactory::create(t));
             applyIconTheme();
         }
     });
@@ -99,13 +103,14 @@ bool FmApplication::initialize() {
     mainWindow_->show();
 
     // 7. 监听单实例路径接收
-    connect(singleInstance_, &SingleInstance::pathsReceived,
-            mainWindow_, &MainWindow::addPathsToPanels);
+    connect(singleInstance_, &SingleInstance::pathsReceived, mainWindow_,
+            &MainWindow::addPathsToPanels);
 
     return true;
 }
 
-void FmApplication::loadTranslation(const QString &language) {
+void FmApplication::loadTranslation(const QString &language)
+{
     removeTranslator(&translator_);
 
     // Qt 自带翻译（qtbase 标准对话框等）
@@ -122,8 +127,8 @@ void FmApplication::loadTranslation(const QString &language) {
     bool loaded = translator_.load(qmFile, QStringLiteral(":/i18n"));
     if (!loaded) {
         // 尝试从安装目录加载
-        const QString trPath = QDir(applicationDirPath()).absoluteFilePath(
-            QStringLiteral("../share/fm/translations"));
+        const QString trPath =
+            QDir(applicationDirPath()).absoluteFilePath(QStringLiteral("../share/fm/translations"));
         loaded = translator_.load(qmFile, trPath);
     }
     if (loaded) {
@@ -132,16 +137,16 @@ void FmApplication::loadTranslation(const QString &language) {
     // 加载失败时使用源码内 tr 默认值（英文）
 }
 
-void FmApplication::applyIconTheme() {
+void FmApplication::applyIconTheme()
+{
     // 从配置读取图标主题（UI/iconTheme）
     // 空值表示自动：优先使用 gnome-icon-theme（其包含完整的标准动作图标
     // .png 文件，例如 go-previous/document-new/edit-cut 等），避免某些现代
     // 主题（如 Adwaita）仅提供 *-symbolic.svg 导致部分 QAction 图标无法显示。
     // 仅当对应主题确实可用时才切换。
     auto *cfg = ConfigManager::instance();
-    const QString iconTheme = cfg->value(QStringLiteral("UI"),
-                                           QStringLiteral("iconTheme"),
-                                           QString()).toString();
+    const QString iconTheme =
+        cfg->value(QStringLiteral("UI"), QStringLiteral("iconTheme"), QString()).toString();
     if (!iconTheme.isEmpty()) {
         QIcon::setThemeName(iconTheme);
         return;

@@ -19,7 +19,8 @@ class QSpinBox;
 namespace fm {
 
 // === 界面设置页：语言 + 主题 ===
-class UiSettingsPage : public QObject, public ISettingsPage {
+class UiSettingsPage : public QObject, public ISettingsPage
+{
     Q_OBJECT
 public:
     explicit UiSettingsPage(QObject *parent = nullptr);
@@ -42,7 +43,8 @@ private:
 };
 
 // === 面板设置页：活动面板 + 布局 + 显示面板 ===
-class PanelSettingsPage : public QObject, public ISettingsPage {
+class PanelSettingsPage : public QObject, public ISettingsPage
+{
     Q_OBJECT
 public:
     explicit PanelSettingsPage(QObject *parent = nullptr);
@@ -72,7 +74,8 @@ private:
 };
 
 // === 文件浏览设置页：显示隐藏文件 + 列设置 ===
-class FileBrowserSettingsPage : public QObject, public ISettingsPage {
+class FileBrowserSettingsPage : public QObject, public ISettingsPage
+{
     Q_OBJECT
 public:
     explicit FileBrowserSettingsPage(QObject *parent = nullptr);
@@ -96,7 +99,8 @@ private:
 };
 
 // === 快捷键设置页：表格 + QKeySequenceEdit ===
-class ShortcutSettingsPage : public QObject, public ISettingsPage {
+class ShortcutSettingsPage : public QObject, public ISettingsPage
+{
     Q_OBJECT
 public:
     explicit ShortcutSettingsPage(QObject *parent = nullptr);
@@ -122,7 +126,8 @@ private:
 };
 
 // === 文件操作设置页：粘贴分块大小等 ===
-class FileOperationsSettingsPage : public QObject, public ISettingsPage {
+class FileOperationsSettingsPage : public QObject, public ISettingsPage
+{
     Q_OBJECT
 public:
     explicit FileOperationsSettingsPage(QObject *parent = nullptr);

@@ -13,6 +13,14 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
+# ---- ASan/LSan 构建选项 ----
+# cmake -DFM_ENABLE_ASAN=ON ..
+option(FM_ENABLE_ASAN "Enable AddressSanitizer + LeakSanitizer" OFF)
+if(FM_ENABLE_ASAN)
+    add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=address)
+endif()
+
 # 标准安装目录变量（跨发行版兼容）
 include(GNUInstallDirs)
 
@@ -20,28 +28,44 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Core Gui Concurrent DBus Networ
 
 qt_standard_project_setup()
 
+# ---- 核心逻辑库（无 QtWidgets 依赖，可独立单元测试） ----
+qt_add_library(fm_core STATIC
+    src/core/config_manager.h
+    src/core/config_manager.cpp
+    src/core/favorite_manager.h
+    src/core/favorite_manager.cpp
+    src/core/shortcut_manager.h
+    src/core/shortcut_manager.cpp
+    src/core/session_state.h
+    src/core/session_state.cpp
+    src/core/open_with_manager.h
+    src/core/open_with_manager.cpp
+    src/core/clipboard_manager.h
+    src/core/clipboard_manager.cpp
+    src/core/volume_manager.h
+    src/core/volume_manager.cpp
+    src/fileops/trash_can.h
+    src/fileops/trash_can.cpp
+    src/filelist/file_item.h
+    src/panel/panel_id.h
+)
+
+target_link_libraries(fm_core PUBLIC
+    Qt6::Core
+    Qt6::Gui
+    Qt6::DBus
+    Qt6::Network
+)
+
+target_include_directories(fm_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+# ---- 主程序（UI + 主入口） ----
 qt_add_executable(fm
     src/main.cpp
     src/app/fm_application.h
     src/app/fm_application.cpp
     src/app/single_instance.h
     src/app/single_instance.cpp
-    src/core/clipboard_manager.h
-    src/core/clipboard_manager.cpp
-    src/core/column_manager.h
-    src/core/column_manager.cpp
-    src/core/config_manager.h
-    src/core/config_manager.cpp
-    src/core/favorite_manager.h
-    src/core/favorite_manager.cpp
-    src/core/open_with_manager.h
-    src/core/open_with_manager.cpp
-    src/core/session_state.h
-    src/core/session_state.cpp
-    src/core/shortcut_manager.h
-    src/core/shortcut_manager.cpp
-    src/core/volume_manager.h
-    src/core/volume_manager.cpp
     src/dialogs/about_dialog.h
     src/dialogs/about_dialog.cpp
     src/dialogs/conflict_dialog.h
@@ -59,8 +83,8 @@ qt_add_executable(fm
     src/dialogs/settings_dialog.cpp
     src/dialogs/settings_pages.h
     src/dialogs/settings_pages.cpp
-    src/filelist/file_item.h
-    src/filelist/file_item.cpp
+    src/core/column_manager.h
+    src/core/column_manager.cpp
     src/filelist/file_list_model.h
     src/filelist/file_list_model.cpp
     src/filelist/file_list_sort_proxy.h
@@ -77,9 +101,6 @@ qt_add_executable(fm
     src/fileops/file_operations.cpp
     src/fileops/progress_dialog.h
     src/fileops/progress_dialog.cpp
-    src/fileops/trash_can.h
-    src/fileops/trash_can.cpp
-    src/panel/panel_id.h
     src/panel/file_tab_bar.h
     src/panel/file_tab_bar.cpp
     src/panel/panel_widget.h
@@ -96,12 +117,9 @@ qt_add_executable(fm
 )
 
 target_link_libraries(fm PRIVATE
+    fm_core
     Qt6::Widgets
-    Qt6::Core
-    Qt6::Gui
     Qt6::Concurrent
-    Qt6::DBus
-    Qt6::Network
 )
 
 # 翻译文件 (.ts → .qm → 嵌入资源)
@@ -122,3 +140,22 @@ install(FILES fm.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 
 # 安装应用图标到 hicolor 主题（512x512）
 install(FILES fm.png DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps)
+
+# ---- 单元测试 ----
+option(FM_BUILD_TESTS "Build unit tests" ON)
+if(FM_BUILD_TESTS)
+    enable_testing()
+    # 优先使用系统已安装的 GTest，否则通过 FetchContent 下载
+    find_package(GTest QUIET)
+    if(NOT GTest_FOUND)
+        include(FetchContent)
+        FetchContent_Declare(
+            googletest
+            URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.tar.gz
+            DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        )
+        set(gtest_force_shared_rt ON CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(googletest)
+    endif()
+    add_subdirectory(tests)
+endif()

@@ -4,21 +4,24 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QLoggingCategory>
 #include <QStandardPaths>
+
+Q_LOGGING_CATEGORY(fmConfig, "fm.config")
 
 namespace fm {
 
-ConfigManager *ConfigManager::instance() {
+ConfigManager *ConfigManager::instance()
+{
     static ConfigManager inst;
     return &inst;
 }
 
-ConfigManager::ConfigManager(QObject *parent)
-    : QObject(parent) {
+ConfigManager::ConfigManager(QObject *parent) : QObject(parent)
+{
     // 配置目录 ~/.config/fm
-    const QString configDir =
-        QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) +
-        QDir::separator() + QStringLiteral("fm");
+    const QString configDir = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) +
+                              QDir::separator() + QStringLiteral("fm");
     QDir().mkpath(configDir);
 
     const QString configPath = configDir + QDir::separator() + QStringLiteral("config.ini");
@@ -26,50 +29,70 @@ ConfigManager::ConfigManager(QObject *parent)
     settings_ = new QSettings(configPath, QSettings::IniFormat, this);
 }
 
-QString ConfigManager::filePath() const {
+QString ConfigManager::filePath() const
+{
     return settings_->fileName();
 }
 
-bool ConfigManager::load() {
+bool ConfigManager::load()
+{
     settings_->sync();
     const QSettings::Status s = settings_->status();
     loaded_ = (s == QSettings::NoError);
+    if (!loaded_) {
+        qCWarning(fmConfig) << "Config load failed, status:" << s << "file:" << filePath();
+    }
     return loaded_;
 }
 
-bool ConfigManager::rebuild() {
+bool ConfigManager::rebuild()
+{
+    // 保存路径（delete settings_ 后 filePath() 将访问悬垂指针）
+    const QString path = filePath();
     // 备份原文件
-    backupCurrentFile();
+    QString backupPath;
+    if (!backupCurrentFile(&backupPath)) {
+        qCWarning(fmConfig) << "Backup failed before rebuild, file:" << path;
+    } else if (!backupPath.isEmpty()) {
+        qCDebug(fmConfig) << "Backed up config to:" << backupPath;
+    }
     // 删除原文件
-    QFile::remove(filePath());
+    QFile::remove(path);
     // 重新创建 settings 对象（重置内存状态）
     delete settings_;
-    settings_ = new QSettings(filePath(), QSettings::IniFormat, this);
+    settings_ = new QSettings(path, QSettings::IniFormat, this);
     ensureDefaultConfig();
     loaded_ = true;
     return true;
 }
 
-void ConfigManager::saveFailureRecover() {
+void ConfigManager::saveFailureRecover()
+{
     // 备份原文件（可能已损坏）
-    backupCurrentFile();
+    QString backupPath;
+    if (!backupCurrentFile(&backupPath)) {
+        qCWarning(fmConfig) << "Backup failed during save recovery, file:" << filePath();
+    } else if (!backupPath.isEmpty()) {
+        qCDebug(fmConfig) << "Backed up corrupt config to:" << backupPath;
+    }
     // 删除原文件，用当前内存配置重新写入
     QFile::remove(filePath());
     settings_->sync();
     loaded_ = (settings_->status() == QSettings::NoError);
 }
 
-QSettings::Status ConfigManager::status() const {
+QSettings::Status ConfigManager::status() const
+{
     return settings_->status();
 }
 
-bool ConfigManager::backupCurrentFile(QString *backupPath) {
+bool ConfigManager::backupCurrentFile(QString *backupPath)
+{
     const QString src = filePath();
     if (!QFileInfo::exists(src)) return false;
 
     // 时间戳格式：yyyyMMdd_HHmmss_zzz
-    const QString ts = QDateTime::currentDateTime().toString(
-        QStringLiteral("yyyyMMdd_HHmmss_zzz"));
+    const QString ts = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz"));
     const QString dst = src + QStringLiteral(".") + ts + QStringLiteral(".bak");
     if (QFile::copy(src, dst)) {
         if (backupPath) *backupPath = dst;
@@ -78,7 +101,8 @@ bool ConfigManager::backupCurrentFile(QString *backupPath) {
     return false;
 }
 
-void ConfigManager::ensureDefaultConfig() {
+void ConfigManager::ensureDefaultConfig()
+{
     // 仅当文件不存在或为空时写入默认值
     if (QFileInfo::exists(filePath()) && !settings_->allKeys().isEmpty()) {
         return;
@@ -90,13 +114,13 @@ void ConfigManager::ensureDefaultConfig() {
 
     // [Panels]
     setValue(QStringLiteral("Panels"), QStringLiteral("orientation"),
-             static_cast<int>(Qt::Horizontal));  // 左右
+             static_cast<int>(Qt::Horizontal)); // 左右
     setValue(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true);
     setValue(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), true);
-    setValue(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false);  // 默认不启用
+    setValue(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), false); // 默认不启用
 
     // [File_Operations]
-    setValue(QStringLiteral("File_Operations"), QStringLiteral("chunkSizeMB"), 1);  // 默认 1MB
+    setValue(QStringLiteral("File_Operations"), QStringLiteral("chunkSizeMB"), 1); // 默认 1MB
 
     // [File_Browser]
     setValue(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false);
@@ -116,23 +140,26 @@ void ConfigManager::ensureDefaultConfig() {
     settings_->sync();
 }
 
-QString ConfigManager::fullKey(const QString &section, const QString &key) {
+QString ConfigManager::fullKey(const QString &section, const QString &key)
+{
     return section + QLatin1Char('/') + key;
 }
 
 QVariant ConfigManager::value(const QString &section, const QString &key,
-                              const QVariant &defaultValue) const {
+                              const QVariant &defaultValue) const
+{
     return settings_->value(fullKey(section, key), defaultValue);
 }
 
-void ConfigManager::setValue(const QString &section, const QString &key,
-                            const QVariant &value) {
+void ConfigManager::setValue(const QString &section, const QString &key, const QVariant &value)
+{
     settings_->setValue(fullKey(section, key), value);
     settings_->sync();
     emit configChanged(section);
 }
 
-bool ConfigManager::contains(const QString &section, const QString &key) const {
+bool ConfigManager::contains(const QString &section, const QString &key) const
+{
     return settings_->contains(fullKey(section, key));
 }
 

@@ -8,8 +8,8 @@
 
 namespace fm {
 
-ProgressDialog::ProgressDialog(QWidget *parent)
-    : QDialog(parent) {
+ProgressDialog::ProgressDialog(QWidget *parent) : QDialog(parent)
+{
     setModal(true);
     setWindowTitle(tr("Working..."));
     setMinimumWidth(400);
@@ -40,29 +40,34 @@ ProgressDialog::ProgressDialog(QWidget *parent)
     progressBar_->setValue(0);
 }
 
-void ProgressDialog::setOperationTitle(const QString &title) {
+void ProgressDialog::setOperationTitle(const QString &title)
+{
     titleLabel_->setText(title);
     setWindowTitle(title);
 }
 
-void ProgressDialog::setProgress(int percent) {
+void ProgressDialog::setProgress(int percent)
+{
     if (percent < 0) {
-        progressBar_->setRange(0, 0);  // 不确定模式
+        progressBar_->setRange(0, 0); // 不确定模式
     } else {
         progressBar_->setRange(0, 100);
         progressBar_->setValue(percent);
     }
 }
 
-void ProgressDialog::setCurrentFile(const QString &fileName) {
+void ProgressDialog::setCurrentFile(const QString &fileName)
+{
     fileLabel_->setText(fileName.isEmpty() ? QString() : tr("Current: %1").arg(fileName));
 }
 
-void ProgressDialog::showDelayed() {
-    showTimerId_ = startTimer(1000);  // 1s 后显示
+void ProgressDialog::showDelayed()
+{
+    showTimerId_ = startTimer(1000); // 1s 后显示
 }
 
-void ProgressDialog::timerEvent(QTimerEvent *event) {
+void ProgressDialog::timerEvent(QTimerEvent *event)
+{
     if (event->timerId() == showTimerId_) {
         killTimer(showTimerId_);
         showTimerId_ = 0;

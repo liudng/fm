@@ -8,7 +8,8 @@ namespace fm {
 // 排序代理模型
 // - ".." 行固定排在最前，不参与排序
 // - 支持次要排序：保留上次排序列作为次要键
-class FileListSortProxy : public QSortFilterProxyModel {
+class FileListSortProxy : public QSortFilterProxyModel
+{
     Q_OBJECT
 public:
     explicit FileListSortProxy(QObject *parent = nullptr);

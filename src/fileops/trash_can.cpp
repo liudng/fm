@@ -16,12 +16,14 @@ namespace fm {
 
 namespace {
 // URL 编码（用于 .trashinfo Path 字段）
-QString encodeUrl(const QString &path) {
+QString encodeUrl(const QString &path)
+{
     return QUrl::fromLocalFile(path).toEncoded(QUrl::FullyEncoded);
 }
-}
+} // namespace
 
-bool TrashCan::ensureTrashDir(const QString &trashDir, QString *errorMsg) {
+bool TrashCan::ensureTrashDir(const QString &trashDir, QString *errorMsg)
+{
     QDir dir(trashDir);
     if (!dir.exists() && !dir.mkpath(trashDir)) {
         if (errorMsg) *errorMsg = TrashCan::tr("Cannot create trash directory: %1").arg(trashDir);
@@ -38,9 +40,11 @@ bool TrashCan::ensureTrashDir(const QString &trashDir, QString *errorMsg) {
     return true;
 }
 
-QString TrashCan::trashDirForFile(const QString &filePath) {
-    const QString homeTrash = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
-                              + QStringLiteral("/Trash");
+QString TrashCan::trashDirForFile(const QString &filePath)
+{
+    const QString homeTrash =
+        QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) +
+        QStringLiteral("/Trash");
 
     // 检查文件是否在主分区
     const QStorageInfo fileStorage(filePath);
@@ -72,14 +76,15 @@ QString TrashCan::trashDirForFile(const QString &filePath) {
     return deviceRoot + QStringLiteral("/.Trash-%1").arg(uid);
 }
 
-QString TrashCan::uniqueTrashName(const QString &trashFilesDir, const QString &originalName) {
+QString TrashCan::uniqueTrashName(const QString &trashFilesDir, const QString &originalName)
+{
     QString candidate = originalName;
     int counter = 1;
     while (QFileInfo::exists(trashFilesDir + QDir::separator() + candidate)) {
         const int dot = originalName.lastIndexOf(QLatin1Char('.'));
         if (dot > 0) {
-            candidate = originalName.left(dot) + QStringLiteral("_%1").arg(counter)
-                        + originalName.mid(dot);
+            candidate =
+                originalName.left(dot) + QStringLiteral("_%1").arg(counter) + originalName.mid(dot);
         } else {
             candidate = originalName + QStringLiteral("_%1").arg(counter);
         }
@@ -89,7 +94,8 @@ QString TrashCan::uniqueTrashName(const QString &trashFilesDir, const QString &o
 }
 
 bool TrashCan::writeTrashInfo(const QString &infoPath, const QString &originalPath,
-                                const QDateTime &deletionTime) {
+                              const QDateTime &deletionTime)
+{
     QFile f(infoPath);
     if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) return false;
 
@@ -101,7 +107,8 @@ bool TrashCan::writeTrashInfo(const QString &infoPath, const QString &originalPa
     return true;
 }
 
-bool TrashCan::moveToTrash(const QUrl &fileUrl, QString *errorMsg) {
+bool TrashCan::moveToTrash(const QUrl &fileUrl, QString *errorMsg)
+{
     if (!fileUrl.isLocalFile()) {
         if (errorMsg) *errorMsg = TrashCan::tr("Only local files are supported");
         return false;
@@ -142,7 +149,8 @@ bool TrashCan::moveToTrash(const QUrl &fileUrl, QString *errorMsg) {
         }
         // 复制成功后删除源
         if (!QFile::remove(fi.absoluteFilePath())) {
-            if (errorMsg) *errorMsg = TrashCan::tr("Cannot remove source after copy: %1").arg(filePath);
+            if (errorMsg)
+                *errorMsg = TrashCan::tr("Cannot remove source after copy: %1").arg(filePath);
             return false;
         }
     }
@@ -150,7 +158,8 @@ bool TrashCan::moveToTrash(const QUrl &fileUrl, QString *errorMsg) {
     return true;
 }
 
-bool TrashCan::moveToTrash(const QList<QUrl> &fileUrls, QString *errorMsg) {
+bool TrashCan::moveToTrash(const QList<QUrl> &fileUrls, QString *errorMsg)
+{
     for (const QUrl &u : fileUrls) {
         if (!moveToTrash(u, errorMsg)) return false;
     }

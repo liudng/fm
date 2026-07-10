@@ -15,11 +15,12 @@ namespace fm {
 // - prepare()：主线程预扫描冲突（委托 ConflictResolver 弹 ConflictDialog），创建 ProgressDialog
 // - execute()：工作线程执行复制/移动，支持分块进度、跨设备移动（复制+删除）
 // - 取消：保留已复制部分不回滚
-class CopyMoveJob : public FileJob {
+class CopyMoveJob : public FileJob
+{
     Q_OBJECT
 public:
     CopyMoveJob(const QList<QUrl> &sources, const QString &destDir, bool isMove,
-                  QObject *parent = nullptr);
+                QObject *parent = nullptr);
 
 protected:
     bool prepare() override;
@@ -37,7 +38,7 @@ private:
     QList<QPair<QString, QString>> plan_;
     qint64 totalBytes_ = 0;
 
-    ConflictResolver resolver_;  // 冲突解决器（含批量记忆）
+    ConflictResolver resolver_; // 冲突解决器（含批量记忆）
 };
 
 } // namespace fm

@@ -1,0 +1,90 @@
+---
+# Qt6 官方编码风格 (https://wiki.qt.io/Qt_Coding_Style)
+Language: Cpp
+Standard: c++17
+BasedOnStyle: LLVM
+
+# 缩进: 4 空格, 禁止 Tab
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+# 行宽限制: 100
+ColumnLimit: 100
+
+# 大括号: Qt 风格 — 函数/类/结构体/枚举的左括号换行, 控制语句左括号同行
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: Never
+  AfterEnum: true
+  AfterExternBlock: false
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+# 短语句: 允许单行 if(无else)/for/while, 内联函数, case 标签
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: true
+
+# include: 不自动排序 (Qt 不排序 include), 保留分组
+SortIncludes: Never
+IncludeBlocks: Preserve
+
+# 指针/引用: Type *name (Qt 风格)
+PointerAlignment: Right
+ReferenceAlignment: Right
+
+# 对齐
+AccessModifierOffset: -4
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Left
+AlignOperands: true
+AlignTrailingComments: true
+
+# 构造函数初始化列表
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+BreakConstructorInitializers: BeforeColon
+
+# 命名空间: 不缩进内容
+NamespaceIndentation: None
+FixNamespaceComments: true
+
+# 其他格式
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakStringLiterals: true
+CompactNamespaces: false
+Cpp11BracedListStyle: true
+DerivePointerAlignment: false
+IndentCaseLabels: false
+IndentPPDirectives: None
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyBlock: false
+SpacesInAngles: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false

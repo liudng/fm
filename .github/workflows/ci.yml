@@ -4,10 +4,59 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
+  quality:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build pkgconf \
+            qt6-base-dev qt6-tools-dev \
+            clang-format clang-tidy
+
+      - name: Check code formatting
+        run: |
+          find src tests -name '*.cpp' -o -name '*.h' \
+            | xargs clang-format --dry-run --Werror
+
+      - name: Configure (tests + compile_commands)
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DFM_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: clang-tidy
+        continue-on-error: true
+        run: |
+          run-clang-tidy -p build -warnings-as-errors='*' \
+            $(find src -name '*.cpp' | grep -v 'main.cpp')
+
+      - name: ASan build + test
+        run: |
+          cmake -B build-asan -G Ninja \
+            -DFM_BUILD_TESTS=ON \
+            -DFM_ENABLE_ASAN=ON
+          cmake --build build-asan --parallel
+          ctest --test-dir build-asan --output-on-failure
+
   build:
     name: Build (${{ matrix.os }} / ${{ matrix.arch }})
+    needs: quality
     runs-on: ubuntu-latest
     strategy:
       matrix:

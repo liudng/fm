@@ -14,7 +14,8 @@ class FileListView;
 // - 维护所有列的可见性、宽度比例、顺序
 // - 持久化到 [File_Browser_Columns]
 // - 应用到所有 FileListView
-class ColumnManager : public QObject {
+class ColumnManager : public QObject
+{
     Q_OBJECT
 public:
     static ColumnManager *instance();
@@ -60,10 +61,10 @@ private:
     void onSectionMoved(FileListView *view, int logical, int oldVisualIndex, int newVisualIndex);
 
     QList<FileListView *> views_;
-    QMap<QString, bool> visibleMap_;       // columnName -> visible
-    QMap<QString, int> widthMap_;          // columnName -> 像素宽度（Name 列除外）
-    QStringList order_;                     // 列顺序
-    bool applying_ = false;                // 防止 applyToView 触发的信号递归
+    QMap<QString, bool> visibleMap_; // columnName -> visible
+    QMap<QString, int> widthMap_;    // columnName -> 像素宽度（Name 列除外）
+    QStringList order_;              // 列顺序
+    bool applying_ = false;          // 防止 applyToView 触发的信号递归
 };
 
 } // namespace fm

@@ -13,7 +13,8 @@ struct LayoutState;
 // - 收藏项保存布局状态到 [Favorites/<encoded_name>]
 // - 名称含特殊字符使用 percent-encoding（如 / → %2F，= → %3D）
 // - 收藏列表保存在 [Favorites] groups 键
-class FavoriteManager : public QObject {
+class FavoriteManager : public QObject
+{
     Q_OBJECT
 public:
     static FavoriteManager *instance();

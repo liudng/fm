@@ -15,7 +15,8 @@ class PanelWidget;
 // - 默认左右布局（QSplitter Horizontal），可切上下（Vertical）
 // - 隐藏面板后剩余占满；再次显示恢复比例
 // - 活动面板高亮
-class PanelContainer : public QWidget {
+class PanelContainer : public QWidget
+{
     Q_OBJECT
 public:
     PanelContainer(QWidget *parent = nullptr);

@@ -9,12 +9,13 @@
 namespace fm {
 
 FavoritesMenuController::FavoritesMenuController(QMenu *favoritesMenu, QObject *parent)
-    : QObject(parent), favoritesMenu_(favoritesMenu) {
-}
+    : QObject(parent), favoritesMenu_(favoritesMenu)
+{}
 
-void FavoritesMenuController::setup() {
-    auto *addAction = favoritesMenu_->addAction(tr("&Add to Favorites..."),
-        this, &FavoritesMenuController::addFavoriteRequested);
+void FavoritesMenuController::setup()
+{
+    auto *addAction = favoritesMenu_->addAction(tr("&Add to Favorites..."), this,
+                                                &FavoritesMenuController::addFavoriteRequested);
     addAction->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-new")));
 
     favoritesMenu_->addSeparator();
@@ -29,7 +30,8 @@ void FavoritesMenuController::setup() {
     favoritesMenu_->installEventFilter(this);
 }
 
-void FavoritesMenuController::refresh() {
+void FavoritesMenuController::refresh()
+{
     if (!favoritesMenu_) return;
     // 清空菜单（保留前两项 + 分隔符）
     const auto actions = favoritesMenu_->actions();
@@ -58,19 +60,19 @@ void FavoritesMenuController::refresh() {
 
     for (const QString &name : names) {
         auto *action = favoritesMenu_->addAction(name);
-        action->setData(name);  // 供右键删除时识别
-        connect(action, &QAction::triggered, this, [this, name]() {
-            emit favoriteTriggered(name);
-        });
+        action->setData(name); // 供右键删除时识别
+        connect(action, &QAction::triggered, this,
+                [this, name]() { emit favoriteTriggered(name); });
     }
 }
 
-bool FavoritesMenuController::eventFilter(QObject *obj, QEvent *event) {
+bool FavoritesMenuController::eventFilter(QObject *obj, QEvent *event)
+{
     // 收藏菜单右键：弹出删除菜单
     if (obj == favoritesMenu_ && event->type() == QEvent::MouseButtonPress) {
-        auto *me = static_cast<QMouseEvent*>(event);
+        auto *me = static_cast<QMouseEvent *>(event);
         if (me->button() == Qt::RightButton) {
-            auto *menu = static_cast<QMenu*>(obj);
+            auto *menu = static_cast<QMenu *>(obj);
             QAction *act = menu->actionAt(me->pos());
             if (act) {
                 const QString name = act->data().toString();
@@ -84,7 +86,7 @@ bool FavoritesMenuController::eventFilter(QObject *obj, QEvent *event) {
                             refresh();
                         }
                     }
-                    return true;  // 事件已处理
+                    return true; // 事件已处理
                 }
             }
         }

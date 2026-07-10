@@ -13,7 +13,8 @@ namespace fm {
 // 文件操作进度对话框
 // - 显示进度条、当前文件名、取消按钮
 // - 通过阈值控制显示（>1s 才显示）
-class ProgressDialog : public QDialog {
+class ProgressDialog : public QDialog
+{
     Q_OBJECT
 public:
     explicit ProgressDialog(QWidget *parent = nullptr);

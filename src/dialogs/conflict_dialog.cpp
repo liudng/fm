@@ -8,9 +8,10 @@
 
 namespace fm {
 
-ConflictDialog::ConflictDialog(const QString &sourceName, const QString &destPath,
-                               bool allowBatch, QWidget *parent)
-    : QDialog(parent) {
+ConflictDialog::ConflictDialog(const QString &sourceName, const QString &destPath, bool allowBatch,
+                               QWidget *parent)
+    : QDialog(parent)
+{
     setWindowTitle(tr("File Conflict"));
     setModal(true);
 
@@ -57,27 +58,33 @@ ConflictDialog::ConflictDialog(const QString &sourceName, const QString &destPat
     btnLayout->addWidget(cancelBtn);
 }
 
-void ConflictDialog::chooseOverwrite() {
+void ConflictDialog::chooseOverwrite()
+{
     resolution_ = ConflictResolution::Overwrite;
     accept();
 }
-void ConflictDialog::chooseSkip() {
+void ConflictDialog::chooseSkip()
+{
     resolution_ = ConflictResolution::Skip;
     accept();
 }
-void ConflictDialog::chooseRename() {
+void ConflictDialog::chooseRename()
+{
     resolution_ = ConflictResolution::Rename;
     accept();
 }
-void ConflictDialog::chooseOverwriteAll() {
+void ConflictDialog::chooseOverwriteAll()
+{
     resolution_ = ConflictResolution::OverwriteAll;
     accept();
 }
-void ConflictDialog::chooseSkipAll() {
+void ConflictDialog::chooseSkipAll()
+{
     resolution_ = ConflictResolution::SkipAll;
     accept();
 }
-void ConflictDialog::chooseRenameAll() {
+void ConflictDialog::chooseRenameAll()
+{
     resolution_ = ConflictResolution::RenameAll;
     accept();
 }

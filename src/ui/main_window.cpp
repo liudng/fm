@@ -31,8 +31,8 @@
 
 namespace fm {
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
+{
     setWindowTitle(QStringLiteral("fm"));
     resize(1280, 800);
 
@@ -56,15 +56,14 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     // 监听面板可见性/活动面板变化，更新菜单文字
-    connect(panelContainer_, &PanelContainer::panelVisibilityChanged,
-            this, &MainWindow::refreshPanelActions);
-    connect(panelContainer_, &PanelContainer::activePanelChanged,
-            this, [this]() {
-                refreshPanelActions();
-                updateToolbar();
-            });
-    connect(panelContainer_, &PanelContainer::orientationChanged,
-            this, &MainWindow::refreshPanelActions);
+    connect(panelContainer_, &PanelContainer::panelVisibilityChanged, this,
+            &MainWindow::refreshPanelActions);
+    connect(panelContainer_, &PanelContainer::activePanelChanged, this, [this]() {
+        refreshPanelActions();
+        updateToolbar();
+    });
+    connect(panelContainer_, &PanelContainer::orientationChanged, this,
+            &MainWindow::refreshPanelActions);
 
     // 初始构建工具栏
     updateToolbar();
@@ -90,34 +89,34 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow() = default;
 
-void MainWindow::buildMenuBar() {
+void MainWindow::buildMenuBar()
+{
     buildFileMenu(menuBar()->addMenu(tr("&File")));
     buildFavoritesMenu(menuBar()->addMenu(tr("F&avorites")));
     buildSettingsMenu(menuBar()->addMenu(tr("&Settings")));
     buildHelpMenu(menuBar()->addMenu(tr("&Help")));
 }
 
-void MainWindow::buildFileMenu(QMenu *menu) {
+void MainWindow::buildFileMenu(QMenu *menu)
+{
     // 卷段与外部设备段由 VolumeMenuController 托管：
     // - aboutToShow 时同步枚举已挂载卷 + 异步枚举外部设备
     // - 右键挂载/卸载/弹出
     // - 左键点击已挂载卷项通过 navigateRequested 信号导航
     volumeMenuController_ = new VolumeMenuController(menu, this);
     volumeMenuController_->setup();
-    connect(volumeMenuController_, &VolumeMenuController::navigateRequested,
-            this, [this](const QString &mountPoint) {
-        // 在活动面板的活动选项卡中打开挂载点（不新建选项卡）
-        auto *p = panelContainer_->activePanel();
-        if (p) p->openPath(mountPoint);
-    });
-    connect(volumeMenuController_, &VolumeMenuController::statusMessageRequested,
-            this, [this](const QString &msg, int timeout) {
-        statusBar()->showMessage(msg, timeout);
-    });
-    connect(volumeMenuController_, &VolumeMenuController::operationFailed,
-            this, [this](const QString &errorMsg) {
-        QMessageBox::warning(this, tr("Volume Operation Failed"), errorMsg);
-    });
+    connect(volumeMenuController_, &VolumeMenuController::navigateRequested, this,
+            [this](const QString &mountPoint) {
+                // 在活动面板的活动选项卡中打开挂载点（不新建选项卡）
+                auto *p = panelContainer_->activePanel();
+                if (p) p->openPath(mountPoint);
+            });
+    connect(volumeMenuController_, &VolumeMenuController::statusMessageRequested, this,
+            [this](const QString &msg, int timeout) { statusBar()->showMessage(msg, timeout); });
+    connect(volumeMenuController_, &VolumeMenuController::operationFailed, this,
+            [this](const QString &errorMsg) {
+                QMessageBox::warning(this, tr("Volume Operation Failed"), errorMsg);
+            });
 
     auto *exitAction = menu->addAction(tr("&Quit"));
     connect(exitAction, &QAction::triggered, this, &MainWindow::onExit);
@@ -125,20 +124,22 @@ void MainWindow::buildFileMenu(QMenu *menu) {
     ShortcutManager::instance()->applyToAction(exitAction, QStringLiteral("file.quit"));
 }
 
-void MainWindow::buildFavoritesMenu(QMenu *menu) {
+void MainWindow::buildFavoritesMenu(QMenu *menu)
+{
     // 收藏菜单由 FavoritesMenuController 托管：
     // - 构建"添加到收藏..."项 + 分隔符 + 动态收藏列表
     // - aboutToShow 时从 FavoriteManager 刷新
     // - 右键删除收藏项
     favoritesMenuController_ = new FavoritesMenuController(menu, this);
     favoritesMenuController_->setup();
-    connect(favoritesMenuController_, &FavoritesMenuController::addFavoriteRequested,
-            this, &MainWindow::onAddFavorite);
-    connect(favoritesMenuController_, &FavoritesMenuController::favoriteTriggered,
-            this, &MainWindow::onFavoriteTriggered);
+    connect(favoritesMenuController_, &FavoritesMenuController::addFavoriteRequested, this,
+            &MainWindow::onAddFavorite);
+    connect(favoritesMenuController_, &FavoritesMenuController::favoriteTriggered, this,
+            &MainWindow::onFavoriteTriggered);
 }
 
-void MainWindow::buildSettingsMenu(QMenu *menu) {
+void MainWindow::buildSettingsMenu(QMenu *menu)
+{
     // 语言子菜单
     languageMenu_ = menu->addMenu(tr("&Language"));
     languageGroup_ = new QActionGroup(languageMenu_);
@@ -153,8 +154,10 @@ void MainWindow::buildSettingsMenu(QMenu *menu) {
     connect(languageGroup_, &QActionGroup::triggered, this, &MainWindow::onLanguageChanged);
 
     // 根据配置选中当前语言（而非硬编码英文）
-    const QString curLang = ConfigManager::instance()->value(
-        QStringLiteral("UI"), QStringLiteral("language"), QStringLiteral("en")).toString();
+    const QString curLang =
+        ConfigManager::instance()
+            ->value(QStringLiteral("UI"), QStringLiteral("language"), QStringLiteral("en"))
+            .toString();
     bool langChecked = false;
     for (QAction *a : languageGroup_->actions()) {
         if (a->data().toString() == curLang) {
@@ -184,54 +187,57 @@ void MainWindow::buildSettingsMenu(QMenu *menu) {
     menu->addSeparator();
 
     auto *toggleActive = menu->addAction(tr("&Switch Active Panel"), QKeySequence(Qt::Key_Tab),
-                                          this, &MainWindow::onToggleActivePanel);
+                                         this, &MainWindow::onToggleActivePanel);
     toggleActive->setIcon(QIcon::fromTheme(QStringLiteral("go-jump")));
-    ShortcutManager::instance()->applyToAction(toggleActive, QStringLiteral("settings.switch_active_panel"));
+    ShortcutManager::instance()->applyToAction(toggleActive,
+                                               QStringLiteral("settings.switch_active_panel"));
 
-    toggleOrientationAction_ = menu->addAction(QString(), this,
-                                                  &MainWindow::onToggleOrientation);
-    ShortcutManager::instance()->applyToAction(toggleOrientationAction_, QStringLiteral("settings.toggle_orientation"));
+    toggleOrientationAction_ = menu->addAction(QString(), this, &MainWindow::onToggleOrientation);
+    ShortcutManager::instance()->applyToAction(toggleOrientationAction_,
+                                               QStringLiteral("settings.toggle_orientation"));
 
-    auto *resetSplitterAction = menu->addAction(tr("&Reset Splitter"), this,
-                                                    &MainWindow::onResetSplitter);
-
-    menu->addSeparator();
-
-    togglePanel1Action_ = menu->addAction(QString(), this,
-                                            &MainWindow::onTogglePanel1Visible);
-    ShortcutManager::instance()->applyToAction(togglePanel1Action_, QStringLiteral("settings.toggle_panel1"));
-
-    togglePanel2Action_ = menu->addAction(QString(), this,
-                                            &MainWindow::onTogglePanel2Visible);
-    ShortcutManager::instance()->applyToAction(togglePanel2Action_, QStringLiteral("settings.toggle_panel2"));
+    auto *resetSplitterAction =
+        menu->addAction(tr("&Reset Splitter"), this, &MainWindow::onResetSplitter);
 
     menu->addSeparator();
 
-    toggleHiddenAction_ = menu->addAction(tr("Show &Hidden Files"),
-                                            QKeySequence(Qt::CTRL | Qt::Key_H),
-                                            this, &MainWindow::onToggleHiddenFiles);
+    togglePanel1Action_ = menu->addAction(QString(), this, &MainWindow::onTogglePanel1Visible);
+    ShortcutManager::instance()->applyToAction(togglePanel1Action_,
+                                               QStringLiteral("settings.toggle_panel1"));
+
+    togglePanel2Action_ = menu->addAction(QString(), this, &MainWindow::onTogglePanel2Visible);
+    ShortcutManager::instance()->applyToAction(togglePanel2Action_,
+                                               QStringLiteral("settings.toggle_panel2"));
+
+    menu->addSeparator();
+
+    toggleHiddenAction_ =
+        menu->addAction(tr("Show &Hidden Files"), QKeySequence(Qt::CTRL | Qt::Key_H), this,
+                        &MainWindow::onToggleHiddenFiles);
     toggleHiddenAction_->setCheckable(true);
-    ShortcutManager::instance()->applyToAction(toggleHiddenAction_, QStringLiteral("settings.toggle_hidden"));
+    ShortcutManager::instance()->applyToAction(toggleHiddenAction_,
+                                               QStringLiteral("settings.toggle_hidden"));
 
     menu->addSeparator();
 
-    auto *settingsAction = menu->addAction(tr("&Settings..."), this,
-                                            &MainWindow::onOpenSettings);
+    auto *settingsAction = menu->addAction(tr("&Settings..."), this, &MainWindow::onOpenSettings);
     settingsAction->setIcon(QIcon::fromTheme(QStringLiteral("preferences-system")));
 }
 
-void MainWindow::buildHelpMenu(QMenu *menu) {
+void MainWindow::buildHelpMenu(QMenu *menu)
+{
     auto *aboutAction = menu->addAction(tr("&About"), this, &MainWindow::onAbout);
     aboutAction->setIcon(QIcon::fromTheme(QStringLiteral("help-about")));
     ShortcutManager::instance()->applyToAction(aboutAction, QStringLiteral("help.about"));
 }
 
-void MainWindow::refreshPanelActions() {
+void MainWindow::refreshPanelActions()
+{
     if (!panelContainer_) return;
     if (toggleOrientationAction_) {
         const bool horizontal = panelContainer_->orientation() == Qt::Horizontal;
-        toggleOrientationAction_->setText(
-            horizontal ? tr("Switch to &Vertical Layout") : tr("Switch to &Horizontal Layout"));
+        toggleOrientationAction_->setText(horizontal ? tr("Switch to &Vertical Layout")
+                                                     : tr("Switch to &Horizontal Layout"));
     }
     if (togglePanel1Action_) {
         const bool visible = panelContainer_->isPanelVisible(PanelId::Panel1);
@@ -242,13 +248,16 @@ void MainWindow::refreshPanelActions() {
         togglePanel2Action_->setText(visible ? tr("Hide &Panel 2") : tr("Show &Panel 2"));
     }
     if (toggleHiddenAction_) {
-        const bool showHidden = ConfigManager::instance()->value(
-            QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false).toBool();
+        const bool showHidden =
+            ConfigManager::instance()
+                ->value(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false)
+                .toBool();
         toggleHiddenAction_->setChecked(showHidden);
     }
 }
 
-void MainWindow::updateToolbar() {
+void MainWindow::updateToolbar()
+{
     if (!toolbar_ || !panelContainer_) return;
     toolbar_->clear();
     auto *panel = panelContainer_->activePanel();
@@ -263,11 +272,12 @@ void MainWindow::updateToolbar() {
     }
 }
 
-void MainWindow::restoreSession() {
+void MainWindow::restoreSession()
+{
     auto *cfg = ConfigManager::instance();
     // 读取 [Session]
-    const QString sessionData = cfg->value(QStringLiteral("Session"),
-                                            QStringLiteral("data")).toString();
+    const QString sessionData =
+        cfg->value(QStringLiteral("Session"), QStringLiteral("data")).toString();
     if (sessionData.isEmpty()) return;
 
     LayoutState state;
@@ -282,12 +292,11 @@ void MainWindow::restoreSession() {
     // 注意：在窗口 show() 之前调用 setSplitterSizes 通常不会生效
     // （splitter 尺寸为 0，比例计算无意义）。因此延后到事件循环中执行，
     // 此时窗口已 show，并避免被后续 applyPanelConfig 的 setPanelVisible 覆盖。
-    const QList<int> curSizes = (state.orientation == Qt::Horizontal)
-        ? state.horizontalSizes : state.verticalSizes;
+    const QList<int> curSizes =
+        (state.orientation == Qt::Horizontal) ? state.horizontalSizes : state.verticalSizes;
     if (!curSizes.isEmpty()) {
-        QTimer::singleShot(0, this, [this, curSizes]() {
-            panelContainer_->setSplitterSizes(curSizes);
-        });
+        QTimer::singleShot(0, this,
+                           [this, curSizes]() { panelContainer_->setSplitterSizes(curSizes); });
     }
 
     for (int i = 0; i < 2; ++i) {
@@ -296,11 +305,13 @@ void MainWindow::restoreSession() {
     }
 }
 
-void MainWindow::onExit() {
+void MainWindow::onExit()
+{
     close();
 }
 
-void MainWindow::closeEvent(QCloseEvent *event) {
+void MainWindow::closeEvent(QCloseEvent *event)
+{
     // 保存布局到 [Session]
     LayoutState state;
     state.orientation = panelContainer_->orientation();
@@ -309,8 +320,10 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     // 当前方向的实际比例同步到对应成员，再分别持久化左右/上下比例
     const Qt::Orientation curOri = panelContainer_->orientation();
     const QList<int> curSizes = panelContainer_->splitterSizes();
-    if (curOri == Qt::Horizontal) panelContainer_->setHorizontalSizes(curSizes);
-    else panelContainer_->setVerticalSizes(curSizes);
+    if (curOri == Qt::Horizontal)
+        panelContainer_->setHorizontalSizes(curSizes);
+    else
+        panelContainer_->setVerticalSizes(curSizes);
     state.horizontalSizes = panelContainer_->horizontalSizes();
     state.verticalSizes = panelContainer_->verticalSizes();
 
@@ -327,7 +340,8 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     event->accept();
 }
 
-void MainWindow::addPathsToPanels(const QStringList &paths) {
+void MainWindow::addPathsToPanels(const QStringList &paths)
+{
     if (paths.isEmpty()) return;
     // path1 → 面板1，path2 → 面板2
     panelContainer_->panel(PanelId::Panel1)->addTab(paths.at(0), -1);
@@ -339,11 +353,11 @@ void MainWindow::addPathsToPanels(const QStringList &paths) {
 
 // === 收藏菜单（布局采集与恢复）===
 
-void MainWindow::onAddFavorite() {
+void MainWindow::onAddFavorite()
+{
     bool ok = false;
-    const QString name = QInputDialog::getText(this, tr("Add Favorite"),
-                                                tr("Favorite name:"), QLineEdit::Normal,
-                                                tr("New Favorite"), &ok);
+    const QString name = QInputDialog::getText(this, tr("Add Favorite"), tr("Favorite name:"),
+                                               QLineEdit::Normal, tr("New Favorite"), &ok);
     if (!ok || name.isEmpty()) return;
 
     // 构建当前布局状态
@@ -355,8 +369,10 @@ void MainWindow::onAddFavorite() {
     {
         const Qt::Orientation ori = panelContainer_->orientation();
         const QList<int> sizes = panelContainer_->splitterSizes();
-        if (ori == Qt::Horizontal) panelContainer_->setHorizontalSizes(sizes);
-        else panelContainer_->setVerticalSizes(sizes);
+        if (ori == Qt::Horizontal)
+            panelContainer_->setHorizontalSizes(sizes);
+        else
+            panelContainer_->setVerticalSizes(sizes);
     }
     state.horizontalSizes = panelContainer_->horizontalSizes();
     state.verticalSizes = panelContainer_->verticalSizes();
@@ -372,7 +388,8 @@ void MainWindow::onAddFavorite() {
     }
 }
 
-void MainWindow::onFavoriteTriggered(const QString &name) {
+void MainWindow::onFavoriteTriggered(const QString &name)
+{
     LayoutState state;
     if (!FavoriteManager::instance()->loadFavorite(name, state)) return;
 
@@ -382,10 +399,9 @@ void MainWindow::onFavoriteTriggered(const QString &name) {
     panelContainer_->setPanelVisible(PanelId::Panel1, state.panelVisible[0]);
     panelContainer_->setPanelVisible(PanelId::Panel2, state.panelVisible[1]);
     // 应用当前方向的保存比例（若有）
-    const QList<int> &curSizes = (state.orientation == Qt::Horizontal)
-        ? state.horizontalSizes : state.verticalSizes;
-    if (!curSizes.isEmpty())
-        panelContainer_->setSplitterSizes(curSizes);
+    const QList<int> &curSizes =
+        (state.orientation == Qt::Horizontal) ? state.horizontalSizes : state.verticalSizes;
+    if (!curSizes.isEmpty()) panelContainer_->setSplitterSizes(curSizes);
     for (int i = 0; i < 2; ++i) {
         auto *p = panelContainer_->panel(static_cast<PanelId>(i));
         p->setTabStates(state.panels[i].tabs, state.panels[i].activeTabIndex);
@@ -394,54 +410,63 @@ void MainWindow::onFavoriteTriggered(const QString &name) {
 
 // === 设置菜单 ===
 
-void MainWindow::onToggleActivePanel() {
+void MainWindow::onToggleActivePanel()
+{
     const PanelId cur = panelContainer_->activePanelId();
     panelContainer_->setActivePanel(cur == PanelId::Panel1 ? PanelId::Panel2 : PanelId::Panel1);
 }
 
-void MainWindow::onToggleOrientation() {
+void MainWindow::onToggleOrientation()
+{
     const bool horizontal = panelContainer_->orientation() == Qt::Horizontal;
     panelContainer_->setOrientation(horizontal ? Qt::Vertical : Qt::Horizontal);
 }
 
-void MainWindow::onResetSplitter() {
+void MainWindow::onResetSplitter()
+{
     // 将两个面板的比例重置为各占窗口一半
     panelContainer_->setSplitterSizes({1, 1});
     // 同步更新当前方向的记忆比例，避免下次切换方向时恢复为旧值
     const Qt::Orientation curOri = panelContainer_->orientation();
     const QList<int> sizes = panelContainer_->splitterSizes();
-    if (curOri == Qt::Horizontal) panelContainer_->setHorizontalSizes(sizes);
-    else panelContainer_->setVerticalSizes(sizes);
+    if (curOri == Qt::Horizontal)
+        panelContainer_->setHorizontalSizes(sizes);
+    else
+        panelContainer_->setVerticalSizes(sizes);
 }
 
-void MainWindow::onTogglePanel1Visible() {
+void MainWindow::onTogglePanel1Visible()
+{
     panelContainer_->setPanelVisible(PanelId::Panel1,
-                                      !panelContainer_->isPanelVisible(PanelId::Panel1));
+                                     !panelContainer_->isPanelVisible(PanelId::Panel1));
 }
 
-void MainWindow::onTogglePanel2Visible() {
+void MainWindow::onTogglePanel2Visible()
+{
     panelContainer_->setPanelVisible(PanelId::Panel2,
-                                      !panelContainer_->isPanelVisible(PanelId::Panel2));
+                                     !panelContainer_->isPanelVisible(PanelId::Panel2));
 }
 
-void MainWindow::onToggleHiddenFiles() {
+void MainWindow::onToggleHiddenFiles()
+{
     const bool show = toggleHiddenAction_ ? toggleHiddenAction_->isChecked() : false;
     auto *cfg = ConfigManager::instance();
     cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), show);
     // configChanged 信号会触发 applyFileBrowserConfig
 }
 
-void MainWindow::onLanguageChanged(QAction *action) {
+void MainWindow::onLanguageChanged(QAction *action)
+{
     if (!action) return;
     const QString lang = action->data().toString();
     auto *cfg = ConfigManager::instance();
     cfg->setValue(QStringLiteral("UI"), QStringLiteral("language"), lang);
     // 实际切换在 Phase 5 实现
-    QMessageBox::information(this, tr("Language"),
-                             tr("Language will be applied after restart."));
+    QMessageBox::information(this, tr("Language"), tr("Language will be applied after restart."));
 }
 
-void MainWindow::onThemeChanged(QAction *action) {
+void MainWindow::onThemeChanged(QAction *action)
+{
     if (!action) return;
     const QString theme = action->data().toString();
     auto *cfg = ConfigManager::instance();
@@ -449,7 +474,8 @@ void MainWindow::onThemeChanged(QAction *action) {
     // FmApplication 会监听 configChanged 信号应用主题
 }
 
-void MainWindow::onOpenSettings() {
+void MainWindow::onOpenSettings()
+{
     SettingsDialog dlg(this);
     // 添加四个设置页
     dlg.addPage(new UiSettingsPage(this));
@@ -460,12 +486,16 @@ void MainWindow::onOpenSettings() {
     dlg.exec();
 }
 
-void MainWindow::applyPanelConfig() {
+void MainWindow::applyPanelConfig()
+{
     auto *cfg = ConfigManager::instance();
     const int orient = cfg->value(QStringLiteral("Panels"), QStringLiteral("orientation"),
-                                    static_cast<int>(Qt::Horizontal)).toInt();
-    const bool p1Visible = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true).toBool();
-    const bool p2Visible = cfg->value(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), true).toBool();
+                                  static_cast<int>(Qt::Horizontal))
+                           .toInt();
+    const bool p1Visible =
+        cfg->value(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), true).toBool();
+    const bool p2Visible =
+        cfg->value(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), true).toBool();
 
     panelContainer_->setOrientation(static_cast<Qt::Orientation>(orient));
     panelContainer_->setPanelVisible(PanelId::Panel1, p1Visible);
@@ -473,10 +503,11 @@ void MainWindow::applyPanelConfig() {
     // 活动面板由会话恢复，不在此处设置
 }
 
-void MainWindow::applyFileBrowserConfig() {
+void MainWindow::applyFileBrowserConfig()
+{
     auto *cfg = ConfigManager::instance();
-    const bool showHidden = cfg->value(QStringLiteral("File_Browser"),
-                                         QStringLiteral("showHidden"), false).toBool();
+    const bool showHidden =
+        cfg->value(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), false).toBool();
     if (toggleHiddenAction_) {
         QSignalBlocker blocker(toggleHiddenAction_);
         toggleHiddenAction_->setChecked(showHidden);
@@ -493,7 +524,8 @@ void MainWindow::applyFileBrowserConfig() {
 
 // === 帮助菜单 ===
 
-void MainWindow::onAbout() {
+void MainWindow::onAbout()
+{
     AboutDialog dlg(this);
     dlg.exec();
 }

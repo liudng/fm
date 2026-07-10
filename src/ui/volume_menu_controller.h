@@ -1,6 +1,8 @@
 #ifndef FM_UI_VOLUME_MENU_CONTROLLER_H
 #define FM_UI_VOLUME_MENU_CONTROLLER_H
 
+#include "../core/volume_manager.h"
+
 #include <QList>
 #include <QObject>
 #include <QPointer>
@@ -10,15 +12,14 @@ class QAction;
 
 namespace fm {
 
-struct VolumeInfo;
-
 // 文件菜单卷段控制器
 // - 在文件菜单中构建"已挂载卷 + 外部设备"两段（分隔符分隔）
 // - aboutToShow 时枚举：卷段同步（QStorageInfo，快），外部设备段异步（UDisks2，慢）
 //   外部设备段先显示"加载中"占位，后台枚举完成后替换
 // - 右键弹上下文菜单执行挂载/卸载/弹出（QtConcurrent 异步，不阻塞 UI）
 // - 左键点击已挂载卷项通过 navigateRequested 信号通知宿主导航
-class VolumeMenuController : public QObject {
+class VolumeMenuController : public QObject
+{
     Q_OBJECT
 public:
     explicit VolumeMenuController(QMenu *fileMenu, QObject *parent = nullptr);
@@ -47,10 +48,10 @@ private:
     void showContextMenu(QAction *act, const QPoint &globalPos);
 
     QMenu *fileMenu_;
-    QAction *volSeparator_ = nullptr;  // 卷段与外部设备段之间
-    QAction *extSeparator_ = nullptr;  // 外部设备段与后续项之间
-    QList<QAction*> volActions_;        // 动态卷项（aboutToShow 时刷新）
-    QList<QAction*> extActions_;        // 动态外部设备项（异步填充）
+    QAction *volSeparator_ = nullptr; // 卷段与外部设备段之间
+    QAction *extSeparator_ = nullptr; // 外部设备段与后续项之间
+    QList<QAction *> volActions_;     // 动态卷项（aboutToShow 时刷新）
+    QList<QAction *> extActions_;     // 动态外部设备项（异步填充）
 };
 
 } // namespace fm
