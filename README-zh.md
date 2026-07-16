@@ -44,7 +44,7 @@ sudo apt install qt6-base-dev qt6-base-dev-tools
 仅在运行单元测试和质量检查时需要（参见 [测试与质量检查](#测试与质量检查)）：
 
 ```bash
-sudo apt install libgtest-dev clang-tidy
+sudo apt install libgtest-dev libxkbcommon-dev clang-tidy
 # 格式检查需要 clang-format 19.x（与 CI 一致）
 # Ubuntu 24.04 默认提供的是 18 版，需通过 pip 安装 19 版：
 python3 -m pip install --user clang-format==19.1.7

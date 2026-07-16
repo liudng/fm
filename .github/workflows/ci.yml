@@ -21,6 +21,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential cmake ninja-build pkgconf \
             qt6-base-dev qt6-tools-dev \
+            libxkbcommon-dev \
+            libgtest-dev \
             clang-tidy
           # 固定 clang-format 版本为 19.1.7，与本地开发环境一致
           # 不同版本的 clang-format 对 CJK 字符宽度的计算方式不同，
