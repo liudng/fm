@@ -21,12 +21,17 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential cmake ninja-build pkgconf \
             qt6-base-dev qt6-tools-dev \
-            clang-format clang-tidy
+            clang-tidy
+          # 固定 clang-format 版本为 19.1.7，与本地开发环境一致
+          # 不同版本的 clang-format 对 CJK 字符宽度的计算方式不同，
+          # 会导致带中文注释的对齐产生不同结果。通过 pip 安装指定版本。
+          python3 -m pip install --user clang-format==19.1.7
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Check code formatting
         run: |
-          find src tests -name '*.cpp' -o -name '*.h' \
-            | xargs clang-format --dry-run --Werror
+          find src tests \( -name '*.cpp' -o -name '*.h' \) -print0 \
+            | xargs -0 clang-format --dry-run --Werror
 
       - name: Configure (tests + compile_commands)
         run: |

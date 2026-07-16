@@ -44,7 +44,10 @@ sudo apt install qt6-base-dev qt6-base-dev-tools
 Required only for running unit tests and quality checks (see [Testing & Quality Checks](#testing--quality-checks)):
 
 ```bash
-sudo apt install libgtest-dev clang-format clang-tidy
+sudo apt install libgtest-dev clang-tidy
+# clang-format 19.x is required for format check consistency with CI.
+# Ubuntu 24.04 ships clang-format 18 by default; install v19 via pip:
+python3 -m pip install --user clang-format==19.1.7
 ```
 
 ## Build
