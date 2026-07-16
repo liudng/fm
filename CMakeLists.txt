@@ -24,7 +24,8 @@ endif()
 # 标准安装目录变量（跨发行版兼容）
 include(GNUInstallDirs)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Widgets Core Gui Concurrent DBus Network LinguistTools)
+# Qt6 最低版本要求：6.4（Qt 6.x 系列源码兼容；CI runner 提供 6.4.2）
+find_package(Qt6 6.4 REQUIRED COMPONENTS Widgets Core Gui Concurrent DBus Network LinguistTools)
 
 qt_standard_project_setup()
 
