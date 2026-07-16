@@ -9,7 +9,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     qt6-tools-dev \
     qt6-wayland-dev \
     wayland-protocols \
-    qtchooser \
+    libxkbcommon-dev \
+    libgtest-dev \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

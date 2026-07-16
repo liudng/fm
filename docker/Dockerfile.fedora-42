@@ -9,7 +9,8 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     qt6-qttools-devel \
     qt6-qtwayland-devel \
     wayland-protocols-devel \
-    qtchooser \
+    libxkbcommon-devel \
+    gtest-devel \
   && dnf -y clean all && rm -rf /var/cache/dnf
 
 WORKDIR /workspace
