@@ -63,6 +63,7 @@ const DefaultShortcut kDefaultShortcuts[] = {
 
     // 键盘导航
     {"nav.focus_panel", "Ctrl+Tab", QT_TRANSLATE_NOOP("Shortcut", "Next Tab")},
+    {"nav.prev_tab", "Ctrl+Shift+Tab", QT_TRANSLATE_NOOP("Shortcut", "Previous Tab")},
 };
 
 const int kDefaultShortcutCount = sizeof(kDefaultShortcuts) / sizeof(DefaultShortcut);

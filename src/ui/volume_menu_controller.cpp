@@ -114,8 +114,8 @@ void VolumeMenuController::fillExternalDevices(const QList<VolumeInfo> &devices)
             if (d.isMounted && !d.mountPoint.isEmpty()) {
                 text += QStringLiteral("  (%1)").arg(d.mountPoint);
             }
-            auto *act = new QAction(QIcon::fromTheme(QStringLiteral("drive-removable-media")), text,
-                                    fileMenu_);
+            auto *act =
+                new QAction(QIcon::fromTheme(QStringLiteral("media-removable")), text, fileMenu_);
             act->setProperty("deviceFile", d.deviceFile);
             act->setProperty("isMounted", d.isMounted);
             act->setProperty("mountPoint", d.mountPoint);

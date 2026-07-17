@@ -406,6 +406,7 @@ void ShortcutSettingsPage::load()
         QStringLiteral("filelist.up"),
         QStringLiteral("filelist.refresh"),
         QStringLiteral("nav.focus_panel"),
+        QStringLiteral("nav.prev_tab"),
         // 文件操作
         QStringLiteral("filelist.open"),
         QStringLiteral("filelist.open_with"),

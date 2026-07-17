@@ -1,5 +1,7 @@
 #include "fm_application.h"
 
+#include "version.h"
+
 #include "../app/single_instance.h"
 #include "../core/column_manager.h"
 #include "../core/config_manager.h"
@@ -21,7 +23,7 @@ namespace fm {
 FmApplication::FmApplication(int &argc, char **argv) : QApplication(argc, argv)
 {
     setApplicationName(QStringLiteral("fm"));
-    setApplicationVersion(QStringLiteral("1.0.0"));
+    setApplicationVersion(QString::fromLatin1(FM_VERSION));
     setOrganizationName(QStringLiteral("fm"));
     // 优先使用内置 fm.png 图标；未安装到系统图标主题时也能正常显示
     QIcon appIcon(QStringLiteral(":/fm.png"));

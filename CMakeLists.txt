@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(fm VERSION 1.0.0 LANGUAGES CXX)
+project(fm VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,6 +28,9 @@ include(GNUInstallDirs)
 find_package(Qt6 6.4 REQUIRED COMPONENTS Widgets Core Gui Concurrent DBus Network LinguistTools)
 
 qt_standard_project_setup()
+
+# 从 CMake project() 版本号生成 version.h（供关于对话框等使用）
+configure_file(src/app/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/version.h @ONLY)
 
 # ---- 核心逻辑库（无 QtWidgets 依赖，可独立单元测试） ----
 qt_add_library(fm_core STATIC
@@ -122,6 +125,9 @@ target_link_libraries(fm PRIVATE
     Qt6::Widgets
     Qt6::Concurrent
 )
+
+# 包含 CMake 生成的 version.h
+target_include_directories(fm PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
 
 # 翻译文件 (.ts → .qm → 嵌入资源)
 # 源码以英文为源语言（tr() 默认值），仅维护中文翻译

@@ -28,6 +28,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeDatabase>
+#include <QPainter>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
@@ -382,8 +383,10 @@ void PanelWidget::onOpenRequested(const QModelIndex &proxyIndex)
     if (item.isDir) {
         navigateTo(item.absolutePath, true);
         emit openRequested(item.absolutePath);
+    } else {
+        // 与右键"打开"行为一致：用系统默认应用打开文件
+        FileOperations::instance()->openWithDefault(QUrl::fromLocalFile(item.absolutePath));
     }
-    // 文件打开在后续阶段实现
 }
 
 void PanelWidget::onParentDirRequested()
@@ -603,6 +606,14 @@ void PanelWidget::createActions()
     });
     sm->applyToAction(actNextTab_, QStringLiteral("nav.focus_panel"));
 
+    actPrevTab_ = new QAction(tr("Previous Tab"), this);
+    actPrevTab_->setShortcutContext(sc);
+    connect(actPrevTab_, &QAction::triggered, this, [this]() {
+        const int n = tabCount();
+        if (n > 1) setActiveTab((activeTabIndex() - 1 + n) % n);
+    });
+    sm->applyToAction(actPrevTab_, QStringLiteral("nav.prev_tab"));
+
     // 将所有动作注册到面板，使 WidgetWithChildrenShortcut 快捷键生效
     // （仅加入 QMenu 时快捷键只在菜单弹出期间有效）
     addAction(actBack_);
@@ -629,6 +640,7 @@ void PanelWidget::createActions()
     addAction(actCloseTab_);
     addAction(actCloneTab_);
     addAction(actNextTab_);
+    addAction(actPrevTab_);
 
     updateActionStates();
 }

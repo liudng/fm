@@ -154,6 +154,7 @@ private:
     QAction *actCloseTab_ = nullptr;
     QAction *actCloneTab_ = nullptr;
     QAction *actNextTab_ = nullptr;
+    QAction *actPrevTab_ = nullptr;
 };
 
 } // namespace fm

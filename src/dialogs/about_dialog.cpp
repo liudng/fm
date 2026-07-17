@@ -1,5 +1,7 @@
 #include "about_dialog.h"
 
+#include "version.h"
+
 #include <QApplication>
 #include <QIcon>
 #include <QLabel>
@@ -22,14 +24,15 @@ AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent)
     layout->addWidget(iconLabel);
 
     auto *label = new QLabel(this);
-    label->setText(tr(
-        "<h2>fm</h2>"
-        "<p>Linux dual-panel file manager</p>"
-        "<p><b>Version:</b> 1.0.0</p>"
-        "<p><b>Author:</b> liudng</p>"
-        "<p>Copyright © 2026 liudng</p>"
-        "<p>Licensed under GPL-3.0-or-later</p>"
-        "<p><a href=\"https://github.com/liudng/fm-qt\">https://github.com/liudng/fm-qt</a></p>"));
+    label->setText(
+        tr("<h2>fm</h2>"
+           "<p>Linux dual-panel file manager</p>"
+           "<p><b>Version:</b> %1</p>"
+           "<p><b>Author:</b> liudng</p>"
+           "<p>Copyright © 2026 liudng</p>"
+           "<p>Licensed under GPL-3.0-or-later</p>"
+           "<p><a href=\"https://github.com/liudng/fm\">https://github.com/liudng/fm</a></p>")
+            .arg(QString::fromLatin1(FM_VERSION)));
     label->setAlignment(Qt::AlignCenter);
     label->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::LinksAccessibleByMouse);
     label->setOpenExternalLinks(true);
