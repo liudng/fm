@@ -18,15 +18,19 @@ jobs:
           - os: debian-13
             arch: amd64
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:debian-trixie
+            cpack_gens: "TGZ;DEB"
           - os: debian-13
             arch: arm64
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:debian-trixie
+            cpack_gens: "TGZ;DEB"
           - os: fedora-42
             arch: amd64
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:fedora-42
+            cpack_gens: "TGZ;RPM"
           - os: fedora-42
             arch: arm64
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:fedora-42
+            cpack_gens: "TGZ;RPM"
 
     steps:
       - uses: actions/checkout@v4
@@ -48,34 +52,28 @@ jobs:
         run: |
           set -euo pipefail
           build_dir=build-${{ matrix.os }}-${{ matrix.arch }}
-          tag_name="${GITHUB_REF#refs/tags/}"
           docker pull "${{ matrix.builder }}"
-          docker run --rm --platform=linux/${{ matrix.arch }} -e BUILD_DIR="$build_dir" -e TAG_NAME="$tag_name" -v "$PWD:/workspace" -w /workspace "${{ matrix.builder }}" bash -lc '
+          docker run --rm --platform=linux/${{ matrix.arch }} \
+            -e BUILD_DIR="$build_dir" \
+            -e CPACK_GENS="${{ matrix.cpack_gens }}" \
+            -v "$PWD:/workspace" -w /workspace "${{ matrix.builder }}" bash -lc '
             set -euo pipefail
             mkdir -p "$BUILD_DIR"
             cd "$BUILD_DIR"
             cmake -DCMAKE_BUILD_TYPE=Release ..
             cmake --build . -- -j$(nproc)
-            # 构建安装目录结构
-            stage="/workspace/stage"
-            rm -rf "$stage"
-            mkdir -p "$stage/bin" \
-                     "$stage/share/applications" \
-                     "$stage/share/icons/hicolor/512x512/apps" \
-                     "$stage/share/man/man1"
-            cp fm "$stage/bin/"
-            cp /workspace/fm.desktop "$stage/share/applications/"
-            cp /workspace/fm.png "$stage/share/icons/hicolor/512x512/apps/"
-            cp /workspace/fm.1 "$stage/share/man/man1/"
-            gzip -9f "$stage/share/man/man1/fm.1"
-            tar czf "/workspace/fm-qt-${{ matrix.os }}-${{ matrix.arch }}-${TAG_NAME}.tar.gz" -C "$stage" .
+            cpack -G "$CPACK_GENS"
           '
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: fm-qt-${{ matrix.os }}-${{ matrix.arch }}
-          path: fm-qt-${{ matrix.os }}-${{ matrix.arch }}-${{ github.ref_name }}.tar.gz
+          path: |
+            build-${{ matrix.os }}-${{ matrix.arch }}/*.tar.gz
+            build-${{ matrix.os }}-${{ matrix.arch }}/*.deb
+            build-${{ matrix.os }}-${{ matrix.arch }}/*.rpm
+          if-no-files-found: error
 
   publish:
     name: Publish release assets
@@ -112,7 +110,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          find artifacts -name '*.tar.gz' -print0 | while IFS= read -r -d '' file; do
-            echo "Uploading $file"
-            gh release upload "${GITHUB_REF#refs/tags/}" "$file" --clobber
-          done
+          find artifacts \( -name '*.tar.gz' -o -name '*.deb' -o -name '*.rpm' \) -print0 \
+            | while IFS= read -r -d '' file; do
+              echo "Uploading $file"
+              gh release upload "${GITHUB_REF#refs/tags/}" "$file" --clobber
+            done

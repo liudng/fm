@@ -11,6 +11,12 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     wayland-protocols-devel \
     libxkbcommon-devel \
     gtest-devel \
-  && dnf -y clean all && rm -rf /var/cache/dnf
+  && dnf -y clean all && rm -rf /var/cache/dnf \
+  && echo "=== Arch: $(uname -m) ===" \
+  && echo "=== Installed Qt6 cmake config files ===" \
+  && (find /usr/lib /usr/lib64 -maxdepth 3 -name 'Qt6*Config.cmake' 2>/dev/null | sort || true) \
+  && echo "=== Verifying Qt6GuiConfig.cmake ===" \
+  && test -f /usr/lib64/cmake/Qt6Gui/Qt6GuiConfig.cmake \
+  && echo "OK: Qt6GuiConfig.cmake found"
 
 WORKDIR /workspace

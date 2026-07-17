@@ -139,14 +139,65 @@ qt_add_translations(fm
 
 install(TARGETS fm RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-# 安装 man 手册（压缩为 .gz）
-install(FILES fm.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+# man 手册预压缩为 .gz（在配置阶段生成，供 install/CPack 共用）
+# 若系统无 gzip，则回退为安装未压缩的 fm.1
+find_program(GZIP_EXECUTABLE gzip)
+mark_as_advanced(GZIP_EXECUTABLE)
+if(GZIP_EXECUTABLE)
+    set(FM_MAN_PAGE "${CMAKE_CURRENT_BINARY_DIR}/fm.1.gz")
+    execute_process(
+        COMMAND "${GZIP_EXECUTABLE}" -9 -c "${CMAKE_CURRENT_SOURCE_DIR}/fm.1"
+        OUTPUT_FILE "${FM_MAN_PAGE}"
+        RESULT_VARIABLE _gzip_result
+    )
+    if(NOT _gzip_result EQUAL 0)
+        message(WARNING "gzip failed; falling back to uncompressed fm.1")
+        set(FM_MAN_PAGE "${CMAKE_CURRENT_SOURCE_DIR}/fm.1")
+    endif()
+else()
+    set(FM_MAN_PAGE "${CMAKE_CURRENT_SOURCE_DIR}/fm.1")
+endif()
+install(FILES "${FM_MAN_PAGE}" DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
 # 安装 .desktop 文件
 install(FILES fm.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 
 # 安装应用图标到 hicolor 主题（512x512）
 install(FILES fm.png DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps)
+
+# ---- CPack 打包（支持 TGZ / DEB / RPM） ----
+# 构建方法：
+#   cpack -G "TGZ;DEB"     # Debian 上构建 tgz + deb
+#   cpack -G "TGZ;RPM"     # Fedora 上构建 tgz + rpm
+#   cpack                  # 构建所有已启用的生成器
+set(CPACK_PACKAGE_NAME "fm")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Linux 双面板文件管理器")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/liudng/fm")
+set(CPACK_PACKAGE_CONTACT "liudng")
+# 打包时使用相对路径（避免在用户机器上泄漏 CI 构建路径）
+set(CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+# 默认启用三种生成器；CI 按平台选择
+set(CPACK_GENERATOR "TGZ;DEB;RPM")
+# 在包文件名中包含系统名和架构（如 fm-0.2.0-Linux-x86_64）
+set(CPACK_SYSTEM_NAME "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+
+# ---- DEB 生成器配置 ----
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "liudng")
+# 自动从已安装的共享库推断依赖（dpkg-shlibdeps）
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+
+# ---- RPM 生成器配置 ----
+set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-or-later")
+# 自动从二进制 ELF 依赖推断 Requires（rpmbuild 自动处理）
+set(CPACK_RPM_PACKAGE_AUTOREQ ON)
+set(CPACK_RPM_PACKAGE_GROUP "Applications/File")
+# RPM 默认会自动排除 /usr/lib 下的 .build-id 目录
+set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "/usr/lib/.build-id")
+
+include(CPack)
 
 # ---- 单元测试 ----
 # 仅使用系统已安装的 GTest，不再通过 FetchContent 下载

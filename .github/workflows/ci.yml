@@ -61,9 +61,41 @@ jobs:
           cmake --build build-asan --parallel
           ctest --test-dir build-asan --output-on-failure
 
+  wait-for-images:
+    name: Wait for builder images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for build-image.yml to complete
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          # Sleep briefly so any concurrently-triggered workflow can register
+          sleep 5
+          for i in $(seq 1 60); do
+            response=$(curl -fsSL -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/actions/workflows/build-image.yml/runs?head_sha=$HEAD_SHA" 2>/dev/null) \
+              || { echo "GitHub API call failed; skipping wait (degraded mode)."; exit 0; }
+            active=$(echo "$response" | jq \
+              '[.workflow_runs[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null) \
+              || { echo "jq parse failed; skipping wait (degraded mode)."; exit 0; }
+            if [ "$active" -eq 0 ]; then
+              echo "No active build-image.yml runs for $HEAD_SHA."
+              exit 0
+            fi
+            echo "build-image.yml has $active active run(s) for $HEAD_SHA; waiting 30s..."
+            sleep 30
+          done
+          echo "Timed out after 30 minutes; proceeding with possibly stale image."
+          exit 0
+
   build:
     name: Build (${{ matrix.os }} / ${{ matrix.arch }})
-    needs: quality
+    needs: [quality, wait-for-images]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -71,15 +103,19 @@ jobs:
           - os: debian-13
             arch: amd64
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:debian-trixie
+            cpack_gens: "TGZ;DEB"
           - os: debian-13
             arch: arm64
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:debian-trixie
+            cpack_gens: "TGZ;DEB"
           - os: fedora-42
             arch: amd64
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:fedora-42
+            cpack_gens: "TGZ;RPM"
           - os: fedora-42
             arch: arm64
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:fedora-42
+            cpack_gens: "TGZ;RPM"
 
     steps:
       - uses: actions/checkout@v4
@@ -102,16 +138,15 @@ jobs:
           set -euo pipefail
           build_dir=build-${{ matrix.os }}-${{ matrix.arch }}
           docker pull "${{ matrix.builder }}"
-          docker run --rm --platform=linux/${{ matrix.arch }} -e BUILD_DIR="$build_dir" -v "$PWD:/workspace" -w /workspace "${{ matrix.builder }}" bash -lc '
+          docker run --rm --platform=linux/${{ matrix.arch }} \
+            -e BUILD_DIR="$build_dir" \
+            -e CPACK_GENS="${{ matrix.cpack_gens }}" \
+            -v "$PWD:/workspace" -w /workspace "${{ matrix.builder }}" bash -lc '
             set -euo pipefail
             mkdir -p "$BUILD_DIR"
             cd "$BUILD_DIR"
             cmake -DCMAKE_BUILD_TYPE=Release ..
             cmake --build . -- -j$(nproc)
+            cpack -G "$CPACK_GENS"
           '
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: fm-${{ matrix.os }}-${{ matrix.arch }}
-          path: build-${{ matrix.os }}-${{ matrix.arch }}/fm
