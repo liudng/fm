@@ -3,11 +3,13 @@ FROM fedora:42
 RUN dnf -y --setopt=install_weak_deps=False install \
     @development-tools \
     cmake \
+    file \
     ninja-build \
     pkgconf \
     qt6-qtbase-devel \
     qt6-qttools-devel \
     qt6-qtwayland-devel \
+    rpm-build \
     wayland-protocols-devel \
     libxkbcommon-devel \
     gtest-devel \
@@ -17,6 +19,9 @@ RUN dnf -y --setopt=install_weak_deps=False install \
   && (find /usr/lib /usr/lib64 -maxdepth 3 -name 'Qt6*Config.cmake' 2>/dev/null | sort || true) \
   && echo "=== Verifying Qt6GuiConfig.cmake ===" \
   && test -f /usr/lib64/cmake/Qt6Gui/Qt6GuiConfig.cmake \
-  && echo "OK: Qt6GuiConfig.cmake found"
+  && echo "OK: Qt6GuiConfig.cmake found" \
+  && echo "=== Verifying rpmbuild ===" \
+  && command -v rpmbuild \
+  && echo "OK: rpmbuild found"
 
 WORKDIR /workspace
