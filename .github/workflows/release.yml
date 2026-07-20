@@ -11,35 +11,33 @@ on:
 jobs:
   build:
     name: Build (${{ matrix.os }} / ${{ matrix.arch }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
         include:
           - os: debian-13
             arch: amd64
+            runner: ubuntu-latest
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:debian-trixie
             cpack_gens: "TGZ;DEB"
           - os: debian-13
             arch: arm64
+            runner: ubuntu-24.04-arm
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:debian-trixie
             cpack_gens: "TGZ;DEB"
           - os: fedora-42
             arch: amd64
+            runner: ubuntu-latest
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:fedora-42
             cpack_gens: "TGZ;RPM"
           - os: fedora-42
             arch: arm64
+            runner: ubuntu-24.04-arm
             builder: ghcr.io/${{ github.repository_owner }}/fm-qt-builder:fedora-42
             cpack_gens: "TGZ;RPM"
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up QEMU for arm64
-        if: matrix.arch == 'arm64'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: linux/arm64
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
