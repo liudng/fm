@@ -20,6 +20,9 @@ FileTabBar::FileTabBar(QWidget *parent) : QTabBar(parent)
     setElideMode(Qt::ElideNone);
     setUsesScrollButtons(true);
     setDocumentMode(true);
+    // 允许 tab bar 获取焦点，使点击非活动面板的选项卡时能通过
+    // QApplication::focusChanged 触发活动面板切换
+    setFocusPolicy(Qt::ClickFocus);
 
     // 关闭按钮触发关闭信号（是否显示由 PanelWidget 根据配置控制）
     connect(this, &QTabBar::tabCloseRequested, this,
