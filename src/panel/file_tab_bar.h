@@ -19,6 +19,9 @@ public:
     // 设置选项卡路径，自动更新标题与 tooltip
     void setTabPath(int index, const QString &path);
 
+    // 设置活动状态（活动面板的选项卡栏顶部绘制高亮线）
+    void setActive(bool active);
+
 signals:
     void newTabRequested();
     void closeTabRequested(int index);
@@ -42,6 +45,7 @@ private:
     // 拖拽起点
     QPoint pressPos_;
     int dragTab_ = -1;
+    bool active_ = false; // 是否为活动面板
 };
 
 } // namespace fm

@@ -41,6 +41,13 @@ void FileTabBar::setTabPath(int index, const QString &path)
     setTabToolTip(index, path);
 }
 
+void FileTabBar::setActive(bool active)
+{
+    if (active_ == active) return;
+    active_ = active;
+    update();
+}
+
 QRect FileTabBar::newTabButtonRect() const
 {
     // "+" 按钮位于最后一个选项卡右侧，垂直居中于选项卡行
@@ -111,6 +118,12 @@ void FileTabBar::paintEvent(QPaintEvent *event)
         const int x = rect.center().x() - pmW / 2;
         const int y = rect.center().y() - pmH / 2;
         p.drawPixmap(x, y, pmW, pmH, pm);
+    }
+
+    // 活动面板：在选项卡栏顶部绘制高亮线
+    if (active_) {
+        const QColor highlight = palette().color(QPalette::Highlight);
+        p.fillRect(QRect(0, 0, width(), 2), highlight);
     }
 }
 

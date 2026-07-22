@@ -719,6 +719,10 @@ void PanelWidget::setActivePanel(bool active)
 {
     if (isActivePanel_ == active) return;
     isActivePanel_ = active;
+    // 活动面板通过选项卡栏顶部高亮线标识
+    if (tabBar_) {
+        tabBar_->setActive(active);
+    }
     // 活动面板切换时，将键盘焦点移到当前视图，使方向键操作新活动面板
     if (active) {
         if (auto *v = listView()) v->setFocus();
