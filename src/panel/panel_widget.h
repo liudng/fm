@@ -62,7 +62,7 @@ public:
     QList<QAction *> toolbarActions() const;
     void updateActionStates();
 
-    // 活动面板状态（用于活动选项卡粗体显示）
+    // 活动面板状态
     void setActivePanel(bool active);
 
 signals:

@@ -43,13 +43,16 @@ void FileTabBar::setTabPath(int index, const QString &path)
 
 QRect FileTabBar::newTabButtonRect() const
 {
-    // "+" 按钮位于最后一个选项卡右侧
+    // "+" 按钮位于最后一个选项卡右侧，垂直居中于选项卡行
     if (count() == 0) {
-        return QRect(4, 0, kNewTabButtonWidth, height());
+        const int btnH = kNewTabButtonWidth;
+        const int y = (height() - btnH) / 2;
+        return QRect(4, y, kNewTabButtonWidth, btnH);
     }
     const QRect lastTabRect = tabRect(count() - 1);
     const int startX = lastTabRect.right() + 4;
-    return QRect(startX, 0, kNewTabButtonWidth, lastTabRect.height());
+    // 与选项卡行垂直对齐：使用选项卡的 y 和 height 作为居中基准
+    return QRect(startX, lastTabRect.y(), kNewTabButtonWidth, lastTabRect.height());
 }
 
 bool FileTabBar::isNewTabButton(const QPoint &pos) const
@@ -101,9 +104,13 @@ void FileTabBar::paintEvent(QPaintEvent *event)
     const QSize sz(iconSize, iconSize);
     const QPixmap pm = icon.pixmap(sz, isEnabled() ? QIcon::Normal : QIcon::Disabled);
     if (!pm.isNull()) {
-        const int x = rect.center().x() - pm.width() / 2;
-        const int y = rect.center().y() - pm.height() / 2;
-        p.drawPixmap(x, y, pm);
+        // 使用逻辑像素尺寸进行居中计算，避免高 DPI 下 pixmap 物理尺寸偏大导致图标偏上
+        const qreal dpr = pm.devicePixelRatio();
+        const int pmW = dpr > 0 ? qRound(pm.width() / dpr) : pm.width();
+        const int pmH = dpr > 0 ? qRound(pm.height() / dpr) : pm.height();
+        const int x = rect.center().x() - pmW / 2;
+        const int y = rect.center().y() - pmH / 2;
+        p.drawPixmap(x, y, pmW, pmH, pm);
     }
 }
 

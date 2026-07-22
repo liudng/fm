@@ -170,6 +170,8 @@ int PanelWidget::addTab(const QString &path, int index)
 
     stack_->addWidget(view);
     tabBar_->insertTab(index, QStringLiteral("..."));
+    // 新建选项卡后切换到该选项卡
+    tabBar_->setCurrentIndex(index);
 
     // 设置路径
     model->setPath(path);
@@ -717,10 +719,6 @@ void PanelWidget::setActivePanel(bool active)
 {
     if (isActivePanel_ == active) return;
     isActivePanel_ = active;
-    if (tabBar_) {
-        tabBar_->setStyleSheet(
-            active ? QStringLiteral("QTabBar::tab:selected { font-weight: bold; }") : QString());
-    }
     // 活动面板切换时，将键盘焦点移到当前视图，使方向键操作新活动面板
     if (active) {
         if (auto *v = listView()) v->setFocus();
