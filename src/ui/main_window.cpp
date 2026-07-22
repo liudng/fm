@@ -420,6 +420,9 @@ void MainWindow::onToggleOrientation()
 {
     const bool horizontal = panelContainer_->orientation() == Qt::Horizontal;
     panelContainer_->setOrientation(horizontal ? Qt::Vertical : Qt::Horizontal);
+    // 同步更新配置文件，使设置对话框中的布局选项与运行时状态一致
+    ConfigManager::instance()->setValue(QStringLiteral("Panels"), QStringLiteral("orientation"),
+                                        static_cast<int>(panelContainer_->orientation()));
 }
 
 void MainWindow::onResetSplitter()

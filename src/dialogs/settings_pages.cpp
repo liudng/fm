@@ -211,15 +211,23 @@ void PanelSettingsPage::apply()
     const bool p2Visible = panel2VisibleCheck_->isChecked();
     const bool tabsClosable = tabsClosableCheck_->isChecked();
 
-    cfg->setValue(QStringLiteral("Panels"), QStringLiteral("orientation"), orient);
-    cfg->setValue(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), p1Visible);
-    cfg->setValue(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), p2Visible);
-    cfg->setValue(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), tabsClosable);
-
-    origOrientation_ = orient;
-    origPanel1Visible_ = p1Visible;
-    origPanel2Visible_ = p2Visible;
-    origTabsClosable_ = tabsClosable;
+    // 仅在值实际变化时写入，避免触发不必要的 configChanged 信号
+    if (orient != origOrientation_) {
+        cfg->setValue(QStringLiteral("Panels"), QStringLiteral("orientation"), orient);
+        origOrientation_ = orient;
+    }
+    if (p1Visible != origPanel1Visible_) {
+        cfg->setValue(QStringLiteral("Panels"), QStringLiteral("panel1Visible"), p1Visible);
+        origPanel1Visible_ = p1Visible;
+    }
+    if (p2Visible != origPanel2Visible_) {
+        cfg->setValue(QStringLiteral("Panels"), QStringLiteral("panel2Visible"), p2Visible);
+        origPanel2Visible_ = p2Visible;
+    }
+    if (tabsClosable != origTabsClosable_) {
+        cfg->setValue(QStringLiteral("Panels"), QStringLiteral("tabsClosable"), tabsClosable);
+        origTabsClosable_ = tabsClosable;
+    }
 }
 
 void PanelSettingsPage::onPanelVisibilityChanged()
@@ -332,14 +340,18 @@ void FileBrowserSettingsPage::apply()
 {
     auto *cfg = ConfigManager::instance();
     const bool showHidden = showHiddenCheck_->isChecked();
-    cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), showHidden);
-    origShowHidden_ = showHidden;
+    if (showHidden != origShowHidden_) {
+        cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("showHidden"), showHidden);
+        origShowHidden_ = showHidden;
+    }
 
     // 日期时间格式：空值视为使用默认
     QString dtFmt = dateTimeFormatEdit_->text().trimmed();
     if (dtFmt.isEmpty()) dtFmt = QStringLiteral("yyyy-MM-dd HH:mm");
-    cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("dateTimeFormat"), dtFmt);
-    origDateTimeFormat_ = dtFmt;
+    if (dtFmt != origDateTimeFormat_) {
+        cfg->setValue(QStringLiteral("File_Browser"), QStringLiteral("dateTimeFormat"), dtFmt);
+        origDateTimeFormat_ = dtFmt;
+    }
 
     // 应用列选择：按列表顺序收集选中项
     QStringList visibleCols;
