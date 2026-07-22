@@ -30,6 +30,7 @@ struct LayoutState
     QList<int> horizontalSizes; // 横向布局时的 splitter 比例（像素值）
     QList<int> verticalSizes;   // 纵向布局时的 splitter 比例（像素值）
     bool panelVisible[2] = {true, true};
+    bool toolbarVisible = true; // 工具栏显示/隐藏
 };
 
 // 会话状态序列化辅助

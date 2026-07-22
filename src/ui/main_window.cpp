@@ -211,6 +211,13 @@ void MainWindow::buildSettingsMenu(QMenu *menu)
 
     menu->addSeparator();
 
+    toggleToolbarAction_ = menu->addAction(tr("Show &Toolbar"), this,
+                                            &MainWindow::onToggleToolbarVisible);
+    toggleToolbarAction_->setCheckable(true);
+    toggleToolbarAction_->setChecked(true);
+
+    menu->addSeparator();
+
     toggleHiddenAction_ =
         menu->addAction(tr("Show &Hidden Files"), QKeySequence(Qt::CTRL | Qt::Key_H), this,
                         &MainWindow::onToggleHiddenFiles);
@@ -288,6 +295,9 @@ void MainWindow::restoreSession()
     panelContainer_->setOrientation(state.orientation);
     panelContainer_->setPanelVisible(PanelId::Panel1, state.panelVisible[0]);
     panelContainer_->setPanelVisible(PanelId::Panel2, state.panelVisible[1]);
+    // 恢复工具栏显示/隐藏状态
+    if (toolbar_) toolbar_->setVisible(state.toolbarVisible);
+    if (toggleToolbarAction_) toggleToolbarAction_->setChecked(state.toolbarVisible);
     // 应用当前方向的保存比例（若有）
     // 注意：在窗口 show() 之前调用 setSplitterSizes 通常不会生效
     // （splitter 尺寸为 0，比例计算无意义）。因此延后到事件循环中执行，
@@ -317,6 +327,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     state.orientation = panelContainer_->orientation();
     state.panelVisible[0] = panelContainer_->isPanelVisible(PanelId::Panel1);
     state.panelVisible[1] = panelContainer_->isPanelVisible(PanelId::Panel2);
+    state.toolbarVisible = toolbar_ ? toolbar_->isVisible() : true;
     // 当前方向的实际比例同步到对应成员，再分别持久化左右/上下比例
     const Qt::Orientation curOri = panelContainer_->orientation();
     const QList<int> curSizes = panelContainer_->splitterSizes();
@@ -365,6 +376,7 @@ void MainWindow::onAddFavorite()
     state.orientation = panelContainer_->orientation();
     state.panelVisible[0] = panelContainer_->isPanelVisible(PanelId::Panel1);
     state.panelVisible[1] = panelContainer_->isPanelVisible(PanelId::Panel2);
+    state.toolbarVisible = toolbar_ ? toolbar_->isVisible() : true;
     // 当前方向的实际比例同步到对应成员，再分别持久化左右/上下比例
     {
         const Qt::Orientation ori = panelContainer_->orientation();
@@ -398,6 +410,9 @@ void MainWindow::onFavoriteTriggered(const QString &name)
     panelContainer_->setOrientation(state.orientation);
     panelContainer_->setPanelVisible(PanelId::Panel1, state.panelVisible[0]);
     panelContainer_->setPanelVisible(PanelId::Panel2, state.panelVisible[1]);
+    // 恢复工具栏显示/隐藏状态
+    if (toolbar_) toolbar_->setVisible(state.toolbarVisible);
+    if (toggleToolbarAction_) toggleToolbarAction_->setChecked(state.toolbarVisible);
     // 应用当前方向的保存比例（若有）
     const QList<int> &curSizes =
         (state.orientation == Qt::Horizontal) ? state.horizontalSizes : state.verticalSizes;
@@ -448,6 +463,12 @@ void MainWindow::onTogglePanel2Visible()
 {
     panelContainer_->setPanelVisible(PanelId::Panel2,
                                      !panelContainer_->isPanelVisible(PanelId::Panel2));
+}
+
+void MainWindow::onToggleToolbarVisible()
+{
+    const bool visible = toggleToolbarAction_ ? toggleToolbarAction_->isChecked() : true;
+    if (toolbar_) toolbar_->setVisible(visible);
 }
 
 void MainWindow::onToggleHiddenFiles()

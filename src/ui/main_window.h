@@ -43,6 +43,7 @@ private slots:
     void onResetSplitter();
     void onTogglePanel1Visible();
     void onTogglePanel2Visible();
+    void onToggleToolbarVisible();
     void onToggleHiddenFiles();
     void onLanguageChanged(QAction *action);
     void onThemeChanged(QAction *action);
@@ -74,6 +75,7 @@ private:
     QAction *toggleOrientationAction_ = nullptr;
     QAction *togglePanel1Action_ = nullptr;
     QAction *togglePanel2Action_ = nullptr;
+    QAction *toggleToolbarAction_ = nullptr;
     QAction *toggleHiddenAction_ = nullptr;
     QMenu *languageMenu_ = nullptr;
     QMenu *themeMenu_ = nullptr;
