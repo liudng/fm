@@ -33,7 +33,7 @@ namespace fm {
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    setWindowTitle(QStringLiteral("fm"));
+    setWindowTitle(QStringLiteral("Dual-Pane File Manager"));
     resize(1280, 800);
 
     // 工具栏

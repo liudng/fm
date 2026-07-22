@@ -1,7 +1,7 @@
 ---
 # Qt6 官方编码风格 (https://wiki.qt.io/Qt_Coding_Style)
 Language: Cpp
-Standard: c++17
+Standard: c++20
 BasedOnStyle: LLVM
 
 # 缩进: 4 空格, 禁止 Tab

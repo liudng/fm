@@ -1,4 +1,4 @@
-# fm — Linux Dual-Pane File Manager
+# fm — Dual-Pane File Manager
 
 A lightweight dual-pane file manager built with Qt6 Widgets, featuring multi-tab support, file operations, favorites management, session restore, and volume management.
 

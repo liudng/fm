@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
-project(fm VERSION 0.2.0 LANGUAGES CXX)
+project(fm VERSION 0.3.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -162,8 +162,8 @@ install(FILES "${FM_MAN_PAGE}" DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 # 安装 .desktop 文件
 install(FILES fm.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 
-# 安装应用图标到 hicolor 主题（512x512）
-install(FILES fm.png DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps)
+# 安装应用图标到 hicolor 主题（scalable 矢量格式，可在任意 DPI 下清晰显示）
+install(FILES fm.svg DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
 
 # ---- CPack 打包（支持 TGZ / DEB / RPM） ----
 # 构建方法：

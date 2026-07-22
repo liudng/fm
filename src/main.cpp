@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 
     // 命令行参数
     QCommandLineParser parser;
-    parser.setApplicationDescription(QStringLiteral("fm - Linux dual-panel file manager"));
+    parser.setApplicationDescription(QStringLiteral("Dual-Pane File Manager"));
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addPositionalArgument(QStringLiteral("paths"),

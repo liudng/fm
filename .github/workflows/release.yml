@@ -39,6 +39,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ matrix.os }}-${{ matrix.arch }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ matrix.os }}-${{ matrix.arch }}-
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -50,16 +58,29 @@ jobs:
         run: |
           set -euo pipefail
           build_dir=build-${{ matrix.os }}-${{ matrix.arch }}
+          mkdir -p "$HOME/.ccache"
           docker pull "${{ matrix.builder }}"
           docker run --rm --platform=linux/${{ matrix.arch }} \
             -e BUILD_DIR="$build_dir" \
             -e CPACK_GENS="${{ matrix.cpack_gens }}" \
-            -v "$PWD:/workspace" -w /workspace "${{ matrix.builder }}" bash -lc '
+            -e CCACHE_DIR=/ccache \
+            -e CCACHE_COMPILERCHECK=content \
+            -e CCACHE_MAXSIZE=1G \
+            -v "$PWD:/workspace" \
+            -v "$HOME/.ccache:/ccache" \
+            -w /workspace "${{ matrix.builder }}" bash -lc '
             set -euo pipefail
             mkdir -p "$BUILD_DIR"
             cd "$BUILD_DIR"
-            cmake -DCMAKE_BUILD_TYPE=Release ..
+            cmake -DCMAKE_BUILD_TYPE=Release \
+                  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                  ..
             cmake --build . -- -j$(nproc)
+            # 打包前 strip 可执行文件与共享库，移除调试符号以减小体积
+            # 使用 --strip-unneeded 保留运行所需的动态符号，不影响功能
+            find . -type f \( -name 'fm' -o -name '*.so' -o -name '*.so.*' \) \
+              -exec sh -c 'file "$1" | grep -q "ELF" && strip --strip-unneeded "$1"' _ {} \;
             cpack -G "$CPACK_GENS"
           '
 
@@ -80,36 +101,131 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 完整历史，用于生成 changelog
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: ${{ github.ref_name }}
-          body: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install GitHub CLI
+      - name: Generate release notes
+        id: notes
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gh
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          ver="${tag#v}"
 
-      - name: Upload release assets
+          # 解析 SemVer 并根据版本类型确定上一个版本
+          # 补丁版本 (x.y.Z, Z>0) → 上一个补丁 (x.y.Z-1)
+          # 次要版本 (x.Y.0, Y>0) → 上一个次要 (x.Y-1.0)
+          # 主要版本 (X.0.0, X>0) → 上一个主要 (X-1.0.0)
+          prev_tag=""
+          if [[ "$ver" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            major=${BASH_REMATCH[1]}
+            minor=${BASH_REMATCH[2]}
+            patch=${BASH_REMATCH[3]}
+            if [ "$patch" -gt 0 ]; then
+              prev_ver="${major}.${minor}.$((patch - 1))"
+            elif [ "$minor" -gt 0 ]; then
+              prev_ver="${major}.$((minor - 1)).0"
+            elif [ "$major" -gt 0 ]; then
+              prev_ver="$((major - 1)).0.0"
+            else
+              prev_ver=""
+            fi
+            # 查找上一个 tag（尝试 v 前缀和无前缀）
+            for prefix in "v" ""; do
+              if git rev-parse "${prefix}${prev_ver}" >/dev/null 2>&1; then
+                prev_tag="${prefix}${prev_ver}"
+                break
+              fi
+            done
+          fi
+
+          if [ -n "$prev_tag" ]; then
+            range="${prev_tag}..${tag}"
+            range_desc="自 \`${prev_tag}\` 以来"
+            commit_count=$(git rev-list --count "$range")
+          else
+            range=""
+            range_desc="首次发布"
+            commit_count=$(git rev-list --count HEAD)
+          fi
+
+          body_file=$(mktemp)
+          {
+            echo "## 变更摘要"
+            echo ""
+            echo "本次发布包含 ${commit_count} 个提交（${range_desc}）。"
+            echo ""
+            echo "## 详细变更"
+            echo ""
+
+            # 按 Conventional Commits 类型分类
+            for entry in \
+              "feat:新功能" \
+              "fix:Bug 修复" \
+              "perf:性能优化" \
+              "refactor:重构" \
+              "docs:文档" \
+              "test:测试" \
+              "build:构建" \
+              "ci:CI" \
+              "chore:杂项"; do
+              type="${entry%%:*}"
+              title="${entry##*:}"
+              if [ -n "$range" ]; then
+                count=$(git rev-list --count "$range" -E --grep="^${type}[(:]" 2>/dev/null || echo 0)
+              else
+                count=$(git rev-list --count HEAD -E --grep="^${type}[(:]" 2>/dev/null || echo 0)
+              fi
+              if [ "$count" -gt 0 ]; then
+                echo "### ${title}（${count} 项）"
+                echo ""
+                if [ -n "$range" ]; then
+                  git log --pretty=format:'- %s' -E --grep="^${type}[(:]" "$range" 2>/dev/null || true
+                else
+                  git log --pretty=format:'- %s' -E --grep="^${type}[(:]" 2>/dev/null || true
+                fi
+                echo ""
+                echo ""
+              fi
+            done
+
+            # 其他提交（不匹配任何 conventional commit 类型）
+            if [ -n "$range" ]; then
+              other_count=$(git rev-list --count "$range" --invert-grep -E --grep="^(feat|fix|perf|refactor|docs|test|build|ci|chore)[(:]" 2>/dev/null || echo 0)
+            else
+              other_count=$(git rev-list --count HEAD --invert-grep -E --grep="^(feat|fix|perf|refactor|docs|test|build|ci|chore)[(:]" 2>/dev/null || echo 0)
+            fi
+            if [ "$other_count" -gt 0 ]; then
+              echo "### 其他（${other_count} 项）"
+              echo ""
+              if [ -n "$range" ]; then
+                git log --pretty=format:'- %s' "$range" --invert-grep -E --grep="^(feat|fix|perf|refactor|docs|test|build|ci|chore)[(:]" 2>/dev/null || true
+              else
+                git log --pretty=format:'- %s' --invert-grep -E --grep="^(feat|fix|perf|refactor|docs|test|build|ci|chore)[(:]" 2>/dev/null || true
+              fi
+              echo ""
+              echo ""
+            fi
+          } > "$body_file"
+
+          echo "body_file=$body_file" >> "$GITHUB_OUTPUT"
+
+      - name: Create release and upload assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file "${{ steps.notes.outputs.body_file }}" \
+            --draft=false \
+            --prerelease=false
           find artifacts \( -name '*.tar.gz' -o -name '*.deb' -o -name '*.rpm' \) -print0 \
             | while IFS= read -r -d '' file; do
               echo "Uploading $file"
-              gh release upload "${GITHUB_REF#refs/tags/}" "$file" --clobber
+              gh release upload "${GITHUB_REF_NAME}" "$file" --clobber
             done

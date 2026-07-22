@@ -65,7 +65,7 @@ fm-qt/
 ├── README-zh.md                       # 中文 README
 ├── fm.1                               # man 手册（section 1）
 ├── fm.desktop                          # .desktop 文件
-├── fm.png                             # 应用图标（512x512）
+├── fm.svg                             # 应用图标（矢量 SVG）
 ├── resources.qrc                      # Qt 资源文件（嵌入翻译 .qm）
 ├── .github/workflows/                 # CI/CD（build-image / ci / release）
 ├── docker/                            # 构建 Dockerfile（Debian/Fedora）
@@ -1205,7 +1205,7 @@ app → ui → panel → filelist → core
 cmake_minimum_required(VERSION 3.21)
 project(fm VERSION 1.0.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -1251,7 +1251,7 @@ qt_add_translations(fm
 install(TARGETS fm RUNTIME DESTINATION bin)
 install(FILES fm.1 DESTINATION share/man/man1)                              # man 手册
 install(FILES fm.desktop DESTINATION share/applications)                    # .desktop
-install(FILES fm.png DESTINATION share/icons/hicolor/512x512/apps RENAME fm.png)  # 图标
+install(FILES fm.svg DESTINATION share/icons/hicolor/scalable/apps)                 # 矢量图标
 ```
 - 自定义构建目标 `fm_lupdate` 调用 `lupdate` 提取源文本到 .ts 文件
 - `translate.py` 在 `translations/` 目录手动运行，将英→中映射写入 `fm_zh.ts`
