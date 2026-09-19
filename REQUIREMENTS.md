@@ -2,7 +2,6 @@
 
 ## TODO
 
-- 可选用户范围或程序范围的MIME关联默认打开程序，可查看MIME关联默认打开程序
 - 修改文件名称对话框，根据文件名长度和窗口宽度自动伸长
 - 移入回收站失败没有消息提示, 失败的原因似乎是文件名过长
 
@@ -187,9 +186,10 @@
 
 ### 5.6 打开方式（"打开..."）
 - 通过 `xdg-mime` 列举可用程序（名称+图标），并提供"其他..."浏览自定义命令。
-- 支持"记住此选择"复选框：
-  - 记住对该 MIME 类型的选择，保存到配置文件 `[OpenWith]` section。
-  - 下次进入此界面默认选中，但**不修改系统关联**。
+- 支持"记住此选择"复选框：直接修改用户级系统 MIME 关联（`~/.config/mimeapps.list` 的 `[Default Applications]` 节），对系统其它程序（xdg-open 等）同样生效：
+  - 标准目录中的 .desktop 应用 → 直接写入关联
+  - 非标准路径的 .desktop → 先复制到 `~/.local/share/applications/` 再写入关联
+  - 自定义命令 → 生成 `fm-custom-<hash>.desktop`（`NoDisplay=true`）安装到 `~/.local/share/applications/` 再写入关联
 
 ### 5.7 键盘导航
 文件列表支持标准键盘导航，所有操作纳入快捷键配置统一管理（默认快捷键见 6.1.4）：
@@ -287,10 +287,9 @@
 | `[Shortcuts]` | 快捷键映射 |
 | `[Session]` | 面板布局/比例/选项卡/排序（退出时保存） |
 | `[Favorites/<name>]` | 每个收藏项（名称特殊字符 percent-encoding） |
-| `[OpenWith]` | "记住此选择"的 MIME→应用映射，格式：`<MIME类型>=<应用.desktop文件路径>` |
 
 #### 6.2.2 存储说明
-- 全局配置（`[UI]`、`[Panels]`、`[File_Browser]`、`[File_Browser_Columns]`、`[Shortcuts]`、`[OpenWith]`）独立存储，修改即生效。
+- 全局配置（`[UI]`、`[Panels]`、`[File_Browser]`、`[File_Browser_Columns]`、`[Shortcuts]`）独立存储，修改即生效。
 - `[Session]` 在退出时保存，启动时恢复。
 - 收藏项与 `[Session]` 使用相同数据格式，可互相转换。
 - 收藏数量无上限。

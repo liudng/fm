@@ -32,7 +32,7 @@ public:
     void createFile(const QString &dir, const QString &defaultName);
     // 新建文件夹
     void createDir(const QString &dir, const QString &defaultName);
-    // 用系统默认程序打开（先检查 [OpenWith] 是否已记住选择）
+    // 用系统默认程序打开（xdg-open 遵循用户级 mimeapps.list 关联）
     void openWithDefault(const QUrl &file);
     // 用指定 .desktop 应用打开文件
     void openWithApplication(const QUrl &file, const QString &desktopFile);

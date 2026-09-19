@@ -1,33 +1,32 @@
 #ifndef FM_CORE_OPEN_WITH_MANAGER_H
 #define FM_CORE_OPEN_WITH_MANAGER_H
 
-#include <QObject>
 #include <QString>
 
 namespace fm {
 
-// "打开方式"管理（单例）
-// - 持久化 [OpenWith] section 的 MIME 类型 → 应用映射
-// - 格式：<MIME类型>=<应用.desktop 文件路径>
-// - 自动用 xdg-mime 查询默认应用
-class OpenWithManager : public QObject
+// "打开方式"管理
+// "记住此选择"直接修改用户级系统 MIME 关联（~/.config/mimeapps.list 的
+// [Default Applications] 节），不保存到 fm 私有配置文件：
+// - 标准目录中的 .desktop → 直接引用其文件名写入关联
+// - 非标准路径的 .desktop → 复制到 ~/.local/share/applications/ 再写入关联
+// - 自定义命令 → 生成 fm-custom-<hash>.desktop 安装到 ~/.local/share/applications/
+class OpenWithManager
 {
-    Q_OBJECT
 public:
-    static OpenWithManager *instance();
-
-    // 查询 MIME 类型的"记住"应用 .desktop 路径
-    // 返回空表示未配置
-    QString defaultApplication(const QString &mimeType) const;
-
-    // 设置 MIME 类型的默认应用
-    void setDefaultApplication(const QString &mimeType, const QString &desktopFile);
-
-    // 通过 xdg-mime 查询系统默认应用
-    static QString systemDefault(const QString &mimeType);
+    // 设置 MIME 类型的默认应用（写入用户级系统关联）
+    // app：.desktop 文件路径或自定义命令行
+    // 返回是否成功
+    static bool setDefaultApplication(const QString &mimeType, const QString &app);
 
 private:
-    OpenWithManager(QObject *parent = nullptr);
+    // 将 app 注册为标准 applications 目录中的 .desktop 文件，返回文件名
+    static QString registerApplication(const QString &app);
+
+    // 更新 mimeapps.list [Default Applications]：<mimeType>=<desktopName>
+    static bool updateMimeappsDefault(const QString &mimeType, const QString &desktopName);
+
+    OpenWithManager() = default;
 };
 
 } // namespace fm

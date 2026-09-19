@@ -136,7 +136,6 @@ void ConfigManager::ensureDefaultConfig()
     setValue(QStringLiteral("File_Browser_Columns"), QStringLiteral("width_Modified"), 140);
 
     // [Shortcuts] - 默认快捷键（由 ShortcutManager 提供并写入）
-    // [OpenWith] - 空，按需追加
     settings_->sync();
 }
 

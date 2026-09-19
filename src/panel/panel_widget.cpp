@@ -950,9 +950,9 @@ void PanelWidget::onOpenWith()
     const QString app = dlg.selectedApplication();
     if (app.isEmpty()) return;
 
-    // 若勾选"记住此选择"，保存到 [OpenWith]
+    // 若勾选"记住此选择"，写入用户级系统 MIME 关联（mimeapps.list）
     if (dlg.rememberChoice()) {
-        OpenWithManager::instance()->setDefaultApplication(mimeType, app);
+        OpenWithManager::setDefaultApplication(mimeType, app);
     }
 
     // 区分 .desktop 应用与自定义命令

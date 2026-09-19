@@ -94,7 +94,7 @@ fm-qt/
 │   │   ├── clipboard_manager.cpp
 │   │   ├── column_manager.h          # 列可见性/顺序/列宽（像素）管理
 │   │   ├── column_manager.cpp
-│   │   ├── open_with_manager.h       # "打开方式" MIME→应用映射持久化
+│   │   ├── open_with_manager.h       # "打开方式"用户级系统 MIME 关联写入（mimeapps.list）
 │   │   ├── open_with_manager.cpp
 │   │   ├── volume_manager.h          # QStorageInfo + UDisks2 D-Bus 挂载/卸载/弹出
 │   │   └── volume_manager.cpp
@@ -371,24 +371,25 @@ private:
 };
 ```
 
-#### `OpenWithManager`（单例）
-**职责**：持久化 `[OpenWith]` section 的 MIME 类型 → 应用映射；通过 `xdg-mime` 查询系统默认应用
+#### `OpenWithManager`（静态工具类）
+**职责**：将"记住此选择"写入用户级系统 MIME 关联 `~/.config/mimeapps.list` 的 `[Default Applications]` 节（不保存到 fm 私有配置）
 ```cpp
-class OpenWithManager : public QObject {
-    Q_OBJECT
+class OpenWithManager {
 public:
-    static OpenWithManager *instance();
-
-    // 查询"记住此选择"的应用 .desktop 路径（空表示未配置）
-    QString defaultApplication(const QString &mimeType) const;
-    // 设置 MIME 类型的默认应用（不修改系统关联）
-    void setDefaultApplication(const QString &mimeType, const QString &desktopFile);
-    // 通过 xdg-mime query default 查询系统默认应用
-    static QString systemDefault(const QString &mimeType);
+    // 设置 MIME 类型的默认应用（写入用户级系统关联）
+    // app：.desktop 文件路径或自定义命令行
+    static bool setDefaultApplication(const QString &mimeType, const QString &app);
+private:
+    // 将 app 注册为标准 applications 目录中的 .desktop 文件，返回文件名
+    static QString registerApplication(const QString &app);
+    // 更新 mimeapps.list [Default Applications]：<mimeType>=<desktopName>
+    static bool updateMimeappsDefault(const QString &mimeType, const QString &desktopName);
 };
 ```
-- `FileOperations::openWithDefault()` 先查 `OpenWithManager`，未配置时回退 `xdg-open`。
-- `OpenWithDialog` 中的"记住此选择"复选框调用 `setDefaultApplication`。
+- `registerApplication` 三分支：标准目录（`QStandardPaths::ApplicationsLocation` 搜索路径）中的 .desktop 直接引用文件名；非标准路径的 .desktop 复制到 `~/.local/share/applications/`；自定义命令生成 `fm-custom-<sha1 前 12 位>.desktop`（`Type=Application`、`NoDisplay=true`、Exec 中字面 `%` 转义为 `%%`、无字段代码时追加 ` %f`）安装到用户 applications 目录。
+- `updateMimeappsDefault` 逐行合并（QSaveFile 原子写）：保留注释与未知 section；仅替换/追加 `[Default Applications]` 中该 MIME 的行；section 不存在时追加到文件末尾。
+- `FileOperations::openWithDefault()` 直接 `QDesktopServices::openUrl`（xdg-open 遵循用户级 mimeapps.list 关联，含 fm 写入的）。
+- `OpenWithDialog` 中的"记住此选择"复选框调用 `OpenWithManager::setDefaultApplication`。
 
 ---
 
@@ -833,7 +834,7 @@ public:
     void createDir(const QString &dir, const QString &defaultName);
 
     // 打开操作
-    void openWithDefault(const QUrl &file);                 // 先查 OpenWithManager
+    void openWithDefault(const QUrl &file);                 // xdg-open 遵循用户级 mimeapps.list
     void openWithApplication(const QUrl &file, const QString &desktopFile);
     void openWithCommand(const QUrl &file, const QString &command);
 
@@ -1167,7 +1168,7 @@ FileOperations::copy(sources, dest)
 - `FileListModel::pathChanged` 信号 lambda 不捕获固定 index，而是按 model 指针动态查找 `tabs_` 中的当前索引（避免拖拽后索引失效）
 
 ### 5.4 全局状态集中管理
-- 单例：`ConfigManager`、`ShortcutManager`、`ColumnManager`、`FileOperations`、`ClipboardManager`、`OpenWithManager`、`VolumeManager`
+- 单例：`ConfigManager`、`ShortcutManager`、`ColumnManager`、`FileOperations`、`ClipboardManager`、`VolumeManager`
 - 单例通过 `instance()` 访问，避免全局变量散乱
 - 状态变更通过信号广播，订阅者各自刷新
 - `ShortcutManager` 使用 `QPointer<QAction>` 跟踪 action 绑定（弱引用），修改快捷键后通过 `reapplyShortcuts()` 立即生效
@@ -1392,7 +1393,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.FileManager1.service
 17. TrashCan（FreeDesktop 规范 + .Trash/.Trash-<uid>）
 18. ProgressDialog + ConflictDialog（预扫描 + atomic 取消）
 19. 单实例（QLocalServer + JSON 路径传递）
-20. OpenWithDialog + OpenWithManager（"记住此选择" + xdg-mime）
+20. OpenWithDialog + OpenWithManager（"记住此选择"写用户级 mimeapps.list + xdg-mime）
 
 ### Phase 5：完善（已完成）
 21. i18n（中英文翻译流水线：lupdate → translate.py → lrelease）

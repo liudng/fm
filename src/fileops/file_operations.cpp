@@ -4,7 +4,6 @@
 #include "file_job.h"
 
 #include "../core/clipboard_manager.h"
-#include "../core/open_with_manager.h"
 #include "../dialogs/conflict_dialog.h" // ConflictResolution (for qRegisterMetaType)
 #include "../dialogs/error_dialog.h"
 
@@ -12,7 +11,6 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QMimeDatabase>
 #include <QProcess>
 #include <QRegularExpression>
 #include <QTextStream>
@@ -127,29 +125,7 @@ void FileOperations::createDir(const QString &dir, const QString &name)
 
 void FileOperations::openWithDefault(const QUrl &file)
 {
-    const QString path = file.toLocalFile();
-    const QFileInfo fi(path);
-    if (!fi.isFile()) {
-        QDesktopServices::openUrl(file);
-        return;
-    }
-
-    // 查询文件的 MIME 类型
-    QMimeDatabase db;
-    const QString mimeType = db.mimeTypeForFile(fi).name();
-
-    // 检查 [OpenWith] 是否记住选择
-    const QString remembered = OpenWithManager::instance()->defaultApplication(mimeType);
-    if (!remembered.isEmpty()) {
-        if (QFileInfo(remembered).isAbsolute() && remembered.endsWith(QStringLiteral(".desktop"))) {
-            openWithApplication(file, remembered);
-        } else {
-            openWithCommand(file, remembered);
-        }
-        return;
-    }
-
-    // 否则用 QDesktopServices（由 xdg-open 处理）
+    // xdg-open 遵循用户级 mimeapps.list 关联（含 fm 写入的"记住此选择"）
     QDesktopServices::openUrl(file);
 }
 
