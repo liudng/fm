@@ -2,6 +2,7 @@
 
 #include "version.h"
 
+#include "../app/file_manager1_service.h"
 #include "../app/single_instance.h"
 #include "../core/column_manager.h"
 #include "../core/config_manager.h"
@@ -107,6 +108,18 @@ bool FmApplication::initialize()
     // 7. 监听单实例路径接收
     connect(singleInstance_, &SingleInstance::pathsReceived, mainWindow_,
             &MainWindow::addPathsToPanels);
+
+    // 8. org.freedesktop.FileManager1 D-Bus 服务
+    //    供浏览器"打开所在文件夹"、桌面环境"显示属性"等跨进程调用
+    //    注册失败（无会话总线或服务名被其他文件管理器占用）仅记录日志，不影响正常使用
+    fileManager1Service_ = new FileManager1Service(this);
+    connect(fileManager1Service_, &FileManager1Service::showFoldersRequested, mainWindow_,
+            &MainWindow::openFolders);
+    connect(fileManager1Service_, &FileManager1Service::showItemsRequested, mainWindow_,
+            &MainWindow::revealItems);
+    connect(fileManager1Service_, &FileManager1Service::showItemPropertiesRequested, mainWindow_,
+            &MainWindow::showItemProperties);
+    fileManager1Service_->registerService();
 
     return true;
 }

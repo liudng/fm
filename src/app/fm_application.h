@@ -8,10 +8,12 @@ namespace fm {
 
 class MainWindow;
 class SingleInstance;
+class FileManager1Service;
 
 // 应用程序入口
 // - 单实例检测
 // - 配置加载、翻译、主窗口初始化
+// - org.freedesktop.FileManager1 D-Bus 服务注册
 class FmApplication : public QApplication
 {
     Q_OBJECT
@@ -32,6 +34,7 @@ private:
     MainWindow *mainWindow_ = nullptr;
     QTranslator translator_;
     SingleInstance *singleInstance_ = nullptr;
+    FileManager1Service *fileManager1Service_ = nullptr;
 };
 
 } // namespace fm

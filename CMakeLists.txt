@@ -51,6 +51,7 @@ qt_add_library(fm_core STATIC
     src/fileops/trash_can.h
     src/fileops/trash_can.cpp
     src/filelist/file_item.h
+    src/filelist/file_item.cpp
     src/panel/panel_id.h
 )
 
@@ -66,6 +67,8 @@ target_include_directories(fm_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # ---- 主程序（UI + 主入口） ----
 qt_add_executable(fm
     src/main.cpp
+    src/app/file_manager1_service.h
+    src/app/file_manager1_service.cpp
     src/app/fm_application.h
     src/app/fm_application.cpp
     src/app/single_instance.h
@@ -262,7 +265,7 @@ if(FM_BUILD_TESTS)
         COMMAND "${CMAKE_CTEST_COMMAND}" --output-on-failure
         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
         COMMENT "Running unit tests via ctest"
-        DEPENDS test_config_manager test_favorite_manager test_shortcut_manager
+        DEPENDS test_config_manager test_favorite_manager test_shortcut_manager test_file_item
         VERBATIM
     )
 endif()

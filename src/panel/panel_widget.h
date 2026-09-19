@@ -30,6 +30,10 @@ public:
 
     // 选项卡管理
     int addTab(const QString &path, int index = -1); // 返回新选项卡索引
+    // 打开目录：已有同路径选项卡则切换过去，否则追加新选项卡（返回选项卡索引）
+    int showPathInTab(const QString &path);
+    // 在活动选项卡中按文件全名选中行（清空原有选中，滚动到首个选中项）
+    void selectItems(const QStringList &names);
     void closeTab(int index);
     void closeOtherTabs(int index);
     int cloneTab(int index);

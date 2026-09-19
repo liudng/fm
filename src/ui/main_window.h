@@ -27,6 +27,14 @@ public:
     // 单实例接收到 path 列表时调用
     void addPathsToPanels(const QStringList &paths);
 
+    // org.freedesktop.FileManager1 D-Bus 服务请求处理（均为本地路径）
+    // ShowFolders：在活动面板打开各文件夹（每个文件夹一个选项卡）
+    void openFolders(const QStringList &paths);
+    // ShowItems：显示各项目所在文件夹并选中项目（按父目录分组，每组一个选项卡）
+    void revealItems(const QStringList &paths);
+    // ShowItemProperties：弹出各项目的属性对话框（非模态，可多个并存）
+    void showItemProperties(const QStringList &paths);
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
@@ -63,6 +71,7 @@ private:
     void restoreSession();
     void applyPanelConfig();       // 从 [Panels] 应用面板配置
     void applyFileBrowserConfig(); // 从 [File_Browser] 应用浏览器配置
+    void bringToFront();           // 取消最小化并置前激活（D-Bus 外部唤起时）
 
     PanelContainer *panelContainer_ = nullptr;
     QToolBar *toolbar_ = nullptr;

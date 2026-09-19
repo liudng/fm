@@ -6,6 +6,8 @@
 #include <QIcon>
 #include <QString>
 
+class QFileInfo;
+
 namespace fm {
 
 // 文件列表中一项的数据
@@ -32,6 +34,11 @@ struct FileItem
     QFile::Permissions permissions;
     quint64 inode = 0;
 };
+
+// 从 QFileInfo 构造完整 FileItem（含 stat 的 inode/UID/GID/磁盘占用、MIME 类型），
+// 供文件列表模型与属性对话框共用；图标除外（QFileIconProvider 依赖 QtWidgets，
+// 由 FileListModel 自行填充）
+FileItem makeFileItem(const QFileInfo &fi);
 
 } // namespace fm
 

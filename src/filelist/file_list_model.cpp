@@ -1,31 +1,22 @@
 #include "file_list_model.h"
 
+#include "../filelist/file_item.h"
+
 #include <QDateTime>
 #include <QDir>
 #include <QFileIconProvider>
 #include <QFileInfo>
 #include <QLocale>
-#include <QMimeDatabase>
-#include <QMimeType>
-#include <QUrl>
-
-#include <sys/stat.h>
 
 namespace fm {
 
 namespace {
 
-// 简单文件图标提供器
+// 简单文件图标提供器（makeFileItem 不含图标，此处填充）
 QFileIconProvider &iconProvider()
 {
     static QFileIconProvider provider;
     return provider;
-}
-
-QMimeDatabase &mimeDb()
-{
-    static QMimeDatabase db;
-    return db;
 }
 
 // 权限转 rwx 字符串
@@ -140,37 +131,8 @@ void FileListModel::loadDirectory()
     items_.reserve(entries.size());
 
     for (const QFileInfo &fi : entries) {
-        FileItem item;
-        item.name = fi.fileName();
-        item.absolutePath = fi.absoluteFilePath();
-        item.size = fi.isDir() ? 0 : fi.size();
-        item.isDir = fi.isDir();
-        item.isSymLink = fi.isSymLink();
-        item.symLinkTarget = fi.symLinkTarget();
-        item.owner = fi.owner();
-        item.group = fi.group();
-        item.created = fi.birthTime();
-        item.modified = fi.lastModified();
-        item.accessed = fi.lastRead();
-        item.permissions = fi.permissions();
-        // inode、UID/GID、磁盘占用、状态变更时间 通过 stat() 获取
-        struct stat st;
-        if (::stat(fi.absoluteFilePath().toLocal8Bit().constData(), &st) == 0) {
-            item.inode = st.st_ino;
-            item.ownerId = st.st_uid;
-            item.groupId = st.st_gid;
-            item.diskUsage = static_cast<qint64>(st.st_blocks) * 512;
-            item.statusChanged = QDateTime::fromSecsSinceEpoch(st.st_ctime);
-        }
-
-        // MIME 类型
-        QMimeType mime = mimeDb().mimeTypeForFile(fi);
-        item.mimeTypeName = mime.name();
-        item.mimeTypeComment = mime.comment();
-
-        // 图标
+        FileItem item = makeFileItem(fi);
         item.icon = iconProvider().icon(fi);
-
         items_.append(std::move(item));
     }
 }

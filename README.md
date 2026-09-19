@@ -36,7 +36,7 @@ sudo apt install build-essential cmake qt6-l10n-tools
 ### Development Libraries
 
 ```bash
-sudo apt install qt6-base-dev qt6-base-dev-tools
+sudo apt install qt6-base-dev
 ```
 
 ### Testing & Quality Tools (optional)

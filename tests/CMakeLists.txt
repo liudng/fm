@@ -3,6 +3,7 @@ set(FM_TEST_TARGETS
     test_config_manager
     test_favorite_manager
     test_shortcut_manager
+    test_file_item
 )
 
 # 辅助函数: 创建测试可执行文件
@@ -39,5 +40,12 @@ fm_add_test(test_favorite_manager
 fm_add_test(test_shortcut_manager
     SOURCES
         test_shortcut_manager.cpp
+        test_main.cpp
+)
+
+# makeFileItem 测试
+fm_add_test(test_file_item
+    SOURCES
+        test_file_item.cpp
         test_main.cpp
 )

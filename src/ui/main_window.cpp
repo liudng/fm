@@ -9,8 +9,10 @@
 #include "../core/session_state.h"
 #include "../core/shortcut_manager.h"
 #include "../dialogs/about_dialog.h"
+#include "../dialogs/properties_dialog.h"
 #include "../dialogs/settings_dialog.h"
 #include "../dialogs/settings_pages.h"
+#include "../filelist/file_item.h"
 #include "../filelist/file_list_model.h"
 #include "../panel/panel_container.h"
 #include "../panel/panel_widget.h"
@@ -19,6 +21,7 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QCloseEvent>
+#include <QFileInfo>
 #include <QInputDialog>
 #include <QMenu>
 #include <QMenuBar>
@@ -360,6 +363,82 @@ void MainWindow::addPathsToPanels(const QStringList &paths)
         panelContainer_->panel(PanelId::Panel2)->addTab(paths.at(1), -1);
     }
     panelContainer_->setActivePanel(PanelId::Panel1);
+}
+
+void MainWindow::openFolders(const QStringList &paths)
+{
+    QStringList folders;
+    for (const QString &path : paths) {
+        if (QFileInfo(path).isDir()) folders.append(path);
+    }
+    if (folders.isEmpty()) return;
+
+    auto *panel = panelContainer_->activePanel();
+    if (!panel) return;
+    for (const QString &folder : folders) {
+        panel->showPathInTab(folder);
+    }
+    bringToFront();
+}
+
+void MainWindow::revealItems(const QStringList &paths)
+{
+    // 按父目录分组（保持首次出现顺序），每组打开一个选项卡并选中对应项目
+    struct Group
+    {
+        QString dir;
+        QStringList names;
+    };
+    QList<Group> groups;
+    for (const QString &path : paths) {
+        const QFileInfo fi(path);
+        if (!fi.exists()) continue;
+        const QString dir = fi.absolutePath();
+        const QString name = fi.fileName();
+        if (name.isEmpty()) continue;
+        bool merged = false;
+        for (auto &g : groups) {
+            if (g.dir == dir) {
+                g.names.append(name);
+                merged = true;
+                break;
+            }
+        }
+        if (!merged) groups.append({dir, QStringList{name}});
+    }
+    if (groups.isEmpty()) return;
+
+    auto *panel = panelContainer_->activePanel();
+    if (!panel) return;
+    for (const Group &g : groups) {
+        panel->showPathInTab(g.dir);
+        panel->selectItems(g.names);
+    }
+    bringToFront();
+}
+
+void MainWindow::showItemProperties(const QStringList &paths)
+{
+    bool shown = false;
+    for (const QString &path : paths) {
+        const QFileInfo fi(path);
+        if (!fi.exists()) continue;
+        // 非模态：多个项目的属性窗口可并存（协议允许一次请求多项）
+        auto *dlg = new PropertiesDialog(makeFileItem(fi), this);
+        dlg->setAttribute(Qt::WA_DeleteOnClose);
+        dlg->setModal(false);
+        dlg->show();
+        shown = true;
+    }
+    if (shown) bringToFront();
+}
+
+void MainWindow::bringToFront()
+{
+    if (isMinimized()) setWindowState(windowState() & ~Qt::WindowMinimized);
+    show();
+    raise();
+    activateWindow();
 }
 
 // === 收藏菜单（布局采集与恢复）===

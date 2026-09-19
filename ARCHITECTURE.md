@@ -185,6 +185,33 @@ signals:
 };
 ```
 
+#### `FileManager1Service`
+**职责**：`org.freedesktop.FileManager1` D-Bus 服务（freedesktop.org 文件管理器接口规范），
+供浏览器"打开所在文件夹"、桌面环境"显示属性"等场景跨进程调用
+```cpp
+class FileManager1Service : public QObject {
+    Q_OBJECT
+    Q_CLASSINFO("D-Bus Interface", "org.freedesktop.FileManager1")
+public:
+    bool registerService();  // session bus 注册（失败仅记录日志，不影响其余功能）
+
+public slots:               // 通过 ExportAllSlots 导出为 D-Bus 方法（ass 签名）
+    void ShowFolders(const QStringList &uris, const QString &startupId);
+    void ShowItems(const QStringList &uris, const QString &startupId);
+    void ShowItemProperties(const QStringList &uris, const QString &startupId);
+
+signals:  // URI 换算为本地路径后发射（仅保留本地 URI）
+    void showFoldersRequested(const QStringList &paths);
+    void showItemsRequested(const QStringList &paths);
+    void showItemPropertiesRequested(const QStringList &paths);
+};
+```
+- 服务名 `org.freedesktop.FileManager1`，对象路径 `/org/freedesktop/FileManager1`；
+  注册失败（无会话总线或被其他文件管理器占用）时静默降级
+- 协议语义映射：`ShowFolders` → 活动面板打开选项卡；`ShowItems` → 按父目录分组打开并选中；
+  `ShowItemProperties` → 非模态属性对话框
+- **注意**：类中全部 slot 均导出为 D-Bus 方法，内部逻辑不得使用 slot
+
 #### `CommandLineParser`（QCommandLineParser 封装）
 **职责**：解析 `fm [path1] [path2]`，返回路径列表（转绝对路径）
 
@@ -1088,6 +1115,20 @@ FileOperations::copy(sources, dest)
               └─> 完成后 emit directoryChanged(destDir) → PanelWidget::刷新该目录所有 model
 ```
 
+### 4.6 FileManager1 D-Bus 请求处理
+```
+外部调用（浏览器"打开所在文件夹"等）
+  └─> session bus: org.freedesktop.FileManager1 /org/freedesktop/FileManager1
+        └─> FileManager1Service::ShowFolders/ShowItems/ShowItemProperties(uris, startupId)
+              ├─> urisToLocalPaths()：仅保留本地 URI → 本地路径
+              └─> emit showFoldersRequested / showItemsRequested / showItemPropertiesRequested(paths)
+                    └─> MainWindow::openFolders / revealItems / showItemProperties
+                          ├─> PanelWidget::showPathInTab(dir)：同路径选项卡切换，否则新建
+                          ├─> PanelWidget::selectItems(names)：按文件名选中并滚动定位
+                          ├─> PropertiesDialog（makeFileItem 构造 FileItem，非模态）
+                          └─> bringToFront()：取消最小化 + raise + activateWindow
+```
+
 ---
 
 ## 5. 关键设计决策
@@ -1163,6 +1204,17 @@ FileOperations::copy(sources, dest)
 - ext2/ext3/ext4/btrfs/xfs 标志位通过 `QProcess` 调用 `lsattr -d` 获取（-d 仅显示目录自身）
 - QProcess 超时 3 秒；命令不存在或失败时回退为"(不可用)"
 - `stat()` 系统调用填充 ownerId（`st_uid`）、groupId（`st_gid`）、diskUsage（`st_blocks * 512`）、accessed（`st_atime`）、statusChanged（`st_ctime`）
+
+### 5.11 FileManager1 D-Bus 服务
+- 通过 `QDBusConnection::ExportAllSlots` 在 session bus 注册（服务名 `org.freedesktop.FileManager1`，
+  对象路径 `/org/freedesktop/FileManager1`，`Q_CLASSINFO` 声明接口名供 introspection）
+- 服务类为纯协议适配器：URI → 本地路径换算后发射信号，UI 行为由 MainWindow 槽实现
+  （与 `SingleInstance` → `addPathsToPanels` 相同的连接模式）
+- 协议语义映射到双面板模型：目标面板为**活动面板**（与单实例 path 派发一致，见 7.4）；
+  `ShowItems` 按父目录分组打开选项卡并选中，`showPathInTab` 复用同路径选项卡避免重复
+- `makeFileItem(const QFileInfo&)`（fm_core，`file_item.cpp`）统一 FileItem 构造，
+  供 `FileListModel::loadDirectory` 与 `MainWindow::showItemProperties` 共用；
+  图标不在此填充（QFileIconProvider 依赖 QtWidgets，fm_core 不链接），由模型层补充
 
 ---
 

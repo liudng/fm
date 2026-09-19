@@ -25,10 +25,12 @@
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QIcon>
+#include <QItemSelection>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeDatabase>
 #include <QPainter>
+#include <QSet>
 #include <QStackedWidget>
 #include <QVBoxLayout>
 
@@ -251,6 +253,44 @@ int PanelWidget::addTab(const QString &path, int index)
 
     emit tabCountChanged();
     return index;
+}
+
+int PanelWidget::showPathInTab(const QString &path)
+{
+    // 已有同路径选项卡：直接切换，避免重复打开
+    for (int i = 0; i < tabs_.size(); ++i) {
+        if (tabPath(i) == path) {
+            setActiveTab(i);
+            return i;
+        }
+    }
+    return addTab(path, -1);
+}
+
+void PanelWidget::selectItems(const QStringList &names)
+{
+    if (names.isEmpty()) return;
+    auto *view = listView();
+    auto *proxy = proxyModel();
+    if (!view || !proxy || !view->selectionModel()) return;
+
+    const QSet<QString> wanted(names.cbegin(), names.cend());
+    QItemSelection selection;
+    QModelIndex first;
+    for (int row = 0; row < proxy->rowCount(); ++row) {
+        const QModelIndex idx = proxy->index(row, FileListModel::ColName);
+        if (!idx.isValid()) continue;
+        if (!wanted.contains(idx.data(Qt::DisplayRole).toString())) continue;
+        if (!first.isValid()) first = idx;
+        selection.select(idx, idx);
+    }
+    if (selection.isEmpty()) return; // 未匹配任何行（如隐藏文件未显示），保持原选中
+
+    view->selectionModel()->select(selection,
+                                    QItemSelectionModel::ClearAndSelect
+                                            | QItemSelectionModel::Rows);
+    view->setCurrentIndex(first);
+    view->scrollTo(first, QAbstractItemView::PositionAtCenter);
 }
 
 void PanelWidget::closeTab(int index)
