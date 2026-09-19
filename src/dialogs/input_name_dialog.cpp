@@ -1,8 +1,11 @@
 #include "input_name_dialog.h"
 
 #include <QDialogButtonBox>
+#include <QFontMetrics>
+#include <QGuiApplication>
 #include <QLabel>
 #include <QLineEdit>
+#include <QScreen>
 #include <QVBoxLayout>
 
 namespace fm {
@@ -37,6 +40,27 @@ InputNameDialog::InputNameDialog(const QString &title, const QString &label,
     layout->addWidget(buttons);
 
     connect(edit_, &QLineEdit::textChanged, this, &InputNameDialog::validate);
+
+    // 初始宽度按初始名称长度自适应：文本渲染宽 + 控件边距
+    // 下限为布局默认 sizeHint（短名观感不变），上限为主窗口宽度的 ~90%
+    {
+        const QFontMetrics fm = edit_->fontMetrics();
+        // QLineEdit 默认 sizeHint 为 17 个 'x' 宽 + 框架边距，由此反推控件自身边距
+        const int editChrome = edit_->sizeHint().width() - fm.horizontalAdvance(QLatin1Char('x')) * 17;
+        const int margins = layout->contentsMargins().left() + layout->contentsMargins().right();
+        const int wanted = editChrome + fm.horizontalAdvance(defaultName) + margins;
+
+        const int minWidth = sizeHint().width();
+        int refWidth = 0;
+        if (const QWidget *pw = parentWidget()) {
+            refWidth = pw->window()->width();
+        } else {
+            refWidth = QGuiApplication::primaryScreen()->availableGeometry().width();
+        }
+        const int maxWidth = qMax(qRound(refWidth * 0.9), minWidth);
+
+        resize(qBound(minWidth, wanted, maxWidth), sizeHint().height());
+    }
 }
 
 QString InputNameDialog::name() const

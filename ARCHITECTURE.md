@@ -141,7 +141,7 @@ fm-qt/
 │       ├── properties_dialog.cpp
 │       ├── open_with_dialog.h        # "打开..."选择应用
 │       ├── open_with_dialog.cpp
-│       ├── input_name_dialog.h       # 收藏新建/重名提示
+│       ├── input_name_dialog.h       # 输入名称对话框（新建/重命名/收藏；初始宽度按名称长度自适应）
 │       ├── input_name_dialog.cpp
 │       ├── conflict_dialog.h         # 同名冲突选择对话框
 │       ├── conflict_dialog.cpp
