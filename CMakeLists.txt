@@ -27,6 +27,15 @@ include(GNUInstallDirs)
 # Qt6 最低版本要求：6.4（Qt 6.x 系列源码兼容；CI runner 提供 6.4.2）
 find_package(Qt6 6.4 REQUIRED COMPONENTS Widgets Core Gui Concurrent DBus Network LinguistTools)
 
+# Wayland：用于发送 wlr-foreign-toplevel-management activate 请求激活窗口（可选；
+# 缺失时退回 Qt 的 raise/activateWindow，合成器可能忽略）
+find_package(PkgConfig)
+if(PkgConfig_FOUND)
+    pkg_check_modules(WAYLAND_CLIENT IMPORTED_TARGET wayland-client)
+endif()
+find_program(WAYLAND_SCANNER_EXECUTABLE wayland-scanner)
+mark_as_advanced(WAYLAND_SCANNER_EXECUTABLE)
+
 qt_standard_project_setup()
 
 # 从 CMake project() 版本号生成 version.h（供关于对话框等使用）
@@ -118,6 +127,8 @@ qt_add_executable(fm
     src/ui/favorites_menu_controller.cpp
     src/ui/main_window.h
     src/ui/main_window.cpp
+    src/ui/toplevel_activator.h
+    src/ui/toplevel_activator.cpp
     src/ui/volume_menu_controller.h
     src/ui/volume_menu_controller.cpp
     resources.qrc
@@ -128,6 +139,30 @@ target_link_libraries(fm PRIVATE
     Qt6::Widgets
     Qt6::Concurrent
 )
+
+# Wayland 支持（wlr-foreign-toplevel-management 请求合成器激活窗口，
+# labwc 等 wlroots 合成器支持；协议绑定由 wayland-scanner 构建期生成）
+if(WAYLAND_CLIENT_FOUND AND WAYLAND_SCANNER_EXECUTABLE)
+    enable_language(C) # 编译 wayland-scanner 生成的协议绑定（纯 C）
+    set(FM_WLR_TOPLEVEL_XML
+            ${CMAKE_CURRENT_SOURCE_DIR}/protocols/wlr-foreign-toplevel-management-unstable-v1.xml)
+    set(FM_WLR_TOPLEVEL_SRC ${CMAKE_CURRENT_BINARY_DIR}/wlr-foreign-toplevel-protocol.c)
+    set(FM_WLR_TOPLEVEL_HDR ${CMAKE_CURRENT_BINARY_DIR}/wlr-foreign-toplevel-protocol.h)
+    add_custom_command(
+        OUTPUT ${FM_WLR_TOPLEVEL_SRC} ${FM_WLR_TOPLEVEL_HDR}
+        COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code
+                ${FM_WLR_TOPLEVEL_XML} ${FM_WLR_TOPLEVEL_SRC}
+        COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header
+                ${FM_WLR_TOPLEVEL_XML} ${FM_WLR_TOPLEVEL_HDR}
+        DEPENDS ${FM_WLR_TOPLEVEL_XML}
+        VERBATIM)
+    target_sources(fm PRIVATE ${FM_WLR_TOPLEVEL_SRC})
+    target_include_directories(fm PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+    target_link_libraries(fm PRIVATE PkgConfig::WAYLAND_CLIENT)
+    target_compile_definitions(fm PRIVATE FM_HAVE_WAYLAND)
+else()
+    message(STATUS "wayland-client/wayland-scanner not found; toplevel activation unavailable")
+endif()
 
 # 包含 CMake 生成的 version.h
 target_include_directories(fm PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
@@ -164,6 +199,13 @@ install(FILES "${FM_MAN_PAGE}" DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
 # 安装 .desktop 文件
 install(FILES fm.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+
+# D-Bus 服务激活描述文件（org.freedesktop.FileManager1）
+# 安装后 dbus-daemon 在服务名无人持有时自动启动 fm（浏览器"打开所在文件夹"等场景）
+configure_file(org.freedesktop.FileManager1.service.in
+               ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.FileManager1.service @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.FileManager1.service
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/dbus-1/services)
 
 # 安装应用图标到 hicolor 主题（scalable 矢量格式，可在任意 DPI 下清晰显示）
 install(FILES fm.svg DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)

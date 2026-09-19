@@ -358,8 +358,9 @@
   - `ShowFolders`：在活动面板打开各文件夹（已有同路径选项卡则切换，否则新建选项卡）。
   - `ShowItems`：按父目录分组，每组在活动面板打开一个选项卡并选中对应项目（滚动到首个选中项）。
   - `ShowItemProperties`：弹出各项目的属性对话框（非模态，可多个并存）。
-- 处理请求后将主窗口取消最小化并置前激活。
-- 服务名注册失败（无会话总线，或被其他文件管理器占用）时仅记录日志，不影响程序其余功能。
+- **服务激活**：安装 D-Bus 服务描述文件 `org.freedesktop.FileManager1.service`（`share/dbus-1/services/`）；fm 未运行时其他程序调用该服务，dbus-daemon 自动启动 fm 并投递排队中的请求（需 `make install` 安装服务文件后生效）。
+- **名称接管**：若启动时服务名被其他文件管理器占用（注册失败），fm 持续监视该名称；占用者退出后自动接管注册。
+- **窗口置前**：处理请求后将主窗口取消最小化并置前激活。Wayland 下通过 `wlr-foreign-toplevel-management-v1` 协议向合成器发送 `activate` 请求（按 `app_id`/标题匹配本应用 toplevel，最小化时先 `unset_minimized`；labwc 等 wlroots 合成器支持，协议绑定由 wayland-scanner 构建期生成）；Wayland 下 `raise()/activateWindow()` 由合成器决定且常被忽略，此为可靠置顶途径。协议不可用时退回常规路径。
 
 ### 7.6 其他
 - 不支持文件拖放（DnD）。

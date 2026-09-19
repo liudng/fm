@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QStringList>
 
+class QDBusServiceWatcher;
+
 namespace fm {
 
 // org.freedesktop.FileManager1 D-Bus 服务（freedesktop.org 文件管理器接口规范）
@@ -22,7 +24,8 @@ public:
 
     // 在 session bus 上注册服务名与对象
     // 注册失败（无会话总线，或服务名已被其他文件管理器占用）时仅记录日志并
-    // 返回 false，程序其余功能不受影响。
+    // 返回 false，程序其余功能不受影响；
+    // 若失败原因是服务名被占用，会持续监视，占用者退出后自动接管。
     bool registerService();
 
 public slots:
@@ -44,8 +47,13 @@ signals:
     void showItemPropertiesRequested(const QStringList &paths);
 
 private:
+    // 服务名被其他实例占用时开始监视其释放（幂等）
+    void watchNameForRelease();
+
     // URI 列表 → 本地路径列表（忽略非本地 URI；容忍无 scheme 的绝对路径）
     static QStringList urisToLocalPaths(const QStringList &uris);
+
+    QDBusServiceWatcher *nameWatcher_ = nullptr;
 };
 
 } // namespace fm

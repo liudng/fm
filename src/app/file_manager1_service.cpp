@@ -1,6 +1,7 @@
 #include "file_manager1_service.h"
 
 #include <QDBusConnection>
+#include <QDBusServiceWatcher>
 #include <QUrl>
 #include <QDebug>
 
@@ -23,6 +24,8 @@ bool FileManager1Service::registerService()
     if (!bus.registerService(QString::fromLatin1(kServiceName))) {
         qWarning() << "FileManager1: failed to acquire" << kServiceName
                    << "(owned by another file manager?)";
+        // 服务名被其他文件管理器占用：监视其释放后自动接管
+        watchNameForRelease();
         return false;
     }
     if (!bus.registerObject(QString::fromLatin1(kObjectPath), this,
@@ -32,6 +35,21 @@ bool FileManager1Service::registerService()
         return false;
     }
     return true;
+}
+
+void FileManager1Service::watchNameForRelease()
+{
+    if (nameWatcher_) return;
+    nameWatcher_ = new QDBusServiceWatcher(
+            QString::fromLatin1(kServiceName), QDBusConnection::sessionBus(),
+            QDBusServiceWatcher::WatchForUnregistration, this);
+    connect(nameWatcher_, &QDBusServiceWatcher::serviceUnregistered, this, [this]() {
+        // 此前占用服务名的文件管理器退出：尝试接管
+        if (registerService()) {
+            nameWatcher_->deleteLater();
+            nameWatcher_ = nullptr;
+        }
+    });
 }
 
 void FileManager1Service::ShowFolders(const QStringList &uris, const QString &startupId)

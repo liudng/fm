@@ -32,6 +32,8 @@
 #include <QTimer>
 #include <QToolBar>
 
+#include "toplevel_activator.h"
+
 namespace fm {
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
@@ -439,6 +441,9 @@ void MainWindow::bringToFront()
     show();
     raise();
     activateWindow();
+    // Wayland 下 raise/activateWindow 由合成器决定，常被忽略；
+    // 通过 wlr-foreign-toplevel-management 请求合成器激活（labwc 支持）
+    ToplevelActivator::activateAppToplevel(windowHandle());
 }
 
 // === 收藏菜单（布局采集与恢复）===

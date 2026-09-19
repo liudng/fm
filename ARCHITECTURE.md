@@ -66,6 +66,9 @@ fm-qt/
 ├── fm.1                               # man 手册（section 1）
 ├── fm.desktop                          # .desktop 文件
 ├── fm.svg                             # 应用图标（矢量 SVG）
+├── org.freedesktop.FileManager1.service.in  # D-Bus 服务激活描述模板
+├── protocols/
+│   └── wlr-foreign-toplevel-management-unstable-v1.xml  # Wayland 窗口激活协议
 ├── resources.qrc                      # Qt 资源文件（嵌入翻译 .qm）
 ├── .github/workflows/                 # CI/CD（build-image / ci / release）
 ├── docker/                            # 构建 Dockerfile（Debian/Fedora）
@@ -74,6 +77,8 @@ fm-qt/
 │   ├── app/
 │   │   ├── fm_application.h           # QApplication 子类（图标主题/翻译）
 │   │   ├── fm_application.cpp
+│   │   ├── file_manager1_service.h   # org.freedesktop.FileManager1 D-Bus 服务
+│   │   ├── file_manager1_service.cpp
 │   │   ├── single_instance.h         # 单实例管理（QLocalServer）
 │   │   └── single_instance.cpp
 │   ├── core/
@@ -95,7 +100,9 @@ fm-qt/
 │   │   └── volume_manager.cpp
 │   ├── ui/
 │   │   ├── main_window.h             # 主窗口（含菜单栏/工具栏/卷菜单内联实现）
-│   │   └── main_window.cpp
+│   │   ├── main_window.cpp
+│   │   ├── toplevel_activator.h      # Wayland 窗口置顶激活器
+│   │   └── toplevel_activator.cpp
 │   ├── panel/
 │   │   ├── panel_container.h         # 双面板容器（QSplitter/布局/显隐）
 │   │   ├── panel_container.cpp
@@ -204,10 +211,16 @@ signals:  // URI 换算为本地路径后发射（仅保留本地 URI）
     void showFoldersRequested(const QStringList &paths);
     void showItemsRequested(const QStringList &paths);
     void showItemPropertiesRequested(const QStringList &paths);
+
+private:
+    void watchNameForRelease();  // 服务名被占用时监视其释放（幂等）
+    QDBusServiceWatcher *nameWatcher_ = nullptr;
 };
 ```
 - 服务名 `org.freedesktop.FileManager1`，对象路径 `/org/freedesktop/FileManager1`；
-  注册失败（无会话总线或被其他文件管理器占用）时静默降级
+  注册失败（无会话总线或被其他文件管理器占用）时静默降级，
+  被占用场景下由 `QDBusServiceWatcher`（`WatchForUnregistration`）监视，
+  占用者退出后自动重新注册接管
 - 协议语义映射：`ShowFolders` → 活动面板打开选项卡；`ShowItems` → 按父目录分组打开并选中；
   `ShowItemProperties` → 非模态属性对话框
 - **注意**：类中全部 slot 均导出为 D-Bus 方法，内部逻辑不得使用 slot
@@ -1215,6 +1228,21 @@ FileOperations::copy(sources, dest)
 - `makeFileItem(const QFileInfo&)`（fm_core，`file_item.cpp`）统一 FileItem 构造，
   供 `FileListModel::loadDirectory` 与 `MainWindow::showItemProperties` 共用；
   图标不在此填充（QFileIconProvider 依赖 QtWidgets，fm_core 不链接），由模型层补充
+- **服务激活**：`org.freedesktop.FileManager1.service.in` 经 `configure_file` 生成并安装到
+  `share/dbus-1/services/`；fm 未运行时 dbus-daemon 依据该描述文件自动拉起 fm 并投递
+  排队的方法调用（需 `make install` 后生效；开发期可手动放置于
+  `~/.local/share/dbus-1/services/`）
+- **名称接管**：服务名被其他文件管理器占用时创建 `QDBusServiceWatcher`
+  （`WatchForUnregistration`）监视占用者退出，释放后自动重新注册；
+  回调用 lambda 而非 slot 实现（ExportAllSlots 会把 slot 一并导出为 D-Bus 方法）
+- **窗口置前**：三个 D-Bus 请求处理完毕后调用 `bringToFront()` 置前；Wayland 下经
+  `ToplevelActivator`（`ui/toplevel_activator.cpp`）使用 `wlr-foreign-toplevel-management-v1`
+  协议向合成器发送 `activate` 请求（`FM_HAVE_WAYLAND` 条件编译；协议绑定由 wayland-scanner
+  构建期从 `protocols/` XML 生成，libwayland-client 为可选依赖；wl_display 经
+  `QNativeInterface::QWaylandApplication` 获取，与 Qt 共用连接）。按 app_id
+  （desktopFileName 否则 applicationName）/窗口标题匹配 toplevel，最小化时先 unset_minimized。
+  注意 libwayland 对 NULL listener 槽位会 abort，全部槽位须填充。
+  labwc 等 wlroots 合成器支持；协议不可用或非 wayland 平台退回常规 raise/activateWindow
 
 ---
 
@@ -1248,6 +1276,7 @@ app → ui → panel → filelist → core
 - `lsattr`（可选，属性对话框 ext 标志位显示）
 - 系统图标主题（推荐 `gnome-icon-theme`）
 - Python 3（构建时运行 `translate.py`，非运行时依赖）
+- libwayland-client + wayland-scanner（可选，`FM_HAVE_WAYLAND` 窗口置顶；缺失时退回 Qt 常规置前）
 
 ---
 
@@ -1266,6 +1295,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS
     Widgets Core Gui Concurrent DBus Network LinguistTools)
+
+# Wayland（可选：wlr-foreign-toplevel-management 激活窗口）
+find_package(PkgConfig)
+pkg_check_modules(WAYLAND_CLIENT IMPORTED_TARGET wayland-client)
+find_program(WAYLAND_SCANNER_EXECUTABLE wayland-scanner)
 
 qt_standard_project_setup()
 
@@ -1294,6 +1328,18 @@ target_link_libraries(fm PRIVATE
     Qt6::Concurrent Qt6::DBus Qt6::Network
 )
 
+# Wayland 支持（wayland-scanner 生成协议绑定；缺失时退回 Qt 常规路径）
+if(WAYLAND_CLIENT_FOUND AND WAYLAND_SCANNER_EXECUTABLE)
+    enable_language(C)
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/wlr-foreign-toplevel-protocol.c
+               ${CMAKE_CURRENT_BINARY_DIR}/wlr-foreign-toplevel-protocol.h
+        COMMAND wayland-scanner private-code|client-header protocols/*.xml ...)
+    target_sources(fm PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/wlr-foreign-toplevel-protocol.c)
+    target_link_libraries(fm PRIVATE PkgConfig::WAYLAND_CLIENT)
+    target_compile_definitions(fm PRIVATE FM_HAVE_WAYLAND)
+endif()
+
 # 翻译文件（.ts → .qm → 嵌入资源 /i18n）
 qt_add_translations(fm
     TS_FILES translations/fm_zh.ts translations/fm_en.ts
@@ -1303,7 +1349,12 @@ qt_add_translations(fm
 install(TARGETS fm RUNTIME DESTINATION bin)
 install(FILES fm.1 DESTINATION share/man/man1)                              # man 手册
 install(FILES fm.desktop DESTINATION share/applications)                    # .desktop
-install(FILES fm.svg DESTINATION share/icons/hicolor/scalable/apps)                 # 矢量图标
+install(FILES fm.svg DESTINATION share/icons/hicolor/scalable/apps)         # 矢量图标
+# D-Bus 服务激活描述文件（fm 未运行时 dbus-daemon 自动拉起）
+configure_file(org.freedesktop.FileManager1.service.in
+               ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.FileManager1.service @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.FileManager1.service
+        DESTINATION share/dbus-1/services)                                  # D-Bus 服务激活
 ```
 - 自定义构建目标 `fm_lupdate` 调用 `lupdate` 提取源文本到 .ts 文件
 - `translate.py` 在 `translations/` 目录手动运行，将英→中映射写入 `fm_zh.ts`
