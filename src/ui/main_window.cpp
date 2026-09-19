@@ -9,9 +9,11 @@
 #include "../core/session_state.h"
 #include "../core/shortcut_manager.h"
 #include "../dialogs/about_dialog.h"
+#include "../dialogs/error_dialog.h"
 #include "../dialogs/properties_dialog.h"
 #include "../dialogs/settings_dialog.h"
 #include "../dialogs/settings_pages.h"
+#include "../fileops/file_operations.h"
 #include "../filelist/file_item.h"
 #include "../filelist/file_list_model.h"
 #include "../panel/panel_container.h"
@@ -84,6 +86,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
             // 收藏变化已在菜单 aboutToShow 时刷新
         }
     });
+
+    // 文件操作（复制/移动/删除/移入回收站）失败时统一提示
+    connect(FileOperations::instance(), &FileOperations::operationFailed, this,
+            [this](const QString &errorMsg) { ErrorDialog::show(this, errorMsg); });
 
     // 应用初始配置（面板可见性、隐藏文件）
     applyPanelConfig();

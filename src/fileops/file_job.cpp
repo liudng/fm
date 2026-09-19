@@ -136,7 +136,22 @@ TrashJob::TrashJob(const QList<QUrl> &sources, QObject *parent) : FileJob(parent
 
 bool TrashJob::execute(QString *error)
 {
-    return TrashCan::moveToTrash(sources_, error);
+    // 逐文件处理：单项失败不中断后续，失败原因汇总；
+    // 成功项立即通知刷新（跨线程 emit，经队列投递到主线程）
+    bool allOk = true;
+    QStringList failures;
+    for (const QUrl &u : sources_) {
+        if (isCanceled()) break;
+        QString err;
+        if (TrashCan::moveToTrash(u, &err)) {
+            emit directoryChanged(QFileInfo(u.toLocalFile()).absolutePath());
+        } else {
+            allOk = false;
+            failures.append(err);
+        }
+    }
+    if (!allOk && error) *error = failures.join(QLatin1Char('\n'));
+    return allOk;
 }
 
 QStringList TrashJob::affectedDirectories() const

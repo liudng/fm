@@ -897,12 +897,20 @@ signals:
 ```cpp
 class TrashCan {
 public:
-    bool moveToTrash(const QList<QUrl> &files, QString *errorMsg);
-    static QString trashDirForFile(const QUrl &file);   // ~/.local/share/Trash 或 .Trash-1000
+    bool moveToTrash(const QUrl &file, QString *errorMsg);  // 失败时 errorMsg 含系统原因
+    static QString trashDirForFile(const QString &filePath); // ~/.local/share/Trash 或 .Trash-1000
+private:
+    // 生成不冲突的目标文件名（超长名安全处理）
+    static QString uniqueTrashName(const QString &trashFilesDir, const QString &originalName);
+    // 写 .trashinfo（失败时 error 含 QFile::errorString）
+    static bool writeTrashInfo(const QString &infoPath, const QString &originalPath,
+                               const QDateTime &deletionTime, QString *error);
 };
 ```
 - 外部分区优先使用 `.Trash/<uid>`（需满足安全条件：是目录、非符号链接、sticky bit 设置），不满足时回退 `.Trash-<uid>`。
 - 同分区使用 `$XDG_DATA_HOME/Trash`（`~/.local/share/Trash`）。
+- **超长文件名**：`.trashinfo` 文件名 = 目标名 + `.trashinfo`（10 字节）；超过目标文件系统单名上限（`pathconf(_PC_NAME_MAX)`）时，截断原名（按 UTF-8 字节，不切断多字节字符）并追加 `_` + sha1 前 8 位 hex 后缀。`files/` 与 `info/` 使用相同名字保持配对，恢复时按 `.trashinfo` 的 `Path` 字段记录的原路径。
+- `TrashJob::execute()` 逐文件处理：单项失败不中断后续，成功项立即 emit `directoryChanged`（跨线程经队列投递），失败原因汇总（换行分隔）经 `FileOperations::operationFailed` 由 MainWindow 统一弹 `ErrorDialog`。
 
 ---
 

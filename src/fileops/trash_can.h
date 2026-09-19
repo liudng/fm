@@ -17,11 +17,8 @@ class TrashCan
     Q_DECLARE_TR_FUNCTIONS(fm::TrashCan)
 public:
     // 将文件移到回收站
-    // 成功返回 true，失败返回 false 并填充 errorMsg
+    // 成功返回 true，失败返回 false 并填充 errorMsg（含系统原因）
     static bool moveToTrash(const QUrl &fileUrl, QString *errorMsg);
-
-    // 批量移到回收站
-    static bool moveToTrash(const QList<QUrl> &fileUrls, QString *errorMsg);
 
     // 获取文件对应的 Trash 目录（主目录或外部分区）
     static QString trashDirForFile(const QString &filePath);
@@ -31,11 +28,13 @@ private:
     static bool ensureTrashDir(const QString &trashDir, QString *errorMsg);
 
     // 生成不冲突的目标文件名
+    // 原名 + ".trashinfo" 超过文件系统单名上限（NAME_MAX）时截断并追加 hash 后缀
+    // （files/ 与 info/ 使用相同名字保持配对；恢复时按 Path 字段记录的原路径）
     static QString uniqueTrashName(const QString &trashFilesDir, const QString &originalName);
 
     // 写 .trashinfo 文件
     static bool writeTrashInfo(const QString &infoPath, const QString &originalPath,
-                               const QDateTime &deletionTime);
+                               const QDateTime &deletionTime, QString *error);
 };
 
 } // namespace fm
