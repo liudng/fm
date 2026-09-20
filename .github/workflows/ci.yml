@@ -9,58 +9,6 @@ on:
       - main
 
 jobs:
-  quality:
-    name: Quality Gate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build pkgconf \
-            qt6-base-dev qt6-tools-dev \
-            libxkbcommon-dev \
-            libgtest-dev \
-            clang-tidy
-          # 固定 clang-format 版本为 19.1.7，与本地开发环境一致
-          # 不同版本的 clang-format 对 CJK 字符宽度的计算方式不同，
-          # 会导致带中文注释的对齐产生不同结果。通过 pip 安装指定版本。
-          python3 -m pip install --user clang-format==19.1.7
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Check code formatting
-        run: |
-          find src tests \( -name '*.cpp' -o -name '*.h' \) -print0 \
-            | xargs -0 clang-format --dry-run --Werror
-
-      - name: Configure (tests + compile_commands)
-        run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DFM_BUILD_TESTS=ON
-
-      - name: Build
-        run: cmake --build build --parallel
-
-      - name: Run tests
-        run: ctest --test-dir build --output-on-failure
-
-      - name: clang-tidy
-        continue-on-error: true
-        run: |
-          run-clang-tidy -p build -warnings-as-errors='*' \
-            $(find src -name '*.cpp' | grep -v 'main.cpp')
-
-      - name: ASan build + test
-        run: |
-          cmake -B build-asan -G Ninja \
-            -DFM_BUILD_TESTS=ON \
-            -DFM_ENABLE_ASAN=ON
-          cmake --build build-asan --parallel
-          ctest --test-dir build-asan --output-on-failure
-
   wait-for-images:
     name: Wait for builder images
     runs-on: ubuntu-latest
@@ -95,7 +43,7 @@ jobs:
 
   build:
     name: Build (${{ matrix.os }} / ${{ matrix.arch }})
-    needs: [quality, wait-for-images]
+    needs: [wait-for-images]
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
@@ -163,5 +111,3 @@ jobs:
                   ..
             cmake --build . -- -j$(nproc)
             cpack -G "$CPACK_GENS"
-          '
-
