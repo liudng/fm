@@ -111,3 +111,4 @@ jobs:
                   ..
             cmake --build . -- -j$(nproc)
             cpack -G "$CPACK_GENS"
+          '

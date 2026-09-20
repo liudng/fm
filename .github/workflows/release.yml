@@ -82,7 +82,7 @@ jobs:
             find . -type f \( -name 'fm' -o -name '*.so' -o -name '*.so.*' \) \
               -exec sh -c 'file "$1" | grep -q "ELF" && strip --strip-unneeded "$1"' _ {} \;
             cpack -G "$CPACK_GENS"
-
+          '
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
