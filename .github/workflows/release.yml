@@ -69,25 +69,23 @@ jobs:
             -v "$PWD:/workspace" \
             -v "$HOME/.ccache:/ccache" \
             -w /workspace "${{ matrix.builder }}" bash -lc '
-            set -euo pipefail
-            mkdir -p "$BUILD_DIR"
-            cd "$BUILD_DIR"
-            cmake -DCMAKE_BUILD_TYPE=Release \
-                  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                  ..
-            cmake --build . -- -j$(nproc)
-            # 打包前 strip 可执行文件与共享库，移除调试符号以减小体积
-            # 使用 --strip-unneeded 保留运行所需的动态符号，不影响功能
-            find . -type f \( -name 'fm' -o -name '*.so' -o -name '*.so.*' \) \
-              -exec sh -c 'file "$1" | grep -q "ELF" && strip --strip-unneeded "$1"' _ {} \;
-            cpack -G "$CPACK_GENS"
-          '
+              set -euo pipefail
+              mkdir -p "$BUILD_DIR"
+              cd "$BUILD_DIR"
+              cmake -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                    ..
+              cmake --build . -- -j$(nproc)
+              # 打包前 strip 可执行文件，移除调试符号以减小体积
+              strip --strip-all fm
+              cpack -G "$CPACK_GENS"
+            '
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fm-qt-${{ matrix.os }}-${{ matrix.arch }}
+          name: fm-${{ matrix.os }}-${{ matrix.arch }}
           path: |
             build-${{ matrix.os }}-${{ matrix.arch }}/*.tar.gz
             build-${{ matrix.os }}-${{ matrix.arch }}/*.deb

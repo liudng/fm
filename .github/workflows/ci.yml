@@ -102,13 +102,13 @@ jobs:
             -v "$PWD:/workspace" \
             -v "$HOME/.ccache:/ccache" \
             -w /workspace "${{ matrix.builder }}" bash -lc '
-            set -euo pipefail
-            mkdir -p "$BUILD_DIR"
-            cd "$BUILD_DIR"
-            cmake -DCMAKE_BUILD_TYPE=Release \
-                  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                  ..
-            cmake --build . -- -j$(nproc)
-            cpack -G "$CPACK_GENS"
-          '
+              set -euo pipefail
+              mkdir -p "$BUILD_DIR"
+              cd "$BUILD_DIR"
+              cmake -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                    ..
+              cmake --build . -- -j$(nproc)
+              cpack -G "$CPACK_GENS"
+            '
